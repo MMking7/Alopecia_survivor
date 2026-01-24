@@ -1,20 +1,24 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { 
+  GAME_CONFIG, 
+  SPRITES, 
+  CHARACTERS, 
+  ENEMIES, 
+  BOSS, 
+  UPGRADES, 
+  SHOP_UPGRADES 
+} from './constants'
+import TitleScreen from './screens/TitleScreen'
+import CharacterSelectScreen from './screens/CharacterSelectScreen'
+import ShopScreen from './screens/ShopScreen'
+import GameOverScreen from './screens/GameOverScreen'
 
 // ============================================================
-// GAME CONSTANTS
+// UTILITY FUNCTIONS
 // ============================================================
-const GAME_CONFIG = {
-  CANVAS_WIDTH: 1024,
-  CANVAS_HEIGHT: 768,
-  PLAYER_SPEED: 200,
-  ENEMY_SPAWN_INTERVAL: 800,
-  BOSS_SPAWN_TIME: 120,
-  XP_PER_LEVEL: 50,
-  LEVEL_XP_MULTIPLIER: 1.3,
-  ENEMY_DESPAWN_DISTANCE: 800,
-  SPAWN_DISTANCE_MIN: 450,
-  SPAWN_DISTANCE_MAX: 600,
-}
+const generateId = () => Math.random().toString(36).substr(2, 9)
+const distance = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
+const lerp = (a, b, t) => a + (b - a) * t
 
 // 시간 기반 난이도 배수 계산
 const getDifficultyMultiplier = (gameTime) => {
@@ -27,114 +31,6 @@ const getDifficultyMultiplier = (gameTime) => {
     speedMultiplier: 1 + minutes * 0.05,
   }
 }
-
-// Sprite paths - using generated pixel art
-const SPRITES = {
-  background: '/sprites/grass_bg.webp',
-  characters: {
-    female: '/sprites/char_female_baldness_1769163428088.webp',
-    areata: '/sprites/char_areata_1769163447640.webp',
-    wongfeihung: '/sprites/char_wong_feihung_1769163464961.webp',
-    heihachi: '/sprites/char_heihachi_1769163501406.webp',
-  },
-  enemies: {
-    clipper: '/sprites/enemy_clipper_1769163541753.webp',
-    zombie: '/sprites/enemy_zombie_1769163560887.webp',
-    dna: '/sprites/enemy_dna_1769163577183.webp',
-    cigarette: '/sprites/enemy_cigarette_1769163592604.webp',
-    soju: '/sprites/enemy_soju_1769163624862.webp',
-  },
-  boss: '/sprites/boss_complainant_1769163642840.webp',
-}
-
-const CHARACTERS = [
-  {
-    id: 'female',
-    name: '여성형 탈모',
-    weapon: 'Equalizer',
-    description: '충격파 AoE 공격',
-    color: '#FF69B4',
-    attackType: 'aoe',
-    attackColor: 'rgba(255, 105, 180, 0.4)',
-  },
-  {
-    id: 'areata',
-    name: '원형 탈모',
-    weapon: 'Hair Loss Beam',
-    description: '단일 대상 고데미지 레이저',
-    color: '#32CD32',
-    attackType: 'beam',
-    attackColor: '#00FF00',
-  },
-  {
-    id: 'wongfeihung',
-    name: '황비홍',
-    weapon: 'Ponytail Spin',
-    description: '근접 회전 공격',
-    color: '#8B4513',
-    attackType: 'spin',
-    attackColor: 'rgba(210, 105, 30, 0.6)',
-  },
-  {
-    id: 'heihachi',
-    name: '헤이하치',
-    weapon: 'Lightning',
-    description: '랜덤 번개 공격',
-    color: '#FFD700',
-    attackType: 'lightning',
-    attackColor: '#FFFF00',
-  },
-]
-
-const ENEMIES = [
-  { type: 'clipper', name: '바리깡', speed: 120, hp: 30, damage: 10, xp: 15, size: 48, attackType: 'dash', dashSpeed: 300, dashCooldown: 2000 },
-  { type: 'zombie', name: '야근 좀비', speed: 50, hp: 50, damage: 15, xp: 20, size: 56, attackType: 'poison', poisonDuration: 3000 },
-  { type: 'dna', name: '유전', speed: 70, hp: 40, damage: 12, xp: 25, size: 52, attackType: 'spiral' },
-  { type: 'cigarette', name: '담배', speed: 60, hp: 25, damage: 8, xp: 10, size: 48, attackType: 'ranged', projectileSpeed: 200, attackRange: 280, attackCooldown: 1500 },
-  { type: 'soju', name: '소주', speed: 90, hp: 35, damage: 20, xp: 15, size: 52, attackType: 'explosion', explosionRadius: 80 },
-]
-
-const BOSS = {
-  type: 'boss',
-  name: '악성 민원인',
-  speed: 80,
-  hp: 1500,
-  damage: 40,
-  xp: 500,
-  size: 140,
-  attackType: 'boss',
-  attackCooldown: 800,
-}
-
-const UPGRADES = [
-  { id: 'damage', name: '모발 두께', description: '공격력 +20%', icon: '💪', effect: (stats) => ({ ...stats, damage: stats.damage * 1.2 }) },
-  { id: 'range', name: '모발 연장', description: '공격 범위 +25%', icon: '📏', effect: (stats) => ({ ...stats, attackRange: stats.attackRange * 1.25 }) },
-  { id: 'speed', name: '미역 섭취', description: '공격 속도 +15%', icon: '🥬', effect: (stats) => ({ ...stats, attackSpeed: stats.attackSpeed * 1.15 }) },
-  { id: 'heal', name: '검은콩', description: 'HP 20% 회복', icon: '🫘', effect: (stats) => ({ ...stats, hp: Math.min(stats.maxHp, stats.hp + stats.maxHp * 0.2) }) },
-  { id: 'shield', name: '글루건', description: '쉴드 1회 추가', icon: '🛡️', effect: (stats) => ({ ...stats, shield: stats.shield + 1 }) },
-  { id: 'maxhp', name: '프로페시아', description: '최대 HP +30', icon: '💊', effect: (stats) => ({ ...stats, maxHp: stats.maxHp + 30, hp: stats.hp + 30 }) },
-  { id: 'movespeed', name: '칼퇴 본능', description: '이동 속도 +15%', icon: '🏃', effect: (stats) => ({ ...stats, moveSpeed: stats.moveSpeed * 1.15 }) },
-]
-
-// Shop permanent upgrades
-const SHOP_UPGRADES = [
-  { id: 'maxHp', name: 'HP 강화', description: '최대 HP +5% per level', icon: '❤️', cost: 100, maxLevel: 10 },
-  { id: 'atk', name: 'ATK 강화', description: '공격력 +3% per level', icon: '⚔️', cost: 150, maxLevel: 10 },
-  { id: 'spd', name: 'SPD 강화', description: '이동속도 +2% per level', icon: '🏃', cost: 120, maxLevel: 10 },
-  { id: 'crt', name: 'CRT 강화', description: '크리티컬 +2% per level', icon: '💥', cost: 200, maxLevel: 10 },
-  { id: 'pickup', name: 'Pickup 강화', description: '습득 범위 +5% per level', icon: '🧲', cost: 80, maxLevel: 10 },
-  { id: 'haste', name: 'Haste 강화', description: '공격속도 +2% per level', icon: '⚡', cost: 180, maxLevel: 10 },
-  { id: 'heal', name: 'Heal 강화', description: '회복량 +3% per level', icon: '💊', cost: 150, maxLevel: 10 },
-  { id: 'luck', name: 'Luck 강화', description: '드랍률 +2% per level', icon: '🎲', cost: 250, maxLevel: 10 },
-  { id: 'revival', name: 'Revival', description: '부활 횟수 +1', icon: '💖', cost: 500, maxLevel: 3 },
-]
-
-// ============================================================
-// UTILITY FUNCTIONS
-// ============================================================
-const generateId = () => Math.random().toString(36).substr(2, 9)
-const distance = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
-const lerp = (a, b, t) => a + (b - a) * t
 
 // ============================================================
 // IMAGE LOADER
@@ -164,6 +60,9 @@ function App() {
   const gameStateRef = useRef(null)
   const animationFrameRef = useRef(null)
 
+  // Aim mode state (UI용)
+  const [isAutoAim, setIsAutoAim] = useState(false)
+  const [pauseTab, setPauseTab] = useState('main') // main, character, settings
   // Game state
   const [gamePhase, setGamePhase] = useState('menu')
   const [selectedCharacter, setSelectedCharacter] = useState(null)
@@ -193,7 +92,7 @@ function App() {
     const saved = localStorage.getItem('hairSurvivor_shopLevels')
     return saved ? JSON.parse(saved) : {}
   })
-  const [selectedShopItem, setSelectedShopItem] = useState(null)
+  // const [selectedShopItem, setSelectedShopItem] = useState(null) // Moved inside ShopScreen
   const [highScore, setHighScore] = useState(() => {
     const saved = localStorage.getItem('hairSurvivor_highScore')
     return saved ? parseInt(saved) : 0
@@ -207,6 +106,8 @@ function App() {
         ...Object.values(SPRITES.characters),
         ...Object.values(SPRITES.enemies),
         SPRITES.boss,
+        ...Object.values(SPRITES.ui),
+        ...Object.values(SPRITES.items),
       ]
       await Promise.all(imageSources.map(loadImage))
       setImagesLoaded(true)
@@ -214,24 +115,43 @@ function App() {
     loadAllImages()
   }, [])
 
-  // Initialize game state
+  // Initialize game state (using character stats)
   const initGame = useCallback((character) => {
+    // Basic defaults if characters don't have stats yet (fallback)
+    const base = character.baseStats || { hp: 100, maxHp: 100, damage: 30, speed: 1.0, attackSpeed: 1.5, defense: 0, crit: 0 }
+    
+    // Apply Shop Upgrades
+    const upgradeStats = (stat, upgradeId, perLevel) => {
+        return (shopLevels[upgradeId] || 0) * perLevel
+    }
+
+    const maxHp = Math.floor(base.maxHp * (1 + upgradeStats(0, 'maxHp', 0.05)))
+    const hp = maxHp // Start full HP
+
     gameStateRef.current = {
       player: {
         x: 0,
         y: 0,
         size: 64,
         character,
+        facing: 1, // 1: right, -1: left
       },
       stats: {
-        hp: 100,
-        maxHp: 100,
-        damage: 30,
-        attackSpeed: 1.5,
+        hp: hp,
+        maxHp: maxHp,
+        damage: base.damage * (1 + upgradeStats(0, 'atk', 0.03)),
+        attackSpeed: base.attackSpeed * (1 + upgradeStats(0, 'haste', 0.02)),
         attackRange: 150,
-        moveSpeed: 1,
+        moveSpeed: base.speed * (1 + upgradeStats(0, 'spd', 0.02)),
         shield: 0,
+        defense: base.defense, 
+        crit: base.crit + upgradeStats(0, 'crt', 0.02),
+        xpMultiplier: 1.0,
+        lifeSteal: 0,
+        pickupRange: 1.0 + upgradeStats(0, 'pickup', 0.05),
+        spawnRateMultiplier: 1.0, 
       },
+      inventory: [], 
       enemies: [],
       enemyProjectiles: [],
       xpOrbs: [],
@@ -249,8 +169,17 @@ function App() {
       bossSpawned: false,
       keys: { w: false, a: false, s: false, d: false },
       camera: { x: 0, y: 0 },
+      isAutoAim: isAutoAim, // Sync with UI select
+      mouseX: 0,
+      mouseY: 0,
     }
-  }, [])
+  }, [shopLevels, isAutoAim])
+
+
+
+
+
+
 
   // Handle keyboard input
   useEffect(() => {
@@ -347,7 +276,8 @@ function App() {
       const difficulty = getDifficultyMultiplier(state.gameTime)
 
       // Spawn enemies with difficulty scaling
-      if (currentTime - state.lastEnemySpawn > difficulty.spawnRate) {
+      const adjustedSpawnRate = difficulty.spawnRate / (state.stats.spawnRateMultiplier || 1.0)
+      if (currentTime - state.lastEnemySpawn > adjustedSpawnRate) {
         state.lastEnemySpawn = currentTime
         
         // 한번에 여러 적 스폰
@@ -369,6 +299,10 @@ function App() {
             lastAttack: 0,
             isDashing: false,
             dashTarget: null,
+            isDead: false,
+            deathTimer: 0,
+            vx: 0,
+            vy: 0,
           })
         }
       }
@@ -478,23 +412,61 @@ function App() {
             }
         }
 
-        // 거리가 너무 멀면 제거
-        if (dist > GAME_CONFIG.ENEMY_DESPAWN_DISTANCE && enemy.type !== 'boss') {
-          enemy.currentHp = -999
+        // Death Check & Animation Update
+        if (enemy.isDead) {
+            enemy.deathTimer += deltaTime
+            // Knockback physics
+            enemy.x += enemy.vx * deltaTime
+            enemy.y += enemy.vy * deltaTime
+            enemy.vx *= 0.9 // Friction
+            enemy.vy *= 0.9 
+        } else if (enemy.currentHp <= 0) {
+            enemy.isDead = true
+            enemy.deathTimer = 0
+            // Apply Knockback away from player
+            const angle = Math.atan2(enemy.y - state.player.y, enemy.x - state.player.x)
+            const force = 300 // Knockback strength
+            enemy.vx = Math.cos(angle) * force
+            enemy.vy = Math.sin(angle) * force
+            
+            // Drop XP Orb
+            state.xpOrbs.push({
+                id: generateId(),
+                x: enemy.x,
+                y: enemy.y,
+                value: enemy.xp,
+                createdAt: currentTime
+            })
+            
+            // Increment Kill Count immediately for satisfaction
+            state.kills += 1
+            // Check for Item Drop (Health/Coins) - simple 1% chance for now
+            if (Math.random() < 0.05) {
+                // Drop Coin logic could go here
+            }
         }
 
-        // Damage player on collision (근접 공격)
-        if (dist < 40 && enemy.attackType !== 'ranged') {
+        // Garbage Collection: Remove far enemies OR fully dead enemies
+        if (enemy.deathTimer > 0.5 || (dist > GAME_CONFIG.ENEMY_DESPAWN_DISTANCE && enemy.type !== 'boss')) {
+          enemy.shouldRemove = true // Mark for removal
+        }
+
+        // Damage player on collision (Alive enemies only)
+        if (!enemy.isDead && dist < 40 && enemy.attackType !== 'ranged') {
           if (state.stats.shield > 0) {
             state.stats.shield -= 1
           } else {
-            state.stats.hp -= (enemy.scaledDamage || enemy.damage) * deltaTime
+            const rawDamage = (enemy.scaledDamage || enemy.damage)
+            const takenDamage = Math.max(1, rawDamage * (1 - (state.stats.defense || 0))) // Defense 적용
+            state.stats.hp -= takenDamage * deltaTime
             if (state.stats.hp <= 0) {
               setGamePhase('gameover')
             }
           }
         }
       })
+      // Garbage Collection for Enemies
+      state.enemies = state.enemies.filter(e => !e.shouldRemove)
 
       // Update enemy projectiles
       state.enemyProjectiles.forEach((proj) => {
@@ -560,12 +532,17 @@ function App() {
             })
             state.enemies.forEach((enemy) => {
               if (distance(state.player, enemy) <= state.stats.attackRange) {
-                enemy.currentHp -= state.stats.damage
+                // Crit check
+                const isCrit = Math.random() < (state.stats.crit || 0)
+                const finalDamage = state.stats.damage * (isCrit ? 1.5 : 1.0)
+                
+                enemy.currentHp -= finalDamage
                 state.damageNumbers.push({
                   id: generateId(),
                   x: enemy.x,
                   y: enemy.y,
-                  damage: Math.floor(state.stats.damage),
+                  damage: Math.floor(finalDamage),
+                  isCritical: isCrit,
                   createdAt: currentTime,
                 })
               }
@@ -665,6 +642,26 @@ function App() {
       const deadEnemies = state.enemies.filter((e) => e.currentHp <= 0)
       deadEnemies.forEach((enemy) => {
         state.kills += 1
+        
+        // Life Steal Check
+        if (state.stats.lifeSteal > 0 && Math.random() < 0.2) { // 20% chance to trigger lifesteal calculation
+             // Minoxidil: "Chance to heal 3 HP" -> handled as chance here or in stat logic
+             // Let's simplified: lifeSteal = chance to heal 1HP or value
+             // Current logic: lifeSteal is just a flag/value. 
+             // Updated logic: if (Math.random() < state.stats.lifeSteal)
+             if (Math.random() < state.stats.lifeSteal) {
+                 state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + 3)
+                 state.damageNumbers.push({
+                    id: generateId(),
+                    x: state.player.x,
+                    y: state.player.y - 40,
+                    damage: "+3 HP",
+                    color: '#00FF00',
+                    createdAt: currentTime,
+                 })
+             }
+        }
+
         state.xpOrbs.push({
           id: generateId(),
           x: enemy.x,
@@ -677,7 +674,8 @@ function App() {
       // Collect XP orbs
       const collectedOrbs = state.xpOrbs.filter((orb) => distance(state.player, orb) < 80)
       collectedOrbs.forEach((orb) => {
-        state.xp += orb.value
+        const xpGain = orb.value * (state.stats.xpMultiplier || 1.0)
+        state.xp += xpGain
         if (state.xp >= state.xpNeeded) {
           state.xp = 0
           state.level += 1
@@ -897,17 +895,26 @@ function App() {
           if (img) {
             ctx.save()
             ctx.translate(sx, sy)
+            if (enemy.isDead) {
+                ctx.globalAlpha = 1 - (enemy.deathTimer / 0.5) // Fade Out
+                ctx.scale(1 + enemy.deathTimer, 1 - enemy.deathTimer) // Squash/Stretch effect? Or just fade
+            }
             if (enemy.rotation) ctx.rotate(enemy.rotation)
+            
+            // Flash white on hit could be cool but keeping it simple first
+            
             ctx.drawImage(img, -enemy.size / 2, -enemy.size / 2, enemy.size, enemy.size)
             ctx.restore()
 
-            // HP bar
-            const hpPercent = enemy.currentHp / (enemy.maxHp || enemy.hp)
-            const barWidth = enemy.size * 0.8
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-            ctx.fillRect(sx - barWidth / 2, sy + enemy.size / 2 + 5, barWidth, 6)
-            ctx.fillStyle = hpPercent > 0.3 ? '#4CAF50' : '#f44336'
-            ctx.fillRect(sx - barWidth / 2, sy + enemy.size / 2 + 5, barWidth * Math.max(0, hpPercent), 6)
+            // HP bar (Only if alive)
+            if (!enemy.isDead) {
+                const hpPercent = enemy.currentHp / (enemy.maxHp || enemy.hp)
+                const barWidth = enemy.size * 0.8
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+                ctx.fillRect(sx - barWidth / 2, sy + enemy.size / 2 + 5, barWidth, 6)
+                ctx.fillStyle = hpPercent > 0.3 ? '#4CAF50' : '#f44336'
+                ctx.fillRect(sx - barWidth / 2, sy + enemy.size / 2 + 5, barWidth * Math.max(0, hpPercent), 6)
+            }
           }
         }
       })
@@ -1004,13 +1011,20 @@ function App() {
         const sx = dn.x - state.camera.x
         const sy = dn.y - state.camera.y - progress * 40
 
-        ctx.font = 'bold 20px Arial'
-        ctx.fillStyle = `rgba(255, 255, 0, ${1 - progress})`
+        const scale = 1 + Math.sin(progress * Math.PI) * 0.5 // Pop effect
+        ctx.save()
+        ctx.translate(sx, sy)
+        ctx.scale(scale, scale)
+        ctx.font = '20px "Press Start 2P", cursive'
+        ctx.fillStyle = `rgba(255, 235, 59, ${1 - progress})` // Yellowish
+        if (dn.isCrit) ctx.fillStyle = `rgba(255, 82, 82, ${1 - progress})` // Red for crit (if property exists)
         ctx.strokeStyle = `rgba(0, 0, 0, ${1 - progress})`
-        ctx.lineWidth = 3
+        ctx.lineWidth = 4
+        ctx.lineJoin = 'round' // Rounded corners on stroke prevent spikes
         ctx.textAlign = 'center'
-        ctx.strokeText(dn.damage.toString(), sx, sy)
-        ctx.fillText(dn.damage.toString(), sx, sy)
+        ctx.strokeText(dn.damage.toString(), 0, 0)
+        ctx.fillText(dn.damage.toString(), 0, 0)
+        ctx.restore()
       })
 
       animationFrameRef.current = requestAnimationFrame(gameLoop)
@@ -1036,6 +1050,7 @@ function App() {
   const handleUpgrade = useCallback((upgrade) => {
     if (gameStateRef.current) {
       gameStateRef.current.stats = upgrade.effect(gameStateRef.current.stats)
+      gameStateRef.current.inventory.push(upgrade)
     }
     setLevelUpOptions([])
     setGamePhase('playing')
@@ -1059,32 +1074,41 @@ function App() {
   // ============================================================
   return (
     <div style={{
-      width: '100vw',
-      height: '100vh',
-      display: 'flex',
+      width: '100vw', 
+      height: '100vh', 
+      display: 'flex', 
+      justifyContent: 'center', 
       alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+      background: '#111',
       overflow: 'hidden',
       fontFamily: '"Noto Sans KR", sans-serif',
     }}>
+      {/* Main App Container - Fixed Resolution */}
+      <div style={{
+          width: GAME_CONFIG.CANVAS_WIDTH, 
+          height: GAME_CONFIG.CANVAS_HEIGHT, 
+          position: 'relative',
+          background: '#000',
+          boxShadow: '0 0 50px rgba(0,0,0,0.5)',
+          overflow: 'hidden'
+      }}>
       {/* MENU SCREEN - HoloCure Style */}
       {gamePhase === 'menu' && (
         <div style={{
           width: '100%',
           height: '100%',
-          background: 'linear-gradient(180deg, #87CEEB 0%, #98D8F0 50%, #B0E2FF 100%)',
+          backgroundImage: `url(${SPRITES.ui.menu})`, // Use Holo Menu BG
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '60px',
           position: 'relative',
           overflow: 'hidden',
+          boxSizing: 'border-box',
         }}>
-          {/* Decorative triangles */}
-          <div style={{ position: 'absolute', top: '10%', left: '60%', width: 0, height: 0, borderLeft: '40px solid transparent', borderRight: '40px solid transparent', borderBottom: '60px solid rgba(100, 180, 255, 0.3)', transform: 'rotate(15deg)' }} />
-          <div style={{ position: 'absolute', top: '30%', right: '25%', width: 0, height: 0, borderLeft: '25px solid transparent', borderRight: '25px solid transparent', borderBottom: '40px solid rgba(100, 180, 255, 0.2)', transform: 'rotate(-10deg)' }} />
-          <div style={{ position: 'absolute', bottom: '15%', left: '55%', width: 0, height: 0, borderLeft: '30px solid transparent', borderRight: '30px solid transparent', borderBottom: '50px solid rgba(100, 180, 255, 0.25)', transform: 'rotate(25deg)' }} />
+          {/* Decorative triangles - REMOVED (Conflicting with Image BG) */}
           
           {/* Floating character silhouettes */}
           {CHARACTERS.map((char, i) => (
@@ -1100,53 +1124,33 @@ function App() {
             </div>
           ))}
 
+
           {/* Left Side - Title */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', zIndex: 1 }}>
-            {/* Main Title */}
-            <div style={{ position: 'relative', marginBottom: '20px' }}>
-              <div style={{ position: 'absolute', top: '-15px', left: '-10px', fontSize: '12px', color: '#FF69B4' }}>⭐</div>
-              <div style={{ position: 'absolute', top: '-20px', right: '20px', fontSize: '14px', color: '#FF69B4' }}>💕</div>
-              <div style={{ position: 'absolute', bottom: '-10px', right: '-15px', fontSize: '12px', color: '#FFD700' }}>⭐</div>
-              
-              <div style={{
-                background: 'linear-gradient(180deg, #fff 0%, #f0f0f0 100%)',
-                borderRadius: '50px',
-                padding: '10px 40px',
-                marginBottom: '10px',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-              }}>
-                <span style={{ fontFamily: 'Arial', fontSize: '14px', color: '#888' }}>머리카락!</span>
-              </div>
-              
-              <h1 style={{
-                fontSize: '72px',
-                fontWeight: 'bold',
-                color: '#fff',
-                textShadow: '3px 3px 0 #FF69B4, 6px 6px 0 #87CEEB, -2px -2px 0 #333',
-                margin: 0,
-                lineHeight: 1,
-              }}>
-                머리카락
-              </h1>
-              <h1 style={{
-                fontSize: '56px',
-                fontWeight: 'bold',
-                color: '#fff',
-                textShadow: '3px 3px 0 #87CEEB, 6px 6px 0 #FF69B4, -2px -2px 0 #333',
-                margin: 0,
-                lineHeight: 1,
-              }}>
-                서바이벌!?
-              </h1>
-              <p style={{
-                fontSize: '20px',
-                color: '#4A7C99',
-                fontWeight: 'bold',
-                marginTop: '15px',
-                textShadow: '1px 1px 0 #fff',
-              }}>
-                - 탈모와의 전쟁 -
-              </p>
+            {/* Main Title - Text with Pixel Style */}
+            <div style={{ position: 'relative', marginBottom: '40px' }}>
+                <h1 style={{
+                    fontFamily: '"NeoDunggeunmo", "Press Start 2P", cursive, sans-serif', 
+                    fontSize: '64px',
+                    color: '#FFD700',
+                    textShadow: '4px 4px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000',
+                    lineHeight: '1.2',
+                    textAlign: 'left'
+                }}>
+                    머리카락<br/>
+                    <span style={{ fontSize: '80px', color: '#fff', textShadow: '6px 6px 0 #333' }}>서바이버</span>
+                </h1>
+                <p style={{
+                    fontFamily: '"NeoDunggeunmo", monospace',
+                    fontSize: '24px',
+                    color: '#fff',
+                    marginTop: '20px',
+                    background: 'rgba(0,0,0,0.6)',
+                    padding: '5px 15px',
+                    borderRadius: '5px'
+                }}>
+                    - ALOPECIA SURVIVOR -
+                </p>
             </div>
 
             {/* Version */}
@@ -1218,6 +1222,7 @@ function App() {
           display: 'flex',
           padding: '40px',
           gap: '40px',
+          boxSizing: 'border-box',
         }}>
           {/* Left - Selected Character Detail */}
           <div style={{
@@ -1329,6 +1334,7 @@ function App() {
           display: 'flex',
           padding: '40px',
           position: 'relative',
+          boxSizing: 'border-box',
         }}>
           {/* Left - Shop NPC */}
           <div style={{ width: '350px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -1450,15 +1456,15 @@ function App() {
 
       {/* GAME SCREEN */}
       {(gamePhase === 'playing' || gamePhase === 'levelup' || gamePhase === 'paused') && (
-        <div style={{ position: 'relative' }}>
+        <>
           <canvas
             ref={canvasRef}
             width={GAME_CONFIG.CANVAS_WIDTH}
             height={GAME_CONFIG.CANVAS_HEIGHT}
             style={{
-              border: '4px solid #333',
-              borderRadius: '8px',
-              boxShadow: '0 0 50px rgba(0,0,0,0.5)',
+              display: 'block',
+              width: '100%',
+              height: '100%'
             }}
           />
 
@@ -1550,61 +1556,160 @@ function App() {
             </div>
           </div>
 
-          {/* Level Up Modal */}
+          {/* Level Up Modal - HoloCure Style */}
           {gamePhase === 'levelup' && (
             <div style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.85)',
+              background: 'rgba(0, 0, 0, 0.5)',
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              borderRadius: '8px',
             }}>
-              <h1 style={{
-                color: '#FFD700',
-                fontSize: '48px',
-                marginBottom: '10px',
-                textShadow: '0 0 30px #FFD700',
+              <div style={{
+                position: 'relative',
+                width: '800px',
+                height: '450px',
+                backgroundImage: `url(${SPRITES.ui.bg_levelup})`,
+                backgroundSize: '100% 100%',
+                display: 'flex',
+                padding: '20px 40px',
+                gap: '20px',
+                imageRendering: 'pixelated'
               }}>
-                🎉 레벨 업! 🎉
-              </h1>
-              <p style={{ color: '#aaa', fontSize: '20px', marginBottom: '40px' }}>
-                강화 옵션을 선택하세요
-              </p>
-
-              <div style={{ display: 'flex', gap: '25px' }}>
-                {levelUpOptions.map((upgrade) => (
-                  <div
-                    key={upgrade.id}
-                    onClick={() => handleUpgrade(upgrade)}
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(60, 70, 100, 0.95), rgba(40, 50, 80, 0.95))',
-                      border: '3px solid #556',
-                      borderRadius: '16px',
-                      padding: '30px 25px',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      minWidth: '180px',
-                      textAlign: 'center',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-10px)'
-                      e.currentTarget.style.borderColor = '#FFD700'
-                      e.currentTarget.style.boxShadow = '0 15px 40px rgba(255, 215, 0, 0.4)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.borderColor = '#556'
-                      e.currentTarget.style.boxShadow = 'none'
-                    }}
-                  >
-                    <div style={{ fontSize: '52px', marginBottom: '15px' }}>{upgrade.icon}</div>
-                    <h3 style={{ color: '#fff', margin: '0 0 10px', fontSize: '20px' }}>{upgrade.name}</h3>
-                    <p style={{ color: '#87CEEB', margin: 0, fontSize: '15px' }}>{upgrade.description}</p>
+                {/* Left Panel - Character & Stats */}
+                <div style={{
+                  width: '30%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  paddingTop: '30px'
+                }}>
+                  {/* Portrait */}
+                  <div style={{
+                    position: 'relative',
+                    width: '120px',
+                    height: '140px',
+                    marginBottom: '10px'
+                  }}>
+                    {/* Character BG & Frame */}
+                    <div style={{
+                        position: 'absolute', inset: 0,
+                        backgroundImage: `url(${SPRITES.ui.char_bg})`,
+                        backgroundSize: '100% 100%',
+                        zIndex: 0
+                    }} />
+                    <img 
+                        src={SPRITES.characters[selectedCharacter.id]} 
+                        alt="" 
+                        style={{
+                            position: 'absolute',
+                            bottom: '10px', left: '50%', transform: 'translateX(-50%)',
+                            width: '80px', height: '80px', objectFit: 'contain',
+                            imageRendering: 'pixelated', zIndex: 1
+                        }} 
+                    />
+                    <div style={{
+                        position: 'absolute', inset: -5,
+                        backgroundImage: `url(${SPRITES.ui.char_frame})`,
+                        backgroundSize: '100% 100%',
+                        zIndex: 2
+                    }} />
                   </div>
-                ))}
+
+                  <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '15px' }}>{selectedCharacter.name.toUpperCase()}</h2>
+
+                  {/* Stats List */}
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    {[
+                      { icon: SPRITES.ui.icon_hp, label: 'HP', value: `${displayStats.hp} / ${displayStats.maxHp}`, color: '#ff6b6b' },
+                      { icon: SPRITES.ui.icon_atk, label: 'ATK', value: `+${Math.floor((gameStateRef.current?.stats?.damage / 30 - 1) * 100)}%`, color: '#ffd700' },
+                      { icon: SPRITES.ui.icon_spd, label: 'SPD', value: `+${Math.floor((gameStateRef.current?.stats?.moveSpeed - 1) * 100)}%`, color: '#87ceeb' },
+                      { icon: SPRITES.ui.icon_crt, label: 'CRT', value: '+5%', color: '#ff69b4' },
+                      { icon: SPRITES.ui.icon_pickup, label: 'Pickup', value: '+0%', color: '#00ffff' },
+                      { icon: SPRITES.ui.icon_haste, label: 'Haste', value: `+${Math.floor((gameStateRef.current?.stats?.attackSpeed / 1.5 - 1) * 100)}%`, color: '#ffff00' },
+                    ].map(stat => (
+                      <div key={stat.label} style={{ display: 'flex', alignItems: 'center', color: '#fff', fontSize: '14px', background: 'rgba(0,0,0,0.5)', padding: '2px 5px' }}>
+                        <img src={stat.icon} alt="" style={{ width: '16px', height: '16px', marginRight: '5px' }} />
+                        <span style={{ width: '50px' }}>{stat.label}</span>
+                        <span style={{ marginLeft: 'auto', color: stat.color }}>{stat.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right Panel - Upgrade Options */}
+                <div style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  paddingTop: '20px',
+                  overflowY: 'auto'
+                }}>
+                  <h1 style={{ 
+                    fontFamily: '"Press Start 2P", cursive, sans-serif', 
+                    color: '#fff', 
+                    fontSize: '48px', 
+                    margin: '0 0 20px', 
+                    textAlign: 'center', 
+                    textShadow: '4px 4px 0 #000, -2px -2px 0 #000',
+                    letterSpacing: '2px'
+                  }}>
+                    LEVEL UP!
+                  </h1>
+                  
+                  {levelUpOptions.map((upgrade, index) => (
+                    <div
+                      key={upgrade.id + index}
+                      onClick={() => handleUpgrade(upgrade)}
+                      style={{
+                        position: 'relative',
+                        height: '80px',
+                        background: 'linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 100%)',
+                        border: '2px solid #00BFFF',
+                        borderRadius: '0 20px 20px 0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        padding: '0 20px',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(90deg, rgba(0,191,255,0.4) 0%, rgba(0,0,0,0.4) 100%)'
+                        e.currentTarget.style.transform = 'translateX(10px)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 100%)'
+                        e.currentTarget.style.transform = 'translateX(0)'
+                      }}
+                    >
+                        {/* Icon Box */}
+                        <div style={{
+                            width: '60px', height: '60px',
+                            backgroundImage: `url(${SPRITES.ui.box_item})`,
+                            backgroundSize: 'contain',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'center',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            marginRight: '15px'
+                        }}>
+                            <img src={SPRITES.items[upgrade.icon]} alt="" style={{ width: '32px', height: '32px', imageRendering: 'pixelated' }} />
+                        </div>
+
+                        {/* Text Info */}
+                        <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                                <span style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{upgrade.name}</span>
+                                <span style={{ color: '#FFD700', fontSize: '12px' }}>NEW! &gt;&gt; {upgrade.type}</span>
+                            </div>
+                            <div style={{ color: '#ccc', fontSize: '14px', lineHeight: '1.2' }}>
+                                {upgrade.description}
+                            </div>
+                        </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -1614,167 +1719,261 @@ function App() {
             <div style={{
               position: 'absolute',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.85)',
+              background: 'rgba(0, 0, 0, 0.5)',
               display: 'flex',
-              borderRadius: '8px',
-              padding: '30px',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}>
-              {/* Left Panel - Character Stats */}
-              <div style={{
-                width: '280px',
-                background: 'rgba(30, 50, 70, 0.9)',
-                borderRadius: '12px',
-                padding: '20px',
-                border: '3px solid #456',
-                marginRight: '20px',
-              }}>
-                {/* Character Portrait */}
-                <div style={{
-                  width: '100px',
-                  height: '100px',
-                  margin: '0 auto 15px',
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                  background: 'rgba(0,0,0,0.3)',
-                  border: `3px solid ${selectedCharacter?.color || '#444'}`,
-                }}>
-                  <img src={SPRITES.characters[selectedCharacter?.id]} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                </div>
-                <h3 style={{ color: '#fff', textAlign: 'center', margin: '0 0 20px' }}>{selectedCharacter?.name}</h3>
-                
-                {/* Stats */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {[
-                    { icon: '❤️', label: 'HP', value: `${displayStats.hp} / ${displayStats.maxHp}`, color: '#ff6b6b' },
-                    { icon: '⚔️', label: 'ATK', value: `+${Math.floor((gameStateRef.current?.stats?.damage / 30 - 1) * 100)}%`, color: '#ffd700' },
-                    { icon: '🏃', label: 'SPD', value: `+${Math.floor((gameStateRef.current?.stats?.moveSpeed - 1) * 100)}%`, color: '#87ceeb' },
-                    { icon: '💥', label: 'CRT', value: '+5%', color: '#ff69b4' },
-                    { icon: '🧲', label: 'Pickup', value: '+0%', color: '#00ffff' },
-                    { icon: '⚡', label: 'Haste', value: `+${Math.floor((gameStateRef.current?.stats?.attackSpeed / 1.5 - 1) * 100)}%`, color: '#ffff00' },
-                  ].map(stat => (
-                    <div key={stat.label} style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: '14px', padding: '5px 10px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px' }}>
-                      <span>{stat.icon} {stat.label}</span>
-                      <span style={{ color: stat.color }}>{stat.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right Panel - Current Skills/Weapons */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <h1 style={{ color: '#FFD700', fontSize: '36px', marginBottom: '20px', textShadow: '0 0 20px #FFD700' }}>⏸️ 일시정지</h1>
-                
-                {/* Current Weapon */}
-                <div style={{ background: 'rgba(30, 50, 70, 0.9)', borderRadius: '12px', padding: '20px', border: '3px solid #456', marginBottom: '20px' }}>
-                  <h3 style={{ color: '#87CEEB', margin: '0 0 15px' }}>🔫 현재 무기</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <div style={{ width: '60px', height: '60px', background: `${selectedCharacter?.color}40`, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px', border: `2px solid ${selectedCharacter?.color}` }}>
-                      {selectedCharacter?.attackType === 'aoe' ? '💥' : selectedCharacter?.attackType === 'beam' ? '💫' : selectedCharacter?.attackType === 'spin' ? '🌀' : '⚡'}
-                    </div>
-                    <div>
-                      <h4 style={{ color: '#fff', margin: 0 }}>{selectedCharacter?.weapon}</h4>
-                      <p style={{ color: '#aaa', margin: 0, fontSize: '14px' }}>{selectedCharacter?.description}</p>
-                    </div>
-                    <span style={{ marginLeft: 'auto', color: selectedCharacter?.color, fontWeight: 'bold' }}>LV. {displayStats.level}</span>
+              {/* Main Pause Menu */}
+              {pauseTab === 'main' && (
+                  <div style={{
+                    width: '300px',
+                    background: 'linear-gradient(180deg, #4AA9FF 0%, #0077EA 100%)',
+                    borderRadius: '10px',
+                    padding: '20px',
+                    border: '4px solid #fff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '15px',
+                    alignItems: 'center',
+                    boxShadow: '0 0 20px rgba(0,0,0,0.5)'
+                  }}>
+                    <h2 style={{ color: '#fff', fontSize: '32px', margin: '0 0 10px', textShadow: '2px 2px 0 #000', fontFamily: 'Impact, sans-serif' }}>PAUSED</h2>
+                    
+                    {[
+                        { label: 'Character', action: () => setPauseTab('character') },
+                        { label: 'Settings', disabled: true },
+                        { label: 'Resume', action: () => setGamePhase('playing') },
+                        { label: 'Quit', action: () => { setGamePhase('menu'); setSelectedCharacter(null); gameStateRef.current = null; } }
+                    ].map((btn, i) => (
+                        <div 
+                            key={btn.label}
+                            onClick={btn.action}
+                            style={{
+                                width: '100%',
+                                height: '50px',
+                                backgroundImage: `url(${SPRITES.ui.button})`, // Use Imported Button Sprite
+                                backgroundSize: '100% 100%', // Stretch
+                                backgroundRepeat: 'no-repeat',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: btn.disabled ? '#888' : '#333',
+                                fontSize: '20px', fontWeight: 'bold',
+                                cursor: btn.disabled ? 'not-allowed' : 'pointer',
+                                opacity: btn.disabled ? 0.7 : 1,
+                                imageRendering: 'pixelated',
+                                textShadow: '1px 1px 0 #fff'
+                            }}
+                        >
+                            {btn.label}
+                        </div>
+                    ))}
                   </div>
-                </div>
+              )}
 
-                {/* Game Stats */}
-                <div style={{ background: 'rgba(30, 50, 70, 0.9)', borderRadius: '12px', padding: '20px', border: '3px solid #456', marginBottom: 'auto' }}>
-                  <h3 style={{ color: '#87CEEB', margin: '0 0 15px' }}>📊 게임 정보</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ color: '#FFD700', fontSize: '28px', fontWeight: 'bold' }}>{displayStats.level}</div>
-                      <div style={{ color: '#aaa', fontSize: '14px' }}>레벨</div>
+              {/* Character Details Screen */}
+              {pauseTab === 'character' && (
+                  <div style={{
+                    position: 'relative',
+                    width: '900px',
+                    height: '550px',
+                    background: 'rgba(20, 20, 30, 0.95)',
+                    borderRadius: '16px',
+                    border: '2px solid #444',
+                    display: 'flex',
+                    padding: '30px',
+                    gap: '30px',
+                    color: '#fff'
+                  }}>
+                    {/* Close Button */}
+                    <button 
+                        onClick={() => setPauseTab('main')} 
+                        style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}
+                    >
+                        ESC / BACK
+                    </button>
+
+                    {/* Left - Character Stats */}
+                    <div style={{ width: '300px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                            <img 
+                                src={SPRITES.characters[selectedCharacter.id]} 
+                                alt="" 
+                                style={{ width: '80px', height: '80px', border: '2px solid #fff', borderRadius: '50%', background: '#334', imageRendering: 'pixelated' }} 
+                            />
+                            <div style={{ marginLeft: '15px' }}>
+                                <h2 style={{ margin: 0, fontSize: '24px' }}>{selectedCharacter.name}</h2>
+                                <p style={{ margin: 0, color: selectedCharacter.color }}>Level {displayStats.level}</p>
+                            </div>
+                        </div>
+                        
+                        <div style={{ background: 'rgba(0,0,0,0.5)', padding: '15px', borderRadius: '8px' }}>
+                            {[
+                                { label: 'HP', val: `${displayStats.hp}/${displayStats.maxHp}`, icon: SPRITES.ui.icon_hp, color: '#ff6b6b' },
+                                { label: 'ATK', val: `${Math.round(gameStateRef.current.stats.damage)}`, icon: SPRITES.ui.icon_atk, color: '#ffd700' },
+                                { label: 'SPD', val: `${Math.round(gameStateRef.current.stats.moveSpeed * 100)}%`, icon: SPRITES.ui.icon_spd, color: '#87ceeb' },
+                                { label: 'CRT', val: `${Math.round((gameStateRef.current.stats.crit || 0) * 100)}%`, icon: SPRITES.ui.icon_crt, color: '#ff69b4' },
+                                { label: 'DEF', val: `${Math.round((gameStateRef.current.stats.defense || 0) * 100)}%`, icon: SPRITES.ui.icon_pickup, color: '#aaa' }, // using pickup as placeholder
+                            ].map(s => (
+                                <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '18px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        <img src={s.icon} style={{ width: '20px', marginRight: '10px' }} />
+                                        <span>{s.label}</span>
+                                    </div>
+                                    <span style={{ color: s.color, fontWeight: 'bold' }}>{s.val}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ color: '#87CEEB', fontSize: '28px', fontWeight: 'bold' }}>{formatTime(displayStats.time)}</div>
-                      <div style={{ color: '#aaa', fontSize: '14px' }}>생존 시간</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ color: '#FF6B6B', fontSize: '28px', fontWeight: 'bold' }}>{displayStats.kills}</div>
-                      <div style={{ color: '#aaa', fontSize: '14px' }}>처치 수</div>
+
+                    {/* Right - Inventory List */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                        <h3 style={{ borderBottom: '2px solid #fff', paddingBottom: '10px', marginBottom: '15px' }}>Inventory</h3>
+                        <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {gameStateRef.current.inventory.length === 0 && <p style={{ color: '#888', textAlign: 'center' }}>No items collected yet.</p>}
+                            
+                            {gameStateRef.current.inventory.map((item, idx) => (
+                                <div key={idx} style={{ 
+                                    background: 'rgba(255,255,255,0.1)', 
+                                    padding: '10px', 
+                                    borderRadius: '8px', 
+                                    display: 'flex', 
+                                    alignItems: 'center' 
+                                }}>
+                                    <div style={{ 
+                                        width: '48px', height: '48px', 
+                                        backgroundImage: `url(${SPRITES.ui.box_item})`,
+                                        backgroundSize: '100% 100%',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        marginRight: '15px'
+                                    }}>
+                                        <img src={SPRITES.items[item.icon]} style={{ width: '24px', height: '24px', imageRendering: 'pixelated' }} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontWeight: 'bold', color: '#fff' }}>{item.name}</div>
+                                        <div style={{ fontSize: '12px', color: '#bbb' }}>{item.description}</div>
+                                    </div>
+                                    <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#FFD700' }}>
+                                        LV 1
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Buttons */}
-                <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginTop: '30px' }}>
-                  <button
-                    onClick={() => setGamePhase('playing')}
-                    style={{ padding: '18px 60px', fontSize: '20px', fontWeight: 'bold', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff', border: 'none', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 4px 20px rgba(102,126,234,0.5)' }}
-                  >
-                    ▶️ 게임 재개
-                  </button>
-                  <button
-                    onClick={() => { setGamePhase('menu'); setSelectedCharacter(null); gameStateRef.current = null; }}
-                    style={{ padding: '18px 40px', fontSize: '18px', background: 'rgba(100,100,100,0.7)', color: '#fff', border: '3px solid #555', borderRadius: '12px', cursor: 'pointer' }}
-                  >
-                    🚪 메인 메뉴
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
           )}
-        </div>
+        </>
       )}
 
-      {/* GAME OVER */}
+      {/* GAME OVER - HoloCure Style */}
       {gamePhase === 'gameover' && (
         <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          padding: '60px',
-          background: 'rgba(0, 0, 0, 0.9)',
-          borderRadius: '20px',
-          border: '4px solid #8B0000',
+          justifyContent: 'center',
+          backdropFilter: 'blur(4px)',
+          zIndex: 20,
         }}>
+          {/* Game Over Title */}
           <h1 style={{
-            color: '#FF4757',
-            fontSize: '64px',
+            fontFamily: '"Press Start 2P", cursive, sans-serif',
+            fontSize: '48px',
+            color: '#fff',
+            textShadow: '4px 4px 0 #000, -2px -2px 0 #000',
             marginBottom: '30px',
-            textShadow: '0 0 40px #FF4757',
+            letterSpacing: '4px'
           }}>
-            💀 게임 오버 💀
+            GAME OVER
           </h1>
 
+          {/* Stats Summary */}
           <div style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '16px',
-            padding: '30px 60px',
+            background: 'rgba(0,0,0,0.5)',
+            padding: '20px 40px',
+            borderRadius: '12px',
             marginBottom: '40px',
             textAlign: 'center',
+            border: '2px solid #444'
           }}>
-            <div style={{ color: '#fff', fontSize: '28px', marginBottom: '15px' }}>
-              ⏱️ 생존 시간: <span style={{ color: '#FFD700' }}>{formatTime(displayStats.time)}</span>
+            <div style={{ fontSize: '24px', color: '#ccc', marginBottom: '10px' }}>
+              Score: <span style={{ color: '#fff', fontWeight: 'bold' }}>{(displayStats.kills * 50 + displayStats.time * 10 + displayStats.level * 500).toLocaleString()}</span>
             </div>
-            <div style={{ color: '#fff', fontSize: '28px', marginBottom: '15px' }}>
-              💀 처치 수: <span style={{ color: '#FF6B6B' }}>{displayStats.kills}</span>
-            </div>
-            <div style={{ color: '#fff', fontSize: '28px' }}>
-              🎖️ 최종 레벨: <span style={{ color: '#87CEEB' }}>{displayStats.level}</span>
+            <div style={{ fontSize: '24px', color: '#FFD700' }}>
+              HoloCoins Gained: <span style={{ fontWeight: 'bold' }}>+{(displayStats.kills + Math.floor(displayStats.time / 5)).toLocaleString()}</span>
             </div>
           </div>
 
-          <button
-            onClick={restart}
-            style={{
-              background: 'linear-gradient(135deg, #667eea, #764ba2)',
-              border: 'none',
-              borderRadius: '16px',
-              padding: '20px 60px',
-              color: '#fff',
-              fontSize: '28px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              boxShadow: '0 8px 30px rgba(102, 126, 234, 0.5)',
-            }}
-          >
-            🔄 다시 시작
-          </button>
+          {/* Buttons Stack */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '300px' }}>
+            {/* Retry - White Button */}
+            <button
+                onClick={restart}
+                style={{
+                    padding: '15px',
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    background: '#fff',
+                    color: '#000',
+                    border: '3px solid #000',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 0 #bbb',
+                    fontFamily: 'monospace'
+                }}
+            >
+                Retry
+            </button>
+
+            {/* Character Select - Dark Button */}
+            <button
+                onClick={() => {
+                    setGamePhase('characterSelect')
+                    setSelectedCharacter(null)
+                    gameStateRef.current = null
+                }}
+                style={{
+                    padding: '12px',
+                    fontSize: '18px',
+                    background: 'rgba(0,0,0,0.8)',
+                    color: '#fff',
+                    border: '2px solid #fff',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontFamily: 'monospace'
+                }}
+            >
+                Character Select
+            </button>
+
+            {/* Main Menu - Dark Button */}
+            <button
+                onClick={() => {
+                    setGamePhase('menu')
+                    setSelectedCharacter(null)
+                    gameStateRef.current = null
+                }}
+                style={{
+                    padding: '12px',
+                    fontSize: '18px',
+                    background: 'rgba(0,0,0,0.8)',
+                    color: '#fff',
+                    border: '2px solid #fff',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontFamily: 'monospace'
+                }}
+            >
+                Main Menu
+            </button>
+          </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
