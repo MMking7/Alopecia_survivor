@@ -1,7 +1,7 @@
 import React from 'react'
-import { SPRITES, CHARACTERS } from '../constants'
+import { SPRITES } from '../constants'
 
-const CharacterSelectScreen = ({ selectedCharacter, onSelect, onStart, onBack, imagesLoaded }) => {
+const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStart, onBack, imagesLoaded }) => {
   return (
     <div style={{
       width: '100%',
@@ -62,7 +62,7 @@ const CharacterSelectScreen = ({ selectedCharacter, onSelect, onStart, onBack, i
         <h1 style={{ color: '#FFD700', fontSize: '36px', marginBottom: '30px' }}>🎮 캐릭터 선택</h1>
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '40px' }}>
-          {CHARACTERS.map((char) => (
+          {characters.map((char) => (
             <div
               key={char.id}
               onClick={() => onSelect(char)}

@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
-import { SHOP_UPGRADES } from '../constants'
 
-const ShopScreen = ({ coins, setCoins, shopLevels, setShopLevels, onBack }) => {
+const ShopScreen = ({ coins, setCoins, shopLevels, setShopLevels, shopUpgrades, onBack }) => {
   const [selectedShopItem, setSelectedShopItem] = useState(null)
 
   return (
@@ -36,7 +35,7 @@ const ShopScreen = ({ coins, setCoins, shopLevels, setShopLevels, onBack }) => {
           marginBottom: '20px',
         }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px' }}>
-            {SHOP_UPGRADES.map((item) => {
+            {shopUpgrades.map((item) => {
               const level = shopLevels[item.id] || 0
               const isMaxed = level >= item.maxLevel
               return (
