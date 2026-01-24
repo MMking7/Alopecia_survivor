@@ -127,8 +127,6 @@ const GameScreen = ({
 
   // Keyboard controls
   useEffect(() => {
-    if (gamePhase !== 'playing' && gamePhase !== 'paused') return
-
     const handleKeyDown = (e) => {
       if (!gameStateRef.current) return
 
