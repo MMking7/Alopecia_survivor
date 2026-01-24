@@ -99,8 +99,8 @@ const ShopScreen = ({ coins, setCoins, shopLevels, setShopLevels, shopUpgrades, 
               const level = shopLevels[selectedShopItem.id] || 0
               const cost = selectedShopItem.cost * (level + 1)
               if (coins >= cost && level < selectedShopItem.maxLevel) {
-                setCoins(prev => { localStorage.setItem('hairSurvivor_coins', prev - cost); return prev - cost })
-                setShopLevels(prev => { const next = { ...prev, [selectedShopItem.id]: level + 1 }; localStorage.setItem('hairSurvivor_shopLevels', JSON.stringify(next)); return next })
+                setCoins(prev => prev - cost)
+                setShopLevels(prev => ({ ...prev, [selectedShopItem.id]: level + 1 }))
               }
             }}
             disabled={!selectedShopItem || coins < (selectedShopItem?.cost * ((shopLevels[selectedShopItem?.id] || 0) + 1)) || (shopLevels[selectedShopItem?.id] || 0) >= selectedShopItem?.maxLevel}
@@ -114,8 +114,8 @@ const ShopScreen = ({ coins, setCoins, shopLevels, setShopLevels, shopUpgrades, 
               const level = shopLevels[selectedShopItem.id] || 0
               if (level > 0) {
                 const refund = Math.floor(selectedShopItem.cost * level * 0.8)
-                setCoins(prev => { localStorage.setItem('hairSurvivor_coins', prev + refund); return prev + refund })
-                setShopLevels(prev => { const next = { ...prev, [selectedShopItem.id]: level - 1 }; localStorage.setItem('hairSurvivor_shopLevels', JSON.stringify(next)); return next })
+                setCoins(prev => prev + refund)
+                setShopLevels(prev => ({ ...prev, [selectedShopItem.id]: level - 1 }))
               }
             }}
             disabled={!selectedShopItem || (shopLevels[selectedShopItem?.id] || 0) <= 0}

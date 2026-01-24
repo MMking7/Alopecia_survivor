@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { GAME_CONFIG, SPRITES, CHARACTERS, SHOP_UPGRADES } from './constants'
+import { GAME_CONFIG, SPRITES, CHARACTERS, SHOP_UPGRADES, getBaseStatsWithShop } from './constants'
 import TitleScreen from './screens/TitleScreen'
 import CharacterSelectScreen from './screens/CharacterSelectScreen'
 import ShopScreen from './screens/ShopScreen'
@@ -11,7 +11,7 @@ import './App.css'
  * App Component - Main Application Controller
  * 
  * Responsibilities:
- * - Global state management (coins, shopLevels, highScore)
+ * - Global state management (character progress, highScore)
  * - Screen routing/navigation
  * - Image preloading
  * - LocalStorage persistence
@@ -60,6 +60,71 @@ const preloadImages = () => {
   })
 }
 
+const CHARACTER_PROGRESS_KEY = 'hairSurvivor_characterProgress'
+const ACTIVE_CHARACTER_KEY = 'hairSurvivor_activeCharacterId'
+
+const createDefaultProfile = () => ({
+  level: 1,
+  bonusStats: {},
+  shopLevels: {},
+  coins: 0,
+})
+
+const normalizeProfile = (profile) => ({
+  level: profile?.level || 1,
+  bonusStats: profile?.bonusStats || {},
+  shopLevels: profile?.shopLevels || {},
+  coins: profile?.coins || 0,
+})
+
+const loadCharacterProgress = () => {
+  const saved = localStorage.getItem(CHARACTER_PROGRESS_KEY)
+  if (saved) {
+    try {
+      return JSON.parse(saved) || {}
+    } catch (error) {
+      return {}
+    }
+  }
+
+  const legacyCoins = parseInt(localStorage.getItem('hairSurvivor_coins') || '0', 10)
+  let legacyShopLevels = {}
+  const legacyShopRaw = localStorage.getItem('hairSurvivor_shopLevels')
+  if (legacyShopRaw) {
+    try {
+      legacyShopLevels = JSON.parse(legacyShopRaw) || {}
+    } catch (error) {
+      legacyShopLevels = {}
+    }
+  }
+
+  if (legacyCoins || Object.keys(legacyShopLevels).length > 0) {
+    const fallbackId = localStorage.getItem(ACTIVE_CHARACTER_KEY) || CHARACTERS[0]?.id
+    if (!fallbackId) return {}
+    return {
+      [fallbackId]: {
+        ...createDefaultProfile(),
+        coins: legacyCoins || 0,
+        shopLevels: legacyShopLevels,
+      },
+    }
+  }
+
+  return {}
+}
+
+const mergeBonusStats = (prevBonus = {}, baseline = {}, current = {}) => {
+  const getDelta = (key) => Math.max(0, (current[key] ?? baseline[key] ?? 0) - (baseline[key] ?? 0))
+
+  return {
+    maxHp: Math.max(prevBonus.maxHp || 0, getDelta('maxHp')),
+    crit: Math.max(prevBonus.crit || 0, getDelta('crit')),
+    lifeSteal: Math.max(prevBonus.lifeSteal || 0, getDelta('lifeSteal')),
+    xpMultiplier: Math.max(prevBonus.xpMultiplier || 0, getDelta('xpMultiplier')),
+    spawnRateMultiplier: Math.max(prevBonus.spawnRateMultiplier || 0, getDelta('spawnRateMultiplier')),
+  }
+}
+
 function App() {
   // ============================================================
   // GLOBAL STATE
@@ -73,13 +138,9 @@ function App() {
   const [selectedCharacter, setSelectedCharacter] = useState(null)
   
   // Persistent data (saved to localStorage)
-  const [coins, setCoins] = useState(() => {
-    return parseInt(localStorage.getItem('hairSurvivor_coins')) || 0
-  })
-  
-  const [shopLevels, setShopLevels] = useState(() => {
-    const saved = localStorage.getItem('hairSurvivor_shopLevels')
-    return saved ? JSON.parse(saved) : {}
+  const [characterProgress, setCharacterProgress] = useState(() => loadCharacterProgress())
+  const [activeCharacterId, setActiveCharacterId] = useState(() => {
+    return localStorage.getItem(ACTIVE_CHARACTER_KEY) || CHARACTERS[0]?.id || null
   })
   
   const [highScore, setHighScore] = useState(() => {
@@ -92,6 +153,12 @@ function App() {
   
   // Game over stats (passed from GameScreen)
   const [gameOverStats, setGameOverStats] = useState(null)
+
+  const activeProfile = normalizeProfile(characterProgress[activeCharacterId])
+  const coins = activeProfile.coins
+  const shopLevels = activeProfile.shopLevels
+  const activeCharacter = CHARACTERS.find((char) => char.id === activeCharacterId) || null
+  const selectedProfile = selectedCharacter ? normalizeProfile(characterProgress[selectedCharacter.id]) : activeProfile
 
   // ============================================================
   // IMAGE PRELOADING
@@ -107,20 +174,56 @@ function App() {
   // PERSISTENCE
   // ============================================================
   useEffect(() => {
-    localStorage.setItem('hairSurvivor_coins', coins)
-  }, [coins])
+    localStorage.setItem(CHARACTER_PROGRESS_KEY, JSON.stringify(characterProgress))
+  }, [characterProgress])
 
   useEffect(() => {
-    localStorage.setItem('hairSurvivor_shopLevels', JSON.stringify(shopLevels))
-  }, [shopLevels])
+    if (activeCharacterId) {
+      localStorage.setItem(ACTIVE_CHARACTER_KEY, activeCharacterId)
+    }
+  }, [activeCharacterId])
 
   useEffect(() => {
     localStorage.setItem('hairSurvivor_highScore', highScore)
   }, [highScore])
 
+  useEffect(() => {
+    if (!activeCharacterId && CHARACTERS.length > 0) {
+      setActiveCharacterId(CHARACTERS[0].id)
+    }
+  }, [activeCharacterId])
+
+  const updateActiveProfile = useCallback((updater) => {
+    if (!activeCharacterId) return
+    setCharacterProgress(prev => {
+      const current = normalizeProfile(prev[activeCharacterId])
+      const nextProfile = updater(current)
+      return { ...prev, [activeCharacterId]: nextProfile }
+    })
+  }, [activeCharacterId])
+
+  const setCoins = useCallback((updater) => {
+    updateActiveProfile(profile => {
+      const nextCoins = typeof updater === 'function' ? updater(profile.coins) : updater
+      return { ...profile, coins: nextCoins }
+    })
+  }, [updateActiveProfile])
+
+  const setShopLevels = useCallback((updater) => {
+    updateActiveProfile(profile => {
+      const nextLevels = typeof updater === 'function' ? updater(profile.shopLevels) : updater
+      return { ...profile, shopLevels: nextLevels }
+    })
+  }, [updateActiveProfile])
+
   // ============================================================
   // NAVIGATION HANDLERS
   // ============================================================
+  const handleSelectCharacter = useCallback((character) => {
+    setSelectedCharacter(character)
+    setActiveCharacterId(character.id)
+  }, [setSelectedCharacter, setActiveCharacterId])
+
   const handleStartGame = useCallback(() => {
     if (selectedCharacter && imagesLoaded) {
       setGamePhase('playing')
@@ -130,12 +233,30 @@ function App() {
   const handleGameOver = useCallback((stats) => {
     // Calculate earned coins
     const earnedCoins = stats.kills + Math.floor(stats.time / 5)
-    setCoins(prev => prev + earnedCoins)
     
     // Calculate score
     const score = stats.kills * 50 + Math.floor(stats.time * 10) + stats.level * 500
     if (score > highScore) {
       setHighScore(score)
+    }
+
+    if (selectedCharacter) {
+      setCharacterProgress(prev => {
+        const currentProfile = normalizeProfile(prev[selectedCharacter.id])
+        const baselineStats = getBaseStatsWithShop(selectedCharacter, currentProfile.shopLevels)
+        const nextBonusStats = stats.statsSnapshot
+          ? mergeBonusStats(currentProfile.bonusStats, baselineStats, stats.statsSnapshot)
+          : currentProfile.bonusStats
+
+        const nextProfile = {
+          ...currentProfile,
+          coins: currentProfile.coins + earnedCoins,
+          level: Math.max(currentProfile.level, stats.level || 1),
+          bonusStats: nextBonusStats,
+        }
+
+        return { ...prev, [selectedCharacter.id]: nextProfile }
+      })
     }
     
     // Store stats for GameOverScreen
@@ -146,7 +267,7 @@ function App() {
     })
     
     setGamePhase('gameover')
-  }, [highScore])
+  }, [highScore, selectedCharacter])
 
   const handleQuitGame = useCallback(() => {
     setGamePhase('menu')
@@ -197,7 +318,7 @@ function App() {
         {gamePhase === 'menu' && (
           <TitleScreen
             coins={coins}
-            characters={CHARACTERS}
+            activeCharacterName={activeCharacter?.name}
             onStart={() => setGamePhase('characterSelect')}
             onShop={() => setGamePhase('shop')}
           />
@@ -208,10 +329,11 @@ function App() {
           <CharacterSelectScreen
             characters={CHARACTERS}
             selectedCharacter={selectedCharacter}
-            onSelect={setSelectedCharacter}
+            onSelect={handleSelectCharacter}
             onStart={handleStartGame}
             onBack={() => setGamePhase('menu')}
             imagesLoaded={imagesLoaded}
+            characterProgress={characterProgress}
           />
         )}
 
@@ -231,7 +353,8 @@ function App() {
         {gamePhase === 'playing' && selectedCharacter && (
           <GameScreen
             selectedCharacter={selectedCharacter}
-            shopLevels={shopLevels}
+            shopLevels={selectedProfile.shopLevels}
+            characterProgress={selectedProfile}
             loadedImages={loadedImages}
             onGameOver={handleGameOver}
             onQuit={handleQuitGame}

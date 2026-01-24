@@ -1,7 +1,11 @@
 import React from 'react'
 import { SPRITES } from '../constants'
 
-const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStart, onBack, imagesLoaded }) => {
+const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStart, onBack, imagesLoaded, characterProgress }) => {
+  const selectedProgress = selectedCharacter ? characterProgress?.[selectedCharacter.id] : null
+  const persistentLevel = selectedProgress?.level || 1
+  const persistentCoins = selectedProgress?.coins || 0
+
   return (
     <div style={{
       width: '100%',
@@ -51,6 +55,10 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                 </div>
               ))}
             </div>
+            <div style={{ marginTop: '15px', color: '#fff', fontSize: '14px' }}>
+              <div>Persistent Lv: {persistentLevel}</div>
+              <div>Coins: {persistentCoins.toLocaleString()}</div>
+            </div>
           </>
         ) : (
           <p style={{ color: '#888', textAlign: 'center' }}>캐릭터를 선택하세요</p>
@@ -81,6 +89,9 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
               </div>
               <h3 style={{ color: '#fff', margin: '0 0 5px', fontSize: '16px' }}>{char.name}</h3>
               <p style={{ color: char.color, margin: 0, fontSize: '12px' }}>{char.weapon}</p>
+              <div style={{ color: '#fff', marginTop: '6px', fontSize: '12px', opacity: 0.85 }}>
+                Lv {characterProgress?.[char.id]?.level || 1}
+              </div>
             </div>
           ))}
         </div>

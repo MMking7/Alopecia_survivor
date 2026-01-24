@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
-import { GAME_CONFIG, SPRITES, ENEMIES, BOSS, UPGRADES, SHOP_UPGRADES } from '../constants'
+import { GAME_CONFIG, SPRITES, ENEMIES, BOSS, UPGRADES, SHOP_UPGRADES, getBaseStatsWithShop } from '../constants'
 import { generateMixedLevelUpOptions, handleSubWeaponSelection, getSubWeaponById } from '../SubWeapons'
 
 // Utility functions
@@ -25,6 +25,12 @@ const formatTime = (seconds) => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
+const getXpNeededForLevel = (level) => {
+  const base = 100
+  if (level <= 1) return base
+  return Math.floor(base * Math.pow(GAME_CONFIG.LEVEL_XP_MULTIPLIER, level - 1))
+}
+
 /**
  * GameScreen Component
  * Handles all gameplay logic including:
@@ -40,6 +46,7 @@ const formatTime = (seconds) => {
 const GameScreen = ({
   selectedCharacter,
   shopLevels,
+  characterProgress,
   loadedImages,
   onGameOver,
   onQuit,
@@ -60,22 +67,14 @@ const GameScreen = ({
   const initGame = useCallback(() => {
     if (!selectedCharacter) return
 
-    // Get base stats from character
-    const baseStats = selectedCharacter.baseStats || {}
-    const baseHp = baseStats.hp || 100
-    const baseDamage = baseStats.damage || 30
-    const baseAttackSpeed = baseStats.attackSpeed || 1.5
-    const baseAttackRange = baseStats.attackRange || 120
-    const baseCrit = baseStats.crit || 0.05
-
-    const shopBonuses = {
-      maxHp: (shopLevels.hp || 0) * 10,
-      damage: 1 + (shopLevels.atk || 0) * 0.1,
-      attackSpeed: 1 + (shopLevels.spd || 0) * 0.1,
-      moveSpeed: 1 + (shopLevels.mov || 0) * 0.05,
-      crit: (shopLevels.crit || 0) * 0.03,
-      xpMultiplier: 1 + (shopLevels.xp || 0) * 0.1,
-    }
+    const baseStats = getBaseStatsWithShop(selectedCharacter, shopLevels)
+    const bonusStats = characterProgress?.bonusStats || {}
+    const startingLevel = Math.max(1, characterProgress?.level || 1)
+    const startingMaxHp = baseStats.maxHp + (bonusStats.maxHp || 0)
+    const startingCrit = baseStats.crit + (bonusStats.crit || 0)
+    const startingLifeSteal = baseStats.lifeSteal + (bonusStats.lifeSteal || 0)
+    const startingXpMultiplier = baseStats.xpMultiplier + (bonusStats.xpMultiplier || 0)
+    const startingSpawnRateMultiplier = baseStats.spawnRateMultiplier + (bonusStats.spawnRateMultiplier || 0)
 
     gameStateRef.current = {
       player: {
@@ -85,18 +84,18 @@ const GameScreen = ({
         facing: 1,
       },
       stats: {
-        hp: baseHp + shopBonuses.maxHp,
-        maxHp: baseHp + shopBonuses.maxHp,
-        damage: baseDamage * shopBonuses.damage,
-        attackSpeed: baseAttackSpeed * shopBonuses.attackSpeed,
-        attackRange: baseAttackRange,
-        moveSpeed: shopBonuses.moveSpeed,
-        crit: baseCrit + shopBonuses.crit,
-        defense: 0,
-        lifeSteal: 0,
+        hp: startingMaxHp,
+        maxHp: startingMaxHp,
+        damage: baseStats.damage,
+        attackSpeed: baseStats.attackSpeed,
+        attackRange: baseStats.attackRange,
+        moveSpeed: baseStats.moveSpeed,
+        crit: startingCrit,
+        defense: baseStats.defense,
+        lifeSteal: startingLifeSteal,
         shield: 0,
-        xpMultiplier: shopBonuses.xpMultiplier,
-        spawnRateMultiplier: 1.0,
+        xpMultiplier: startingXpMultiplier,
+        spawnRateMultiplier: startingSpawnRateMultiplier,
       },
       enemies: [],
       xpOrbs: [],
@@ -108,8 +107,8 @@ const GameScreen = ({
       subWeaponProjectiles: [],
       inventory: [],
       xp: 0,
-      xpNeeded: 100,
-      level: 1,
+      xpNeeded: getXpNeededForLevel(startingLevel),
+      level: startingLevel,
       kills: 0,
       gameTime: 0,
       lastAttackTime: 0,
@@ -118,7 +117,7 @@ const GameScreen = ({
       keys: { w: false, a: false, s: false, d: false },
       camera: { x: 0, y: 0 },
     }
-  }, [selectedCharacter, shopLevels])
+  }, [selectedCharacter, shopLevels, characterProgress])
 
   // Initialize on mount
   useEffect(() => {
@@ -184,6 +183,26 @@ const GameScreen = ({
 
       const state = gameStateRef.current
       if (!state) return
+
+      const buildFinalStats = () => ({
+        level: state.level,
+        kills: state.kills,
+        time: state.gameTime,
+        hp: 0,
+        maxHp: state.stats.maxHp,
+        statsSnapshot: {
+          maxHp: state.stats.maxHp,
+          damage: state.stats.damage,
+          attackSpeed: state.stats.attackSpeed,
+          attackRange: state.stats.attackRange,
+          moveSpeed: state.stats.moveSpeed,
+          crit: state.stats.crit,
+          defense: state.stats.defense,
+          lifeSteal: state.stats.lifeSteal,
+          xpMultiplier: state.stats.xpMultiplier,
+          spawnRateMultiplier: state.stats.spawnRateMultiplier,
+        },
+      })
 
       // Update game time
       state.gameTime += deltaTime
@@ -394,14 +413,7 @@ const GameScreen = ({
             state.stats.hp -= takenDamage * deltaTime
             if (state.stats.hp <= 0) {
               // Game Over
-              const finalStats = {
-                level: state.level,
-                kills: state.kills,
-                time: state.gameTime,
-                hp: 0,
-                maxHp: state.stats.maxHp,
-              }
-              onGameOver(finalStats)
+              onGameOver(buildFinalStats())
               return
             }
           }
@@ -422,14 +434,7 @@ const GameScreen = ({
           } else {
             state.stats.hp -= proj.damage
             if (state.stats.hp <= 0) {
-              const finalStats = {
-                level: state.level,
-                kills: state.kills,
-                time: state.gameTime,
-                hp: 0,
-                maxHp: state.stats.maxHp,
-              }
-              onGameOver(finalStats)
+              onGameOver(buildFinalStats())
               return
             }
           }
@@ -449,14 +454,7 @@ const GameScreen = ({
             } else {
               state.stats.hp -= exp.damage
               if (state.stats.hp <= 0) {
-                const finalStats = {
-                  level: state.level,
-                  kills: state.kills,
-                  time: state.gameTime,
-                  hp: 0,
-                  maxHp: state.stats.maxHp,
-                }
-                onGameOver(finalStats)
+                onGameOver(buildFinalStats())
                 return
               }
             }

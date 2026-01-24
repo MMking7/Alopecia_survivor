@@ -15,6 +15,38 @@ export const GAME_CONFIG = {
   SPAWN_DISTANCE_MAX: 600,
 }
 
+export const getShopBonuses = (shopLevels = {}) => ({
+  maxHp: (shopLevels.hp || 0) * 10,
+  damage: 1 + (shopLevels.atk || 0) * 0.1,
+  attackSpeed: 1 + (shopLevels.spd || 0) * 0.1,
+  moveSpeed: 1 + (shopLevels.mov || 0) * 0.05,
+  crit: (shopLevels.crit || 0) * 0.03,
+  xpMultiplier: 1 + (shopLevels.xp || 0) * 0.1,
+})
+
+export const getBaseStatsWithShop = (character, shopLevels = {}) => {
+  const baseStats = character?.baseStats || {}
+  const baseHp = baseStats.hp || 100
+  const baseDamage = baseStats.damage || 30
+  const baseAttackSpeed = baseStats.attackSpeed || 1.5
+  const baseAttackRange = baseStats.attackRange || 120
+  const baseCrit = baseStats.crit || 0.05
+  const shopBonuses = getShopBonuses(shopLevels)
+
+  return {
+    maxHp: baseHp + shopBonuses.maxHp,
+    damage: baseDamage * shopBonuses.damage,
+    attackSpeed: baseAttackSpeed * shopBonuses.attackSpeed,
+    attackRange: baseAttackRange,
+    moveSpeed: shopBonuses.moveSpeed,
+    crit: baseCrit + shopBonuses.crit,
+    defense: 0,
+    lifeSteal: 0,
+    xpMultiplier: shopBonuses.xpMultiplier,
+    spawnRateMultiplier: 1.0,
+  }
+}
+
 export const SPRITES = {
   background: '/sprites/holo/map_grass.webp',
   characters: {
@@ -105,7 +137,7 @@ export const CHARACTERS = [
 
 export const ENEMIES = [
   { type: 'clipper', name: 'Barikan', sprite: SPRITES.enemies.clipper, speed: 100, hp: 20, damage: 5, xp: 10, size: 64, attackType: 'dash' },
-  { type: 'zombie', name: 'Overwork Zombie', sprite: SPRITES.enemies.zombie, speed: 60, hp: 40, damage: 10, xp: 15, size: 80, attackType: 'ranged' },
+  { type: 'zombie', name: 'Overwork Zombie', sprite: SPRITES.enemies.zombie, speed: 60, hp: 40, damage: 10, xp: 15, size: 80, attackType: 'melee' },
   { type: 'dna', name: 'Bad Genetics', sprite: SPRITES.enemies.dna, speed: 80, hp: 30, damage: 8, xp: 12, size: 64, attackType: 'spiral' },
   { type: 'cigarette', name: 'Stress Smoke', sprite: SPRITES.enemies.cigarette, speed: 90, hp: 25, damage: 12, xp: 12, size: 64, attackType: 'ranged' },
   { type: 'soju', name: 'Alcohol', sprite: SPRITES.enemies.soju, speed: 70, hp: 45, damage: 15, xp: 20, size: 80, attackType: 'dash' },
