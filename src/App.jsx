@@ -30,21 +30,21 @@ const getDifficultyMultiplier = (gameTime) => {
 
 // Sprite paths - using generated pixel art
 const SPRITES = {
-  background: '/sprites/grass_bg.png',
+  background: '/sprites/grass_bg.webp',
   characters: {
-    female: '/sprites/char_female_baldness_1769163428088.png',
-    areata: '/sprites/char_areata_1769163447640.png',
-    wongfeihung: '/sprites/char_wong_feihung_1769163464961.png',
-    heihachi: '/sprites/char_heihachi_1769163501406.png',
+    female: '/sprites/char_female_baldness_1769163428088.webp',
+    areata: '/sprites/char_areata_1769163447640.webp',
+    wongfeihung: '/sprites/char_wong_feihung_1769163464961.webp',
+    heihachi: '/sprites/char_heihachi_1769163501406.webp',
   },
   enemies: {
-    clipper: '/sprites/enemy_clipper_1769163541753.png',
-    zombie: '/sprites/enemy_zombie_1769163560887.png',
-    dna: '/sprites/enemy_dna_1769163577183.png',
-    cigarette: '/sprites/enemy_cigarette_1769163592604.png',
-    soju: '/sprites/enemy_soju_1769163624862.png',
+    clipper: '/sprites/enemy_clipper_1769163541753.webp',
+    zombie: '/sprites/enemy_zombie_1769163560887.webp',
+    dna: '/sprites/enemy_dna_1769163577183.webp',
+    cigarette: '/sprites/enemy_cigarette_1769163592604.webp',
+    soju: '/sprites/enemy_soju_1769163624862.webp',
   },
-  boss: '/sprites/boss_complainant_1769163642840.png',
+  boss: '/sprites/boss_complainant_1769163642840.webp',
 }
 
 const CHARACTERS = [
