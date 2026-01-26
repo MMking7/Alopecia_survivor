@@ -1737,9 +1737,16 @@ const GameScreen = ({
         ctx.save()
         ctx.translate(sx, sy)
         ctx.scale(scale, scale)
-        ctx.font = '20px "Press Start 2P", cursive'
-        ctx.fillStyle = `rgba(255, 235, 59, ${1 - progress})`
-        if (dn.isCrit) ctx.fillStyle = `rgba(255, 82, 82, ${1 - progress})`
+        
+        // 크리티컬 데미지: 크고 빨간색, 일반 데미지: 작고 흰색
+        if (dn.isCritical) {
+          ctx.font = '20px "Press Start 2P", cursive'
+          ctx.fillStyle = `rgba(255, 82, 82, ${1 - progress})`
+        } else {
+          ctx.font = '14px "Press Start 2P", cursive'
+          ctx.fillStyle = `rgba(255, 255, 255, ${1 - progress})`
+        }
+        
         ctx.strokeStyle = `rgba(0, 0, 0, ${1 - progress})`
         ctx.lineWidth = 4
         ctx.lineJoin = 'round'
