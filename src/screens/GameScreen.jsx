@@ -1065,13 +1065,14 @@ const GameScreen = ({
       if (currentTime - state.lastAttackTime >= attackInterval) {
         state.lastAttackTime = currentTime
 
-        // Remove old effects (except for long-duration effects like female_attack_zone)
+        // Remove old effects (except for long-duration effects)
         state.attackEffects = state.attackEffects.filter((e) => {
-          if (e.type === 'female_attack_zone') {
+          if (e.type === 'female_attack_zone' || e.type === 'female_special_zone') {
             return currentTime - e.createdAt < e.duration
           }
           return currentTime - e.createdAt < 300
         })
+
 
         switch (character.attackType) {
           case 'aoe':
