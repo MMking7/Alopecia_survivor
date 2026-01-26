@@ -175,6 +175,7 @@ export const CHARACTERS = [
   {
     id: 'female',
     name: '여성형 탈모',
+    subName: '균형잡힌 올라운더',
     weapon: 'Equalizer',
     description: '충격파 AoE (밸런스형)',
     color: '#FF69B4',
@@ -185,6 +186,7 @@ export const CHARACTERS = [
   {
     id: 'areata',
     name: '원형 탈모',
+    subName: '원거리 저격수',
     weapon: 'Hair Loss Beam',
     description: '단일 대상 고데미지 (공격형)',
     color: '#32CD32',
@@ -195,6 +197,7 @@ export const CHARACTERS = [
   {
     id: 'wongfeihung',
     name: '황비홍',
+    subName: '중국 무술의 대가',
     weapon: 'Ponytail Spin',
     description: '근접 회전 공격 (방어형)',
     color: '#8B4513',
@@ -205,6 +208,7 @@ export const CHARACTERS = [
   {
     id: 'heihachi',
     name: '헤이하치',
+    subName: '번개를 다루는 자',
     weapon: 'Lightning',
     description: '랜덤 번개 공격 (유틸형)',
     color: '#FFD700',

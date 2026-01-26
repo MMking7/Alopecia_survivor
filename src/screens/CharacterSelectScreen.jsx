@@ -25,14 +25,47 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
         boxSizing: 'border-box',
       }}>
         {/* Left - Selected Character Detail */}
-        <PixelPanel style={{ width: '320px', display: 'flex', flexDirection: 'column' }}>
+        <PixelPanel style={{ width: '420px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
           {selectedCharacter ? (
             <>
+              {/* Character Name */}
+              <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                <h2 style={{ 
+                  fontFamily: PIXEL_STYLES.fontFamily,
+                  color: COLORS.textWhite, 
+                  margin: '0 0 5px',
+                  fontSize: '20px',
+                  textShadow: '2px 2px 0 #000',
+                }}>
+                  {selectedCharacter.name}
+                </h2>
+                {selectedCharacter.subName && (
+                  <p style={{ 
+                    fontFamily: PIXEL_STYLES.fontFamily,
+                    color: COLORS.textDark, 
+                    margin: '0 0 5px',
+                    fontSize: '11px',
+                    fontStyle: 'italic',
+                  }}>
+                    {selectedCharacter.subName}
+                  </p>
+                )}
+                <p style={{ 
+                  fontFamily: PIXEL_STYLES.fontFamily,
+                  color: selectedCharacter.color, 
+                  fontWeight: 'bold', 
+                  margin: 0,
+                  fontSize: '14px',
+                }}>
+                  🗡️ {selectedCharacter.weapon}
+                </p>
+              </div>
+
               {/* Character Portrait */}
               <div style={{
-                width: '200px',
-                height: '200px',
-                margin: '0 auto 20px',
+                width: '250px',
+                height: '250px',
+                margin: '0 auto',
                 background: `linear-gradient(135deg, ${selectedCharacter.color}30, ${COLORS.bgDark})`,
                 border: `4px solid ${selectedCharacter.color}`,
                 boxShadow: `4px 4px 0 0 rgba(0,0,0,0.5), inset 0 0 30px ${selectedCharacter.color}20`,
@@ -53,50 +86,16 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                     }}
                     onError={(e) => {
                       e.target.style.display = 'none'
-                      e.target.parentElement.innerHTML = `<div style="font-size: 80px; color: ${selectedCharacter.color};">👤</div>`
+                      e.target.parentElement.innerHTML = `<div style="font-size: 100px; color: ${selectedCharacter.color};">👤</div>`
                     }}
                   />
                 ) : (
-                  <div style={{ fontSize: '80px', color: selectedCharacter.color }}>👤</div>
+                  <div style={{ fontSize: '100px', color: selectedCharacter.color }}>👤</div>
                 )}
               </div>
               
-              {/* Character Name */}
-              <h2 style={{ 
-                fontFamily: PIXEL_STYLES.fontFamily,
-                color: COLORS.textWhite, 
-                textAlign: 'center', 
-                margin: '0 0 5px',
-                fontSize: '20px',
-                textShadow: '2px 2px 0 #000',
-              }}>
-                {selectedCharacter.name}
-              </h2>
-              {selectedCharacter.subName && (
-                <p style={{ 
-                  fontFamily: PIXEL_STYLES.fontFamily,
-                  color: COLORS.textDark, 
-                  textAlign: 'center', 
-                  margin: '0 0 5px',
-                  fontSize: '11px',
-                  fontStyle: 'italic',
-                }}>
-                  {selectedCharacter.subName}
-                </p>
-              )}
-              <p style={{ 
-                fontFamily: PIXEL_STYLES.fontFamily,
-                color: selectedCharacter.color, 
-                textAlign: 'center', 
-                fontWeight: 'bold', 
-                margin: '0 0 20px',
-                fontSize: '14px',
-              }}>
-                🗡️ {selectedCharacter.weapon}
-              </p>
-              
               {/* Stats */}
-              <PixelPanel variant="dark" style={{ marginBottom: '15px' }}>
+              <PixelPanel variant="dark">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <StatBar icon="❤️" label="HP" value={selectedCharacter.baseStats.hp} color={COLORS.hp} />
                   <StatBar icon="⚔️" label="ATK" value={selectedCharacter.baseStats.damage} color={COLORS.atk} />
@@ -106,105 +105,79 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                 </div>
               </PixelPanel>
 
-              {/* Main Weapon */}
-              {(() => {
-                const mainWeapon = getMainWeapon(selectedCharacter.id)
-                return mainWeapon && (
-                  <PixelPanel variant="dark" style={{ marginBottom: '15px' }}>
-                    <h3 style={{
-                      fontFamily: PIXEL_STYLES.fontFamily,
-                      color: COLORS.primary,
-                      fontSize: '12px',
-                      margin: '0 0 8px',
-                      textShadow: '1px 1px 0 #000',
-                    }}>
-                      🗡️ 전용 무기
-                    </h3>
-                    <p style={{
-                      fontFamily: PIXEL_STYLES.fontFamily,
-                      color: COLORS.textWhite,
-                      fontSize: '11px',
-                      margin: '0 0 3px',
-                      fontWeight: 'bold',
-                    }}>
-                      {mainWeapon.name}
-                    </p>
-                    <p style={{
-                      fontFamily: PIXEL_STYLES.fontFamily,
-                      color: COLORS.textDark,
-                      fontSize: '10px',
-                      margin: 0,
-                      lineHeight: '1.4',
-                    }}>
-                      {mainWeapon.description}
-                    </p>
-                  </PixelPanel>
-                )
-              })()}
+              {/* Main Weapon + Special Ability (2열, 한 줄) */}
+              <div style={{ display: 'flex', gap: '15px' }}>
+                {/* Main Weapon */}
+                {(() => {
+                  const mainWeapon = getMainWeapon(selectedCharacter.id)
+                  return mainWeapon && (
+                    <PixelPanel variant="dark" style={{ flex: 1 }}>
+                      <h3 style={{
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        color: COLORS.primary,
+                        fontSize: '12px',
+                        margin: '0 0 8px',
+                        textShadow: '1px 1px 0 #000',
+                      }}>
+                        🗡️ 전용 무기
+                      </h3>
+                      <p style={{
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        color: COLORS.textWhite,
+                        fontSize: '11px',
+                        margin: '0 0 3px',
+                        fontWeight: 'bold',
+                      }}>
+                        {mainWeapon.name}
+                      </p>
+                      <p style={{
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        color: COLORS.textDark,
+                        fontSize: '10px',
+                        margin: 0,
+                        lineHeight: '1.4',
+                      }}>
+                        {mainWeapon.description}
+                      </p>
+                    </PixelPanel>
+                  )
+                })()}
 
-              {/* Special Ability */}
-              {(() => {
-                const specialAbility = getSpecialAbility(selectedCharacter.id)
-                return specialAbility && (
-                  <PixelPanel variant="dark" style={{ marginBottom: '15px' }}>
-                    <h3 style={{
-                      fontFamily: PIXEL_STYLES.fontFamily,
-                      color: COLORS.warning,
-                      fontSize: '12px',
-                      margin: '0 0 8px',
-                      textShadow: '1px 1px 0 #000',
-                    }}>
-                      ⚡ 스페셜 (Shift)
-                    </h3>
-                    <p style={{
-                      fontFamily: PIXEL_STYLES.fontFamily,
-                      color: COLORS.textWhite,
-                      fontSize: '11px',
-                      margin: '0 0 3px',
-                      fontWeight: 'bold',
-                    }}>
-                      {specialAbility.name}
-                    </p>
-                    <p style={{
-                      fontFamily: PIXEL_STYLES.fontFamily,
-                      color: COLORS.textDark,
-                      fontSize: '10px',
-                      margin: 0,
-                      lineHeight: '1.4',
-                    }}>
-                      {specialAbility.description}
-                    </p>
-                  </PixelPanel>
-                )
-              })()}
-
-              
-              {/* Coins */}
-              <div style={{ 
-                marginTop: 'auto', 
-                paddingTop: '15px',
-                display: 'flex',
-                justifyContent: 'center',
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: 'rgba(0,0,0,0.5)',
-                  border: `2px solid ${COLORS.panelBorder}`,
-                  padding: '8px 15px',
-                }}>
-                  <span style={{ fontSize: '20px' }}>💰</span>
-                  <span style={{
-                    fontFamily: PIXEL_STYLES.fontFamily,
-                    fontSize: '18px',
-                    fontWeight: 'bold',
-                    color: COLORS.primary,
-                    textShadow: '1px 1px 0 #000',
-                  }}>
-                    {coins.toLocaleString()}
-                  </span>
-                </div>
+                {/* Special Ability */}
+                {(() => {
+                  const specialAbility = getSpecialAbility(selectedCharacter.id)
+                  return specialAbility && (
+                    <PixelPanel variant="dark" style={{ flex: 1 }}>
+                      <h3 style={{
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        color: COLORS.warning,
+                        fontSize: '12px',
+                        margin: '0 0 8px',
+                        textShadow: '1px 1px 0 #000',
+                      }}>
+                        ⚡ 스페셜 (Shift)
+                      </h3>
+                      <p style={{
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        color: COLORS.textWhite,
+                        fontSize: '11px',
+                        margin: '0 0 3px',
+                        fontWeight: 'bold',
+                      }}>
+                        {specialAbility.name}
+                      </p>
+                      <p style={{
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        color: COLORS.textDark,
+                        fontSize: '10px',
+                        margin: 0,
+                        lineHeight: '1.4',
+                      }}>
+                        {specialAbility.description}
+                      </p>
+                    </PixelPanel>
+                  )
+                })()}
               </div>
             </>
           ) : (

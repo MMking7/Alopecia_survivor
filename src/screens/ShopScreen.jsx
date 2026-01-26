@@ -625,7 +625,7 @@ const ShopScreen = ({
                   display: 'grid', 
                   gridTemplateColumns: 'repeat(auto-fit, minmax(95px, 1fr))', 
                   gap: '10px',
-                  marginBottom: '20px',
+                  marginBottom: 0,
                 }}>
                   {characters.map((char) => {
                     const rank = characterRanks[char.id] || 0
