@@ -663,7 +663,7 @@ const GameScreen = ({
             break
 
           case 'spin':
-            // Ponytail Spin - Melee AoE
+            // Ponytail Spin - Melee AoE (최대 5명까지)
             state.attackEffects.push({
               id: generateId(),
               type: 'spin',
@@ -673,18 +673,28 @@ const GameScreen = ({
               createdAt: currentTime,
               duration: 300,
             })
-            state.enemies.forEach((enemy) => {
-              if (distance(state.player, enemy) <= state.stats.attackRange * 0.7) {
-                const damage = state.stats.damage * 1.2
-                enemy.currentHp -= damage
-                state.damageNumbers.push({
-                  id: generateId(),
-                  x: enemy.x,
-                  y: enemy.y,
-                  damage: Math.floor(damage),
-                  createdAt: currentTime,
-                })
-              }
+            
+            // 범위 내 모든 적을 찾아서 최대 5명까지 공격
+            const spinRange = state.stats.attackRange * 0.7
+            const enemiesInRange = state.enemies.filter((enemy) => 
+              !enemy.isDead && distance(state.player, enemy) <= spinRange
+            )
+            
+            // 최대 5명까지만 공격
+            const spinTargets = enemiesInRange.slice(0, 5)
+            
+            spinTargets.forEach((enemy) => {
+              const isCrit = Math.random() < (state.stats.crit || 0)
+              const damage = state.stats.damage * 1.2 * (isCrit ? 1.5 : 1.0)
+              enemy.currentHp -= damage
+              state.damageNumbers.push({
+                id: generateId(),
+                x: enemy.x,
+                y: enemy.y,
+                damage: Math.floor(damage),
+                isCritical: isCrit,
+                createdAt: currentTime,
+              })
             })
             break
 
