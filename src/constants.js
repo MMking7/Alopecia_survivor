@@ -26,7 +26,13 @@ export const getShopBonuses = (shopLevels = {}) => ({
   xpMultiplier: 1 + (shopLevels.xp || 0) * 0.1,
 })
 
-export const getBaseStatsWithShop = (character, shopLevels = {}) => {
+// 캐릭터 랑크에 따른 보너스 배수 계산 (RANK 1당 1% 증가)
+export const getRankMultiplier = (characterId, characterRanks = {}) => {
+  const rank = characterRanks[characterId] || 0
+  return 1 + (rank * 0.01) // RANK 1 = 1.01배, RANK 10 = 1.10배
+}
+
+export const getBaseStatsWithShop = (character, shopLevels = {}, characterRanks = {}) => {
   const baseStats = character?.baseStats || {}
   const baseHp = baseStats.hp || 100
   const baseDamage = baseStats.damage || 30
@@ -34,17 +40,20 @@ export const getBaseStatsWithShop = (character, shopLevels = {}) => {
   const baseAttackRange = baseStats.attackRange || 120
   const baseCrit = baseStats.crit || 0.05
   const shopBonuses = getShopBonuses(shopLevels)
+  
+  // 캐릭터 랑크 보너스 적용
+  const rankMultiplier = getRankMultiplier(character?.id, characterRanks)
 
   return {
-    maxHp: baseHp + shopBonuses.maxHp,
-    damage: baseDamage * shopBonuses.damage,
-    attackSpeed: baseAttackSpeed * shopBonuses.attackSpeed,
-    attackRange: baseAttackRange,
-    moveSpeed: shopBonuses.moveSpeed,
-    crit: baseCrit + shopBonuses.crit,
+    maxHp: Math.floor((baseHp + shopBonuses.maxHp) * rankMultiplier),
+    damage: baseDamage * shopBonuses.damage * rankMultiplier,
+    attackSpeed: baseAttackSpeed * shopBonuses.attackSpeed * rankMultiplier,
+    attackRange: baseAttackRange * rankMultiplier,
+    moveSpeed: shopBonuses.moveSpeed * rankMultiplier,
+    crit: (baseCrit + shopBonuses.crit) * rankMultiplier,
     defense: 0,
     lifeSteal: 0,
-    xpMultiplier: shopBonuses.xpMultiplier,
+    xpMultiplier: shopBonuses.xpMultiplier * rankMultiplier,
     spawnRateMultiplier: 1.0,
   }
 }

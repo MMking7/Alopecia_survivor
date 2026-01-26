@@ -90,9 +90,14 @@ const loadGlobalShop = () => {
   const saved = localStorage.getItem(GLOBAL_SHOP_KEY)
   if (saved) {
     try {
-      return JSON.parse(saved) || { coins: 0, shopLevels: {} }
+      const parsed = JSON.parse(saved) || { coins: 0, shopLevels: {}, characterRanks: {} }
+      return {
+        coins: parsed.coins || 0,
+        shopLevels: parsed.shopLevels || {},
+        characterRanks: parsed.characterRanks || {}
+      }
     } catch (error) {
-      return { coins: 0, shopLevels: {} }
+      return { coins: 0, shopLevels: {}, characterRanks: {} }
     }
   }
 
@@ -127,7 +132,8 @@ const loadGlobalShop = () => {
 
   return {
     coins: legacyCoins || 0,
-    shopLevels: legacyShopLevels || {}
+    shopLevels: legacyShopLevels || {},
+    characterRanks: {}
   }
 }
 
@@ -176,6 +182,7 @@ function App() {
   const activeProfile = normalizeProfile(characterProgress[activeCharacterId])
   const coins = globalShop.coins
   const shopLevels = globalShop.shopLevels
+  const characterRanks = globalShop.characterRanks || {}
   const activeCharacter = CHARACTERS.find((char) => char.id === activeCharacterId) || null
   const selectedProfile = selectedCharacter ? normalizeProfile(characterProgress[selectedCharacter.id]) : activeProfile
 
@@ -227,6 +234,13 @@ function App() {
     setGlobalShop(prev => {
       const nextLevels = typeof updater === 'function' ? updater(prev.shopLevels) : updater
       return { ...prev, shopLevels: nextLevels }
+    })
+  }, [])
+
+  const setCharacterRanks = useCallback((updater) => {
+    setGlobalShop(prev => {
+      const nextRanks = typeof updater === 'function' ? updater(prev.characterRanks || {}) : updater
+      return { ...prev, characterRanks: nextRanks }
     })
   }, [])
 
@@ -361,6 +375,9 @@ function App() {
             shopLevels={shopLevels}
             setShopLevels={setShopLevels}
             shopUpgrades={SHOP_UPGRADES}
+            characterRanks={characterRanks}
+            setCharacterRanks={setCharacterRanks}
+            characters={CHARACTERS}
             onBack={() => setGamePhase('menu')}
           />
         )}
@@ -370,6 +387,7 @@ function App() {
           <GameScreen
             selectedCharacter={selectedCharacter}
             shopLevels={shopLevels}
+            characterRanks={characterRanks}
             characterProgress={selectedProfile}
             loadedImages={loadedImages}
             onGameOver={handleGameOver}

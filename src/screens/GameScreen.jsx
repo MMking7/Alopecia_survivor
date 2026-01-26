@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
-import { GAME_CONFIG, SPRITES, ENEMIES, BOSS, UPGRADES, SHOP_UPGRADES, getBaseStatsWithShop } from '../constants'
+import { GAME_CONFIG, SPRITES, ENEMIES, BOSS, UPGRADES, SHOP_UPGRADES, getBaseStatsWithShop, getRankMultiplier } from '../constants'
 import { generateMixedLevelUpOptions, handleSubWeaponSelection, getSubWeaponById } from '../SubWeapons'
 import {
   PixelPanel,
@@ -54,6 +54,7 @@ const getXpNeededForLevel = (level) => {
 const GameScreen = ({
   selectedCharacter,
   shopLevels,
+  characterRanks = {},
   characterProgress,
   loadedImages,
   onGameOver,
@@ -78,7 +79,7 @@ const GameScreen = ({
   const initGame = useCallback(() => {
     if (!selectedCharacter) return
 
-    const baseStats = getBaseStatsWithShop(selectedCharacter, shopLevels)
+    const baseStats = getBaseStatsWithShop(selectedCharacter, shopLevels, characterRanks)
     const bonusStats = characterProgress?.bonusStats || {}
     const startingLevel = Math.max(1, characterProgress?.level || 1)
     const startingMaxHp = baseStats.maxHp + (bonusStats.maxHp || 0)
