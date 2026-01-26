@@ -194,22 +194,49 @@ export const updateCombat = ({
       }
 
       // Life Steal Check (Moved from duplicate block)
-      if (state.stats.lifeSteal > 0 && Math.random() < 0.2) {
+      // Life Steal Check (Fixed: Removed double RNG gate)
+      if (state.stats.lifeSteal > 0) {
+        // lifeSteal value is chance (e.g. 0.05 = 5%). Cap recovery to prevent infinite sustain.
         if (Math.random() < state.stats.lifeSteal) {
-          state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + 3)
-          state.damageNumbers.push({
-            id: generateId(),
-            x: state.player.x,
-            y: state.player.y - 40,
-            damage: "+3 HP",
-            color: '#00FF00',
-            createdAt: currentTime,
-          })
+          const healAmount = 3
+          if (state.stats.hp < state.stats.maxHp) {
+             state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + healAmount)
+             state.damageNumbers.push({
+               id: generateId(),
+               x: state.player.x,
+               y: state.player.y - 40,
+               damage: `+${healAmount} HP`,
+               color: '#00FF00',
+               createdAt: currentTime,
+               isHeal: true,
+             })
+          }
         }
       }
 
       // Increment Kill Count immediately for satisfaction
       state.kills += 1
+      
+      // Wongfeihung passive skill: increase kill stacks
+      if (state.passiveBonuses?.wongMoveSpeedBonus) {
+        state.passiveBonuses.wongKillStacks = Math.min(
+          (state.passiveBonuses.wongKillStacks || 0) + 1,
+          state.passiveBonuses.wongMaxStacks || 6
+        )
+        // Heal HP on kill
+        if (state.passiveBonuses.wongHpRegen) {
+          state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + state.passiveBonuses.wongHpRegen)
+        }
+      }
+      
+      // Areata passive skill 3: chance to drop hair for attack speed buff
+      if (state.passiveBonuses?.hairDropChance && Math.random() < state.passiveBonuses.hairDropChance) {
+        state.passiveBonuses.areataHairStacks = Math.min(
+          (state.passiveBonuses.areataHairStacks || 0) + 1,
+          5 // max 5 stacks
+        )
+        state.passiveBonuses.areataHairStackExpire = currentTime + (state.passiveBonuses.hairBuffDuration || 5) * 1000
+      }
     }
 
     // Garbage Collection: Remove far enemies OR fully dead enemies
@@ -640,6 +667,16 @@ export const updateCombat = ({
   collectedOrbs.forEach((orb) => {
     const xpGain = orb.value * (state.stats.xpMultiplier || 1.0)
     state.xp += xpGain
+    
+    // Mzamen passive skill 2: increase XP stacks for attack speed
+    if (state.passiveBonuses?.mzamenAttackSpeedBonus) {
+      state.passiveBonuses.mzamenXpStacks = Math.min(
+        (state.passiveBonuses.mzamenXpStacks || 0) + 1,
+        state.passiveBonuses.mzamenMaxStacks || 6
+      )
+      state.passiveBonuses.mzamenXpStackExpire = currentTime + (state.passiveBonuses.mzamenStackDuration || 5) * 1000
+    }
+    
     if (state.xp >= state.xpNeeded) {
       state.xp = 0
       state.level += 1

@@ -8,7 +8,7 @@ import { updateSubWeaponEffects } from './subweapons/updateSubWeaponEffects'
 
 export const updateSkillSystems = ({ state, currentTime, deltaTime, gameStateRef }) => {
   updateActiveSpecialAbilities({ state, currentTime, deltaTime })
-  applyPassiveBonuses({ state })
+  applyPassiveBonuses({ state, currentTime })
   activateSpecialAbility({ state, currentTime })
   performMainAttack({ state, currentTime })
   triggerSubWeaponAttacks({ state, currentTime, deltaTime, gameStateRef })

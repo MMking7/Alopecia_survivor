@@ -60,6 +60,11 @@ export const handleTransplantAttack = ({ state, currentTime, character }) => {
     }
     const finalAngle = targetAngle + angleOffset
 
+    // Apply lifeSteal bonus from passive skill and special ability
+    const lifeStealBonus = state.passiveBonuses?.lifeStealBonus || 0
+    const specialLifeStealBonus = state.passiveBonuses?.specialLifeStealBonus || 0
+    const totalLifeSteal = (talmoEffect.lifeSteal || 0) + lifeStealBonus + specialLifeStealBonus
+
     state.transplantProjectiles.push({
       id: generateId(),
       x: state.player.x,
@@ -77,7 +82,7 @@ export const handleTransplantAttack = ({ state, currentTime, character }) => {
       createdAt: currentTime,
       color: character.attackColor,
       // Talmo Docter specific effects
-      lifeSteal: talmoEffect.lifeSteal,
+      lifeSteal: totalLifeSteal,
       fragmentChance: talmoEffect.fragmentChance || 0,
       maxFragments: talmoEffect.maxFragments || 50,
       // 부메랑 효과 (각성)

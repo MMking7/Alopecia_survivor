@@ -55,6 +55,14 @@ export const handleBoomerangAttack = ({ state, currentTime, character }) => {
 
     const finalAngle = boomerangAngle + offsetAngle
 
+    // Apply front damage bonus from passive skill
+    const frontDamageBonus = state.passiveBonuses?.frontDamageBonus || 0
+    const baseDamage = state.stats.damage * mzamenEffect.damage * (1 + frontDamageBonus)
+    
+    // Apply range bonus
+    const rangeBonus = state.passiveBonuses?.rangeBonus || 0
+    const totalRange = boomerangRange * (1 + rangeBonus)
+
     // Create boomerang projectile
     state.boomerangProjectiles.push({
       id: generateId(),
@@ -66,8 +74,8 @@ export const handleBoomerangAttack = ({ state, currentTime, character }) => {
       vy: Math.sin(finalAngle) * boomerangSpeed,
       angle: finalAngle,
       rotation: 0,
-      damage: state.stats.damage * mzamenEffect.damage,
-      range: boomerangRange,
+      damage: baseDamage,
+      range: totalRange,
       speed: boomerangSpeed,
       returnSpeed: returnSpeed,
       size: character.projectileSize || 80,

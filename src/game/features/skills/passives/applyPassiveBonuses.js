@@ -1,14 +1,23 @@
 import { CHARACTER_PASSIVE_SKILLS } from '../../../../MainWeapons'
 
-export const applyPassiveBonuses = ({ state }) => {
+export const applyPassiveBonuses = ({ state, currentTime }) => {
   // Calculate multipliers separately, then apply to base stats
   // This prevents accumulation while allowing conditional bonuses
   let damageMultiplier = 1
   let speedMultiplier = 1
+  let attackSpeedMultiplier = 1
   let critBonus = 0
   
-  // Reset passive bonuses object
-  state.passiveBonuses = {}
+  // Reset passive bonuses object (but preserve stacks)
+  const prevBonuses = state.passiveBonuses || {}
+  state.passiveBonuses = {
+    // Preserve stack-based values
+    wongKillStacks: prevBonuses.wongKillStacks || 0,
+    mzamenXpStacks: prevBonuses.mzamenXpStacks || 0,
+    mzamenXpStackExpire: prevBonuses.mzamenXpStackExpire || 0,
+    areataHairStacks: prevBonuses.areataHairStacks || 0,
+    areataHairStackExpire: prevBonuses.areataHairStackExpire || 0,
+  }
   
   if (state.passiveSkills && state.passiveSkills.length > 0) {
     const passiveSkills = CHARACTER_PASSIVE_SKILLS[state.player.character.id] || []
@@ -34,12 +43,39 @@ export const applyPassiveBonuses = ({ state }) => {
 
         case 'female_skill2': // Move speed + regen
           speedMultiplier *= (1 + skillEffect.moveSpeed)
+          state.passiveBonuses.regenPercent = skillEffect.regenPercent
+          state.passiveBonuses.regenInterval = skillEffect.regenInterval
+          break
+
+        case 'female_skill3': // Shield stacks
+          state.passiveBonuses.shieldSkill = {
+            stacks: skillEffect.shieldStacks,
+            interval: skillEffect.interval,
+            damageReduction: skillEffect.damageReduction,
+            invulnerabilityDuration: skillEffect.invulnerabilityDuration,
+          }
           break
 
         // Areata skills
         case 'areata_skill1': // Attack bonus based on enemy count
           if (state.enemies.length >= skillEffect.enemyThreshold) {
             damageMultiplier *= (1 + skillEffect.attackBonus)
+          }
+          break
+
+        case 'areata_skill2': // Dodge chance + shockwave
+          state.passiveBonuses.dodgeChance = skillEffect.dodgeChance
+          state.passiveBonuses.shockwaveDamage = skillEffect.shockwaveDamage
+          break
+
+        case 'areata_skill3': // Hair drop + attack speed buff
+          state.passiveBonuses.hairDropChance = skillEffect.dropChance
+          state.passiveBonuses.hairAttackSpeedBonus = skillEffect.attackSpeedBonus
+          state.passiveBonuses.hairBuffDuration = skillEffect.duration
+          // Apply attack speed if stacks active
+          if (state.passiveBonuses.areataHairStacks > 0 && 
+              currentTime < state.passiveBonuses.areataHairStackExpire) {
+            attackSpeedMultiplier *= (1 + state.passiveBonuses.areataHairStacks * skillEffect.attackSpeedBonus)
           }
           break
 
@@ -51,8 +87,20 @@ export const applyPassiveBonuses = ({ state }) => {
           }
           break
 
+        case 'wongfeihung_skill2': // Kill stacks move speed + HP regen
+          state.passiveBonuses.wongMoveSpeedBonus = skillEffect.moveSpeedBonus
+          state.passiveBonuses.wongMaxStacks = skillEffect.maxStacks
+          state.passiveBonuses.wongHpRegen = skillEffect.hpRegen
+          // Apply stacks
+          const killStacks = Math.min(state.passiveBonuses.wongKillStacks, skillEffect.maxStacks)
+          if (killStacks > 0) {
+            speedMultiplier *= (1 + killStacks * skillEffect.moveSpeedBonus)
+          }
+          break
+
         case 'wongfeihung_skill3': // Melee damage bonus
           state.passiveBonuses.meleeDamageBonus = skillEffect.meleeDamageBonus
+          state.passiveBonuses.critWaveDamage = skillEffect.critWaveDamage
           break
 
         // Heihachi skills
@@ -60,19 +108,37 @@ export const applyPassiveBonuses = ({ state }) => {
           state.passiveBonuses.electrifiedDamageBonus = skillEffect.damageBonus
           break
 
-        case 'heihachi_skill2': // Low HP attack bonus
+        case 'heihachi_skill2': // Low HP attack bonus + heal on hit
           if (hpPercent <= skillEffect.hpThreshold) {
             damageMultiplier *= (1 + skillEffect.attackBonus)
           }
+          state.passiveBonuses.devilGeneHealChance = skillEffect.healChance
+          state.passiveBonuses.devilGeneHealAmount = skillEffect.healAmount
+          state.passiveBonuses.devilGeneExplosionDamage = skillEffect.explosionDamage
           break
 
-        case 'heihachi_skill3': // Damage reduction
+        case 'heihachi_skill3': // Damage reduction + knockback resist
           state.passiveBonuses.damageReduction = skillEffect.damageReduction
+          state.passiveBonuses.knockbackResistance = skillEffect.knockbackResistance
           break
 
         // Mzamen skills
-        case 'mzamen_skill2': // Pickup range
+        case 'mzamen_skill1': // Front damage bonus + back damage reduction
+          state.passiveBonuses.frontDamageBonus = skillEffect.frontDamageBonus
+          state.passiveBonuses.backDamageReduction = skillEffect.backDamageReduction
+          break
+
+        case 'mzamen_skill2': // Pickup range + XP attack speed stacks
           state.passiveBonuses.pickupRange = skillEffect.pickupRange
+          state.passiveBonuses.mzamenAttackSpeedBonus = skillEffect.attackSpeedBonus
+          state.passiveBonuses.mzamenMaxStacks = skillEffect.maxStacks
+          state.passiveBonuses.mzamenStackDuration = skillEffect.duration
+          // Apply attack speed stacks
+          if (state.passiveBonuses.mzamenXpStacks > 0 && 
+              currentTime < state.passiveBonuses.mzamenXpStackExpire) {
+            const xpStacks = Math.min(state.passiveBonuses.mzamenXpStacks, skillEffect.maxStacks)
+            attackSpeedMultiplier *= (1 + xpStacks * skillEffect.attackSpeedBonus)
+          }
           break
 
         case 'mzamen_skill3': // Range bonus
@@ -86,14 +152,52 @@ export const applyPassiveBonuses = ({ state }) => {
             damageMultiplier *= (1 + skillEffect.attackBonus)
           }
           break
+
+        case 'talmo_docter_skill2': // Shield stacks
+          state.passiveBonuses.shieldSkill = {
+            stacks: skillEffect.shieldStacks,
+            interval: skillEffect.interval,
+            damageReduction: skillEffect.damageReduction,
+            invulnerabilityDuration: skillEffect.invulnerabilityDuration,
+          }
+          break
+
+        case 'talmo_docter_skill3': // Emergency heal
+          state.passiveBonuses.emergencyHeal = {
+            hpThreshold: skillEffect.hpThreshold,
+            healAmount: skillEffect.healAmount,
+            cooldown: skillEffect.cooldown,
+            areaDamage: skillEffect.areaDamage,
+          }
+          break
       }
     })
+  }
+  
+  // Apply range bonus to attack range
+  const rangeBonus = state.passiveBonuses.rangeBonus || 0
+  
+  // Apply special ability buffs (Talmo Docter's Emergency Treatment)
+  if (state.specialAbility?.active && state.specialAbility?.hasBonusBuff) {
+    const effect = state.specialAbility.effect
+    if (effect?.bonusAttackPower) {
+      damageMultiplier *= (1 + effect.bonusAttackPower)
+    }
+    if (effect?.bonusLifeSteal) {
+      state.passiveBonuses.specialLifeStealBonus = effect.bonusLifeSteal
+    }
   }
   
   // Apply calculated multipliers to base stats (not accumulating)
   if (state.baseStats) {
     state.stats.damage = state.baseStats.damage * damageMultiplier
     state.stats.moveSpeed = state.baseStats.moveSpeed * speedMultiplier
+    state.stats.attackSpeed = state.baseStats.attackSpeed * attackSpeedMultiplier
     state.stats.crit = state.baseStats.crit + critBonus
+    state.stats.attackRange = (state.baseStats.attackRange || 120) * (1 + rangeBonus)
+    
+    // Apply special lifesteal bonus
+    const specialLifeSteal = state.passiveBonuses.specialLifeStealBonus || 0
+    state.stats.lifeSteal = (state.baseStats.lifeSteal || 0) + (state.passiveBonuses.lifeStealBonus || 0) + specialLifeSteal
   }
 }
