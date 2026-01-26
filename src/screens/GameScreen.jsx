@@ -125,6 +125,7 @@ const GameScreen = ({
       specialAbility: {
         cooldown: 0,
         lastUsed: 0,
+        lastUsedGameTime: 0, // 게임 시간 기준 (초 단위)
         active: false,
         activeUntil: 0,
       },
@@ -965,9 +966,9 @@ const GameScreen = ({
         const ability = getSpecialAbility(state.player.character.id)
         console.log('[SPECIAL] Ability found:', ability)
         if (ability) {
-          // lastUsed가 0이면 한 번도 안 쓴 것 → 바로 사용 가능
-          const neverUsed = state.specialAbility.lastUsed === 0
-          const timeSinceLastUse = currentTime - state.specialAbility.lastUsed
+          // lastUsedGameTime이 0이면 한 번도 안 쓴 것 → 바로 사용 가능
+          const neverUsed = state.specialAbility.lastUsedGameTime === 0
+          const timeSinceLastUse = (state.gameTime - state.specialAbility.lastUsedGameTime) * 1000 // 초 → 밀리초
           const cooldownReady = neverUsed || timeSinceLastUse >= ability.cooldown
           console.log('[SPECIAL] Cooldown check:', { neverUsed, timeSinceLastUse, cooldown: ability.cooldown, ready: cooldownReady })
           if (cooldownReady) {
@@ -976,6 +977,7 @@ const GameScreen = ({
             state.specialAbility.active = true
             state.specialAbility.activeUntil = currentTime + (ability.duration || 0)
             state.specialAbility.lastUsed = currentTime
+            state.specialAbility.lastUsedGameTime = state.gameTime // 게임 시간 기준으로 저장
             state.specialAbility.type = ability.effect.type
             state.specialAbility.effect = ability.effect
 
@@ -1857,7 +1859,8 @@ const GameScreen = ({
         shield: state.stats.shield,
         coins: state.collectedCoins,
         fragments: state.fragments || 0,
-        specialAbilityLastUsed: state.specialAbility?.lastUsed || 0,
+        specialAbilityLastUsed: state.specialAbility?.lastUsedGameTime || 0,
+        currentGameTime: state.gameTime,
       })
 
       // ============================================================
@@ -2998,11 +3001,11 @@ const GameScreen = ({
               const ability = getSpecialAbility(selectedCharacter?.id)
               if (!ability) return null
               
-              const currentTime = performance.now()
-              const lastUsed = displayStats.specialAbilityLastUsed
-              // 아직 한 번도 사용 안 했으면 쿨타임 없음 (lastUsed가 0이거나 undefined/null)
-              const hasBeenUsed = lastUsed > 0
-              const timeSinceLastUse = hasBeenUsed ? (currentTime - lastUsed) : Infinity
+              const lastUsedGameTime = displayStats.specialAbilityLastUsed
+              const currentGameTime = displayStats.currentGameTime || 0
+              // 아직 한 번도 사용 안 했으면 쿨타임 없음 (lastUsedGameTime이 0)
+              const hasBeenUsed = lastUsedGameTime > 0
+              const timeSinceLastUse = hasBeenUsed ? (currentGameTime - lastUsedGameTime) * 1000 : Infinity // 초 → 밀리초
               const cooldownRemaining = hasBeenUsed ? Math.max(0, ability.cooldown - timeSinceLastUse) : 0
               const isOnCooldown = cooldownRemaining > 0
               const cooldownPercent = isOnCooldown ? (cooldownRemaining / ability.cooldown) * 100 : 0
