@@ -1,134 +1,317 @@
 import React, { useState } from 'react'
+import { 
+  ScreenBackground, 
+  PixelPanel, 
+  PixelButton, 
+  PixelTitle,
+  CoinDisplay,
+  LevelIndicator,
+  COLORS,
+  PIXEL_STYLES 
+} from '../styles/PixelUI'
 
 const ShopScreen = ({ coins, setCoins, shopLevels, setShopLevels, shopUpgrades, onBack }) => {
   const [selectedShopItem, setSelectedShopItem] = useState(null)
 
+  const handleBuy = () => {
+    if (!selectedShopItem) return
+    const level = shopLevels[selectedShopItem.id] || 0
+    const cost = selectedShopItem.cost * (level + 1)
+    if (coins >= cost && level < selectedShopItem.maxLevel) {
+      setCoins(prev => prev - cost)
+      setShopLevels(prev => ({ ...prev, [selectedShopItem.id]: level + 1 }))
+    }
+  }
+
+  const handleRefund = () => {
+    if (!selectedShopItem) return
+    const level = shopLevels[selectedShopItem.id] || 0
+    if (level > 0) {
+      const refund = Math.floor(selectedShopItem.cost * level * 0.8)
+      setCoins(prev => prev + refund)
+      setShopLevels(prev => ({ ...prev, [selectedShopItem.id]: level - 1 }))
+    }
+  }
+
+  const selectedLevel = selectedShopItem ? (shopLevels[selectedShopItem.id] || 0) : 0
+  const selectedCost = selectedShopItem ? selectedShopItem.cost * (selectedLevel + 1) : 0
+  const canBuy = selectedShopItem && coins >= selectedCost && selectedLevel < selectedShopItem.maxLevel
+  const canRefund = selectedShopItem && selectedLevel > 0
+
   return (
-    <div style={{
-      width: '100%',
-      height: '100%',
-      background: 'linear-gradient(180deg, #87CEEB 0%, #B0E2FF 100%)',
-      display: 'flex',
-      padding: '40px',
-      position: 'relative',
-      boxSizing: 'border-box',
-    }}>
-      {/* Left - Shop NPC */}
-      <div style={{ width: '350px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <h1 style={{ color: '#234', fontSize: '48px', fontWeight: 'bold', textShadow: '2px 2px 0 #fff', marginBottom: '20px' }}>SHOP</h1>
-        <div style={{ fontSize: '150px', filter: 'drop-shadow(4px 4px 0 rgba(0,0,0,0.2))' }}>🧑‍💼</div>
-      </div>
-
-      {/* Right - Items Grid */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Coins */}
-        <div style={{ alignSelf: 'flex-end', background: 'rgba(0,0,0,0.7)', padding: '12px 25px', borderRadius: '8px', marginBottom: '20px' }}>
-          <span style={{ color: '#FFD700', fontSize: '24px', fontWeight: 'bold' }}>💰 {coins.toLocaleString()}</span>
-        </div>
-
-        {/* Items Grid */}
-        <div style={{
-          background: 'rgba(50,80,100,0.85)',
-          borderRadius: '12px',
-          padding: '20px',
-          border: '3px solid #345',
-          marginBottom: '20px',
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px' }}>
-            {shopUpgrades.map((item) => {
-              const level = shopLevels[item.id] || 0
-              const isMaxed = level >= item.maxLevel
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedShopItem(item)}
-                  style={{
-                    width: '70px',
-                    height: '70px',
-                    background: selectedShopItem?.id === item.id ? 'rgba(0,200,255,0.3)' : 'rgba(30,50,70,0.8)',
-                    border: selectedShopItem?.id === item.id ? '3px solid #00BFFF' : '2px solid #456',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    position: 'relative',
-                  }}
-                >
-                  <span style={{ fontSize: '28px' }}>{item.icon}</span>
-                  <div style={{ position: 'absolute', bottom: '2px', display: 'flex', gap: '2px' }}>
-                    {Array.from({ length: item.maxLevel }, (_, i) => (
-                      <div key={i} style={{ width: '6px', height: '6px', background: i < level ? '#FFD700' : '#555', borderRadius: '1px' }} />
-                    )).slice(0, 5)}
-                  </div>
-                  {isMaxed && <div style={{ position: 'absolute', top: '2px', right: '2px', fontSize: '10px', color: '#FFD700' }}>MAX</div>}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Item Description */}
-        {selectedShopItem && (
+    <ScreenBackground variant="blue">
+      <div style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        padding: '30px',
+        gap: '30px',
+        boxSizing: 'border-box',
+      }}>
+        {/* Left - Shop Info */}
+        <PixelPanel style={{ width: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <PixelTitle size="medium" color={COLORS.primary} style={{ marginBottom: '20px' }}>
+            🛒 STORE
+          </PixelTitle>
+          
+          {/* Shop NPC */}
           <div style={{
-            background: 'rgba(30,50,70,0.9)',
-            borderRadius: '8px',
-            padding: '15px 20px',
-            border: '2px solid #00BFFF',
+            width: '180px',
+            height: '180px',
+            background: COLORS.bgLight,
+            border: `4px solid ${COLORS.panelBorder}`,
+            boxShadow: '4px 4px 0 0 rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             marginBottom: '20px',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
-              <span style={{ fontSize: '40px' }}>{selectedShopItem.icon}</span>
-              <div>
-                <h3 style={{ color: '#fff', margin: 0 }}>{selectedShopItem.name}</h3>
-                <p style={{ color: '#aaa', margin: 0, fontSize: '14px' }}>{selectedShopItem.description}</p>
-              </div>
-              <span style={{ marginLeft: 'auto', color: '#FF6B6B', fontSize: '18px', fontWeight: 'bold' }}>
-                Cost: {selectedShopItem.cost * ((shopLevels[selectedShopItem.id] || 0) + 1)}
-              </span>
-            </div>
+            <span style={{ fontSize: '120px', filter: 'drop-shadow(4px 4px 0 rgba(0,0,0,0.3))' }}>🧙</span>
           </div>
-        )}
+          
+          {/* Shop Message */}
+          <PixelPanel variant="dark" style={{ width: '100%', textAlign: 'center' }}>
+            <p style={{
+              fontFamily: PIXEL_STYLES.fontFamily,
+              color: COLORS.textGray,
+              fontSize: '12px',
+              margin: 0,
+              lineHeight: 1.6,
+            }}>
+              "어서오게, 여행자여!<br/>
+              무엇이 필요한가?"
+            </p>
+          </PixelPanel>
+          
+          {/* Coins at bottom */}
+          <div style={{ marginTop: 'auto' }}>
+            <CoinDisplay coins={coins} />
+          </div>
+        </PixelPanel>
 
-        {/* Buttons */}
-        <div style={{ display: 'flex', gap: '15px' }}>
-          <button
-            onClick={() => {
-              if (!selectedShopItem) return
-              const level = shopLevels[selectedShopItem.id] || 0
-              const cost = selectedShopItem.cost * (level + 1)
-              if (coins >= cost && level < selectedShopItem.maxLevel) {
-                setCoins(prev => prev - cost)
-                setShopLevels(prev => ({ ...prev, [selectedShopItem.id]: level + 1 }))
-              }
-            }}
-            disabled={!selectedShopItem || coins < (selectedShopItem?.cost * ((shopLevels[selectedShopItem?.id] || 0) + 1)) || (shopLevels[selectedShopItem?.id] || 0) >= selectedShopItem?.maxLevel}
-            style={{ padding: '15px 50px', fontSize: '18px', fontWeight: 'bold', background: '#4A7C99', color: '#fff', border: '3px solid #345', borderRadius: '8px', cursor: 'pointer' }}
+        {/* Right - Items */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Items Grid */}
+          <PixelPanel style={{ marginBottom: '20px' }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(5, 1fr)', 
+              gap: '15px',
+            }}>
+              {shopUpgrades.map((item) => {
+                const level = shopLevels[item.id] || 0
+                const isMaxed = level >= item.maxLevel
+                const isSelected = selectedShopItem?.id === item.id
+                
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedShopItem(item)}
+                    style={{
+                      minWidth: '95px',
+                      height: '120px',
+                      background: isSelected 
+                        ? `linear-gradient(180deg, ${COLORS.secondary}30, ${COLORS.bgDark})`
+                        : COLORS.bgLight,
+                      border: `4px solid ${isSelected ? COLORS.secondary : COLORS.panelBorder}`,
+                      boxShadow: isSelected 
+                        ? `0 0 15px ${COLORS.secondary}40, 4px 4px 0 0 rgba(0,0,0,0.5)`
+                        : '4px 4px 0 0 rgba(0,0,0,0.5)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'all 0.1s ease',
+                      padding: '10px 6px',
+                    }}
+                  >
+                    <span style={{ fontSize: '36px', marginBottom: '6px' }}>{item.icon}</span>
+                    
+                    {/* Item Name */}
+                    <div style={{
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      fontSize: '9px',
+                      color: COLORS.textWhite,
+                      textAlign: 'center',
+                      marginBottom: '8px',
+                      lineHeight: 1.2,
+                      textShadow: '1px 1px 0 #000',
+                      width: '100%',
+                      padding: '0 2px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                    }}>
+                      {item.name}
+                    </div>
+                    
+                    {/* Level Progress Bar */}
+                    <div style={{
+                      width: '70px',
+                      height: '12px',
+                      background: 'rgba(0,0,0,0.6)',
+                      border: `2px solid ${COLORS.panelBorder}`,
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: `${(level / item.maxLevel) * 100}%`,
+                        background: isMaxed 
+                          ? `linear-gradient(90deg, ${COLORS.primary}, ${COLORS.primaryDark})`
+                          : `linear-gradient(90deg, ${COLORS.secondary}, ${COLORS.secondaryDark})`,
+                        transition: 'width 0.3s ease',
+                      }} />
+                    </div>
+                    {/* Level Text */}
+                    <span style={{
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      fontSize: '11px',
+                      color: isMaxed ? COLORS.primary : COLORS.textWhite,
+                      fontWeight: 'bold',
+                      textShadow: '1px 1px 0 #000',
+                      marginTop: '4px',
+                    }}>
+                      {level}/{item.maxLevel}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </PixelPanel>
+
+          {/* Item Description */}
+          <PixelPanel 
+            variant={selectedShopItem ? 'highlight' : 'default'} 
+            style={{ marginBottom: '20px', minHeight: '120px' }}
           >
-            Buy
-          </button>
-          <button
-            onClick={() => {
-              if (!selectedShopItem) return
-              const level = shopLevels[selectedShopItem.id] || 0
-              if (level > 0) {
-                const refund = Math.floor(selectedShopItem.cost * level * 0.8)
-                setCoins(prev => prev + refund)
-                setShopLevels(prev => ({ ...prev, [selectedShopItem.id]: level - 1 }))
-              }
-            }}
-            disabled={!selectedShopItem || (shopLevels[selectedShopItem?.id] || 0) <= 0}
-            style={{ padding: '15px 40px', fontSize: '18px', background: 'rgba(100,100,100,0.7)', color: '#fff', border: '3px solid #555', borderRadius: '8px', cursor: 'pointer' }}
-          >
-            Refund
-          </button>
-          <button onClick={onBack} style={{ marginLeft: 'auto', padding: '15px 40px', fontSize: '18px', background: 'rgba(100,100,100,0.7)', color: '#fff', border: '3px solid #555', borderRadius: '8px', cursor: 'pointer' }}>
-            ← 뒤로가기
-          </button>
+            {selectedShopItem ? (
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                {/* Icon */}
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  background: COLORS.bgLight,
+                  border: `4px solid ${COLORS.panelBorder}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <span style={{ fontSize: '48px' }}>{selectedShopItem.icon}</span>
+                </div>
+                
+                {/* Info */}
+                <div style={{ flex: 1 }}>
+                  <h3 style={{
+                    fontFamily: PIXEL_STYLES.fontFamily,
+                    color: COLORS.textWhite,
+                    margin: '0 0 8px',
+                    fontSize: '18px',
+                    textShadow: '2px 2px 0 #000',
+                  }}>
+                    {selectedShopItem.name}
+                  </h3>
+                  <p style={{
+                    fontFamily: PIXEL_STYLES.fontFamily,
+                    color: COLORS.textGray,
+                    margin: '0 0 10px',
+                    fontSize: '12px',
+                  }}>
+                    {selectedShopItem.description}
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <span style={{
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      color: selectedLevel >= selectedShopItem.maxLevel ? COLORS.primary : COLORS.textGray,
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                    }}>
+                      Level: {selectedLevel} / {selectedShopItem.maxLevel}
+                      {selectedLevel >= selectedShopItem.maxLevel && ' (MAX)'}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Cost */}
+                <div style={{
+                  textAlign: 'right',
+                  flexShrink: 0,
+                }}>
+                  <div style={{
+                    fontFamily: PIXEL_STYLES.fontFamily,
+                    color: COLORS.textGray,
+                    fontSize: '12px',
+                    marginBottom: '5px',
+                  }}>
+                    COST
+                  </div>
+                  <div style={{
+                    fontFamily: PIXEL_STYLES.fontFamily,
+                    color: canBuy ? COLORS.primary : COLORS.danger,
+                    fontSize: '24px',
+                    fontWeight: 'bold',
+                    textShadow: '2px 2px 0 #000',
+                  }}>
+                    💰 {selectedLevel >= selectedShopItem.maxLevel ? '---' : selectedCost}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                height: '80px',
+              }}>
+                <p style={{
+                  fontFamily: PIXEL_STYLES.fontFamily,
+                  color: COLORS.textDark,
+                  fontSize: '14px',
+                }}>
+                  아이템을 선택하세요
+                </p>
+              </div>
+            )}
+          </PixelPanel>
+
+          {/* Buttons */}
+          <div style={{ display: 'flex', gap: '15px' }}>
+            <PixelButton 
+              onClick={handleBuy}
+              disabled={!canBuy}
+              variant="primary"
+              size="large"
+              style={{ flex: 1 }}
+            >
+              💰 BUY
+            </PixelButton>
+            <PixelButton 
+              onClick={handleRefund}
+              disabled={!canRefund}
+              variant="danger"
+              size="medium"
+            >
+              ↩ REFUND
+            </PixelButton>
+            <PixelButton 
+              onClick={onBack}
+              variant="ghost"
+              size="medium"
+            >
+              ◀ BACK
+            </PixelButton>
+          </div>
         </div>
       </div>
-    </div>
+    </ScreenBackground>
   )
 }
 

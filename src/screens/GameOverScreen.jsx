@@ -1,4 +1,11 @@
 import React from 'react'
+import { 
+  PixelPanel, 
+  PixelButton, 
+  PixelTitle,
+  COLORS,
+  PIXEL_STYLES 
+} from '../styles/PixelUI'
 
 /**
  * GameOverScreen Component
@@ -20,143 +27,128 @@ const GameOverScreen = ({ stats, onRetry, onCharacterSelect, onMenu }) => {
     <div style={{
       position: 'absolute',
       inset: 0,
-      background: 'rgba(0, 0, 0, 0.85)',
+      background: 'rgba(0, 0, 0, 0.9)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      backdropFilter: 'blur(4px)',
       zIndex: 20,
     }}>
-      {/* Game Over Title */}
-      <h1 style={{
-        fontFamily: '"Press Start 2P", cursive, sans-serif',
-        fontSize: '48px',
-        color: '#fff',
-        textShadow: '4px 4px 0 #000, -2px -2px 0 #000',
-        marginBottom: '30px',
-        letterSpacing: '4px'
-      }}>
-        GAME OVER
-      </h1>
-
-      {/* Stats Summary */}
+      {/* Scanline overlay */}
       <div style={{
-        background: 'rgba(0,0,0,0.5)',
-        padding: '30px 50px',
-        borderRadius: '12px',
+        position: 'absolute',
+        inset: 0,
+        background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 2px, transparent 2px, transparent 4px)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Game Over Title */}
+      <PixelTitle 
+        size="xlarge" 
+        color={COLORS.danger}
+        style={{ marginBottom: '40px', letterSpacing: '8px' }}
+      >
+        GAME OVER
+      </PixelTitle>
+
+      {/* Stats Panel */}
+      <PixelPanel style={{ 
+        minWidth: '400px', 
         marginBottom: '40px',
         textAlign: 'center',
-        border: '2px solid #444',
-        minWidth: '350px'
       }}>
-        {/* Detailed Stats */}
+        {/* Stats Grid */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: '1fr 1fr', 
-          gap: '15px', 
-          marginBottom: '20px',
-          textAlign: 'left' 
+          gridTemplateColumns: '1fr 1fr 1fr', 
+          gap: '20px', 
+          marginBottom: '25px',
         }}>
-          <div style={{ color: '#87CEEB', fontSize: '18px' }}>
-            ⏱️ Time: <span style={{ color: '#fff' }}>{formatTime(stats.time)}</span>
-          </div>
-          <div style={{ color: '#ff6b6b', fontSize: '18px' }}>
-            💀 Kills: <span style={{ color: '#fff' }}>{stats.kills}</span>
-          </div>
-          <div style={{ color: '#FFD700', fontSize: '18px' }}>
-            ⭐ Level: <span style={{ color: '#fff' }}>{stats.level}</span>
-          </div>
+          <StatItem icon="⏱️" label="TIME" value={formatTime(stats.time)} color={COLORS.info} />
+          <StatItem icon="💀" label="KILLS" value={stats.kills} color={COLORS.danger} />
+          <StatItem icon="⭐" label="LEVEL" value={stats.level} color={COLORS.primary} />
         </div>
 
         {/* Divider */}
         <div style={{ 
-          height: '2px', 
-          background: 'linear-gradient(90deg, transparent, #444, transparent)', 
-          margin: '15px 0' 
+          height: '4px', 
+          background: `linear-gradient(90deg, transparent, ${COLORS.panelBorder}, transparent)`,
+          margin: '20px 0',
         }} />
 
         {/* Score */}
-        <div style={{ fontSize: '28px', color: '#ccc', marginBottom: '15px' }}>
-          Score: <span style={{ color: '#fff', fontWeight: 'bold' }}>
-            {stats.score?.toLocaleString() || (stats.kills * 50 + Math.floor(stats.time * 10) + stats.level * 500).toLocaleString()}
-          </span>
+        <div style={{ marginBottom: '15px' }}>
+          <div style={{
+            fontFamily: PIXEL_STYLES.fontFamily,
+            color: COLORS.textGray,
+            fontSize: '14px',
+            marginBottom: '5px',
+          }}>
+            SCORE
+          </div>
+          <div style={{
+            fontFamily: PIXEL_STYLES.fontFamily,
+            color: COLORS.textWhite,
+            fontSize: '36px',
+            fontWeight: 'bold',
+            textShadow: '3px 3px 0 #000',
+          }}>
+            {(stats.score || (stats.kills * 50 + Math.floor(stats.time * 10) + stats.level * 500)).toLocaleString()}
+          </div>
         </div>
         
-        {/* Coins */}
-        <div style={{ fontSize: '24px', color: '#FFD700' }}>
-          💰 Coins Gained: <span style={{ fontWeight: 'bold' }}>
-            +{stats.earnedCoins?.toLocaleString() || (stats.kills + Math.floor(stats.time / 5)).toLocaleString()}
-          </span>
-        </div>
-      </div>
-
-      {/* Buttons Stack */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '300px' }}>
-        {/* Retry - Primary Button */}
-        <button
-          onClick={onRetry}
-          style={{
-            padding: '15px',
-            fontSize: '20px',
+        {/* Coins Earned */}
+        <PixelPanel variant="highlight" style={{ display: 'inline-block' }}>
+          <div style={{
+            fontFamily: PIXEL_STYLES.fontFamily,
+            color: COLORS.primary,
+            fontSize: '24px',
             fontWeight: 'bold',
-            background: '#fff',
-            color: '#000',
-            border: '3px solid #000',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 0 #bbb',
-            fontFamily: 'monospace',
-            transition: 'transform 0.1s'
-          }}
-          onMouseDown={(e) => e.target.style.transform = 'translateY(2px)'}
-          onMouseUp={(e) => e.target.style.transform = 'translateY(0)'}
-        >
-          🔄 Retry
-        </button>
+            textShadow: '2px 2px 0 #000',
+          }}>
+            💰 +{(stats.earnedCoins || (stats.kills + Math.floor(stats.time / 5))).toLocaleString()}
+          </div>
+        </PixelPanel>
+      </PixelPanel>
 
-        {/* Character Select */}
-        <button
-          onClick={onCharacterSelect}
-          style={{
-            padding: '12px',
-            fontSize: '18px',
-            background: 'rgba(0,0,0,0.8)',
-            color: '#fff',
-            border: '2px solid #fff',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontFamily: 'monospace',
-            transition: 'background 0.2s'
-          }}
-          onMouseEnter={(e) => e.target.style.background = 'rgba(50,50,50,0.8)'}
-          onMouseLeave={(e) => e.target.style.background = 'rgba(0,0,0,0.8)'}
-        >
-          🎮 Character Select
-        </button>
-
-        {/* Main Menu */}
-        <button
-          onClick={onMenu}
-          style={{
-            padding: '12px',
-            fontSize: '18px',
-            background: 'rgba(0,0,0,0.8)',
-            color: '#fff',
-            border: '2px solid #fff',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontFamily: 'monospace',
-            transition: 'background 0.2s'
-          }}
-          onMouseEnter={(e) => e.target.style.background = 'rgba(50,50,50,0.8)'}
-          onMouseLeave={(e) => e.target.style.background = 'rgba(0,0,0,0.8)'}
-        >
-          🏠 Main Menu
-        </button>
+      {/* Buttons */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '320px' }}>
+        <PixelButton onClick={onRetry} variant="primary" size="large" style={{ width: '100%' }}>
+          🔄 RETRY
+        </PixelButton>
+        <PixelButton onClick={onCharacterSelect} variant="dark" size="medium" style={{ width: '100%' }}>
+          🎮 CHARACTER SELECT
+        </PixelButton>
+        <PixelButton onClick={onMenu} variant="ghost" size="medium" style={{ width: '100%' }}>
+          🏠 MAIN MENU
+        </PixelButton>
       </div>
     </div>
   )
 }
+
+// Helper component for stats
+const StatItem = ({ icon, label, value, color }) => (
+  <div>
+    <div style={{ fontSize: '32px', marginBottom: '5px' }}>{icon}</div>
+    <div style={{
+      fontFamily: PIXEL_STYLES.fontFamily,
+      color: COLORS.textGray,
+      fontSize: '10px',
+      marginBottom: '5px',
+    }}>
+      {label}
+    </div>
+    <div style={{
+      fontFamily: PIXEL_STYLES.fontFamily,
+      color: color,
+      fontSize: '24px',
+      fontWeight: 'bold',
+      textShadow: '2px 2px 0 #000',
+    }}>
+      {value}
+    </div>
+  </div>
+)
 
 export default GameOverScreen

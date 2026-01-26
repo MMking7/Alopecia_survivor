@@ -1,6 +1,14 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { GAME_CONFIG, SPRITES, ENEMIES, BOSS, UPGRADES, SHOP_UPGRADES, getBaseStatsWithShop } from '../constants'
 import { generateMixedLevelUpOptions, handleSubWeaponSelection, getSubWeaponById } from '../SubWeapons'
+import { 
+  PixelPanel, 
+  PixelButton, 
+  PixelTitle,
+  StatBar,
+  COLORS,
+  PIXEL_STYLES 
+} from '../styles/PixelUI'
 
 // Utility functions
 const generateId = () => Math.random().toString(36).substr(2, 9)
@@ -1562,91 +1570,126 @@ const GameScreen = ({
         }}
       />
 
-      {/* HUD */}
+      {/* HUD - Top Bar */}
       <div style={{
         position: 'absolute',
-        top: '10px',
-        left: '10px',
+        top: 0,
+        left: 0,
+        right: 0,
+        padding: '10px 15px',
         display: 'flex',
-        gap: '15px',
+        justifyContent: 'space-between',
         alignItems: 'flex-start',
+        pointerEvents: 'none',
       }}>
-        {/* Character Portrait */}
-        <div style={{
-          background: 'rgba(0, 0, 0, 0.8)',
-          borderRadius: '12px',
-          padding: '10px',
-          border: '3px solid #444',
+        {/* Left HUD Group */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '8px', 
+          alignItems: 'flex-start',
+          pointerEvents: 'auto',
         }}>
-          <img
-            src={SPRITES.characters[selectedCharacter?.id]}
-            alt=""
-            style={{ width: '60px', height: '60px', borderRadius: '8px' }}
-          />
+          {/* Character Portrait */}
           <div style={{
-            marginTop: '8px',
-            background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '4px',
-            height: '8px',
-            overflow: 'hidden',
+            background: 'rgba(13, 13, 26, 0.9)',
+            border: `3px solid ${COLORS.panelBorder}`,
+            boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
+            padding: '6px',
           }}>
             <div style={{
-              width: `${(displayStats.xp / displayStats.xpNeeded) * 100}%`,
-              height: '100%',
-              background: 'linear-gradient(90deg, #00BFFF, #00FFFF)',
-            }} />
+              width: '48px',
+              height: '48px',
+              background: COLORS.bgLight,
+              border: `2px solid ${selectedCharacter?.color || COLORS.panelBorder}`,
+              overflow: 'hidden',
+            }}>
+              <img
+                src={SPRITES.characters[selectedCharacter?.id]}
+                alt=""
+                style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }}
+              />
+            </div>
+            {/* XP Bar */}
+            <div style={{
+              marginTop: '4px',
+              height: '6px',
+              background: COLORS.bgDark,
+              border: `1px solid ${COLORS.panelBorder}`,
+            }}>
+              <div style={{
+                width: `${Math.min(100, (displayStats.xp / displayStats.xpNeeded) * 100)}%`,
+                height: '100%',
+                background: COLORS.secondary,
+                transition: 'width 0.2s',
+              }} />
+            </div>
+          </div>
+
+          {/* HP Bar */}
+          <div style={{
+            background: 'rgba(13, 13, 26, 0.9)',
+            border: `3px solid ${COLORS.panelBorder}`,
+            boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
+            padding: '8px 12px',
+          }}>
+            <div style={{ 
+              fontFamily: PIXEL_STYLES.fontFamily,
+              color: COLORS.textWhite, 
+              fontSize: '10px', 
+              marginBottom: '4px',
+              textShadow: '1px 1px 0 #000',
+              whiteSpace: 'nowrap',
+            }}>
+              ❤️ {displayStats.hp}/{displayStats.maxHp}
+              {displayStats.shield > 0 && <span style={{ color: COLORS.secondary }}> 🛡️{displayStats.shield}</span>}
+            </div>
+            <div style={{
+              width: 'clamp(100px, 15vw, 180px)',
+              height: '12px',
+              background: COLORS.bgDark,
+              border: `2px solid ${COLORS.panelBorder}`,
+            }}>
+              <div style={{
+                width: `${Math.min(100, (displayStats.hp / displayStats.maxHp) * 100)}%`,
+                height: '100%',
+                background: displayStats.hp > displayStats.maxHp * 0.3 ? COLORS.hp : '#8b0000',
+                transition: 'width 0.2s',
+              }} />
+            </div>
           </div>
         </div>
 
-        {/* HP Bar */}
+        {/* Right HUD Group */}
         <div style={{
-          background: 'rgba(0, 0, 0, 0.8)',
-          borderRadius: '8px',
-          padding: '8px 15px',
-          border: '2px solid #444',
+          background: 'rgba(13, 13, 26, 0.9)',
+          border: `3px solid ${COLORS.panelBorder}`,
+          boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
+          padding: '8px 12px',
+          textAlign: 'right',
+          pointerEvents: 'auto',
         }}>
-          <div style={{ color: '#fff', fontSize: '14px', marginBottom: '4px' }}>
-            ❤️ HP {displayStats.hp} / {displayStats.maxHp}
-            {displayStats.shield > 0 && <span style={{ color: '#00BFFF' }}> 🛡️x{displayStats.shield}</span>}
-          </div>
-          <div style={{
-            width: '200px',
-            height: '16px',
-            background: 'rgba(255, 255, 255, 0.2)',
-            borderRadius: '8px',
-            overflow: 'hidden',
+          <div style={{ 
+            fontFamily: PIXEL_STYLES.fontFamily,
+            color: COLORS.primary, 
+            fontSize: 'clamp(14px, 2vw, 18px)', 
+            fontWeight: 'bold',
+            textShadow: '2px 2px 0 #000',
           }}>
-            <div style={{
-              width: `${(displayStats.hp / displayStats.maxHp) * 100}%`,
-              height: '100%',
-              background: displayStats.hp > displayStats.maxHp * 0.3
-                ? 'linear-gradient(90deg, #ff6b6b, #ff4757)'
-                : 'linear-gradient(90deg, #ff0000, #8b0000)',
-              transition: 'width 0.3s',
-            }} />
+            LV.{displayStats.level}
           </div>
-        </div>
-      </div>
-
-      {/* Top Right HUD */}
-      <div style={{
-        position: 'absolute',
-        top: '10px',
-        right: '10px',
-        background: 'rgba(0, 0, 0, 0.8)',
-        borderRadius: '12px',
-        padding: '15px',
-        border: '3px solid #444',
-        textAlign: 'right',
-      }}>
-        <div style={{ color: '#FFD700', fontSize: '24px', fontWeight: 'bold' }}>
-          LV. {displayStats.level}
-        </div>
-        <div style={{ color: '#87CEEB', fontSize: '18px', marginTop: '5px' }}>
-          ⏱️ {formatTime(displayStats.time)}
-        </div>
-        <div style={{ color: '#FF6B6B', fontSize: '18px', marginTop: '5px' }}>
-          💀 {displayStats.kills}
+          <div style={{ 
+            fontFamily: PIXEL_STYLES.fontFamily,
+            color: COLORS.textGray, 
+            fontSize: 'clamp(10px, 1.5vw, 12px)', 
+            marginTop: '4px',
+            textShadow: '1px 1px 0 #000',
+            display: 'flex',
+            gap: '10px',
+            justifyContent: 'flex-end',
+          }}>
+            <span style={{ color: COLORS.info }}>⏱️{formatTime(displayStats.time)}</span>
+            <span style={{ color: COLORS.danger }}>💀{displayStats.kills}</span>
+          </div>
         </div>
       </div>
 
@@ -1655,147 +1698,159 @@ const GameScreen = ({
         <div style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
+          background: 'rgba(0, 0, 0, 0.9)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          zIndex: 10,
+          padding: '20px',
         }}>
+          {/* Scanline overlay */}
           <div style={{
-            position: 'relative',
-            width: '800px',
-            height: '450px',
-            backgroundImage: `url(${SPRITES.ui.bg_levelup})`,
-            backgroundSize: '100% 100%',
+            position: 'absolute',
+            inset: 0,
+            background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px)',
+            pointerEvents: 'none',
+          }} />
+          
+          {/* Modal Container */}
+          <div style={{
+            width: '100%',
+            maxWidth: '700px',
+            maxHeight: '90vh',
             display: 'flex',
-            padding: '20px 40px',
-            gap: '20px',
-            imageRendering: 'pixelated'
+            flexDirection: 'column',
+            background: 'rgba(13, 13, 26, 0.98)',
+            border: `4px solid ${COLORS.primary}`,
+            boxShadow: `
+              6px 6px 0 0 rgba(0,0,0,0.6),
+              inset 0 0 0 2px rgba(255,215,0,0.2)
+            `,
+            overflow: 'hidden',
           }}>
-            {/* Left Panel - Character & Stats */}
+            {/* Header */}
             <div style={{
-              width: '30%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              paddingTop: '30px'
+              background: `linear-gradient(180deg, ${COLORS.primary} 0%, ${COLORS.primaryDark} 100%)`,
+              padding: '12px 20px',
+              textAlign: 'center',
+              borderBottom: '4px solid #000',
             }}>
-              {/* Portrait */}
-              <div style={{
-                position: 'relative',
-                width: '120px',
-                height: '140px',
-                marginBottom: '10px'
+              <h1 style={{ 
+                fontFamily: PIXEL_STYLES.fontFamily,
+                fontSize: 'clamp(20px, 4vw, 32px)',
+                color: '#000',
+                margin: 0,
+                letterSpacing: '4px',
+                textShadow: '2px 2px 0 rgba(255,255,255,0.3)',
               }}>
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  backgroundImage: `url(${SPRITES.ui.char_bg})`,
-                  backgroundSize: '100% 100%',
-                  zIndex: 0
-                }} />
+                ⬆️ LEVEL UP!
+              </h1>
+            </div>
+
+            {/* Character Info Bar */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '15px',
+              padding: '12px 20px',
+              background: 'rgba(0,0,0,0.5)',
+              borderBottom: `2px solid ${COLORS.panelBorder}`,
+            }}>
+              <div style={{
+                width: '50px',
+                height: '50px',
+                background: COLORS.bgLight,
+                border: `3px solid ${selectedCharacter?.color || COLORS.secondary}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
                 <img
                   src={SPRITES.characters[selectedCharacter.id]}
                   alt=""
-                  style={{
-                    position: 'absolute',
-                    bottom: '10px', left: '50%', transform: 'translateX(-50%)',
-                    width: '80px', height: '80px', objectFit: 'contain',
-                    imageRendering: 'pixelated', zIndex: 1
-                  }}
+                  style={{ width: '40px', height: '40px', objectFit: 'contain', imageRendering: 'pixelated' }}
                 />
-                <div style={{
-                  position: 'absolute', inset: -5,
-                  backgroundImage: `url(${SPRITES.ui.char_frame})`,
-                  backgroundSize: '100% 100%',
-                  zIndex: 2
-                }} />
               </div>
-
-              <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '15px' }}>{selectedCharacter.name.toUpperCase()}</h2>
-
-              {/* Stats List */}
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                {[
-                  { icon: SPRITES.ui.icon_hp, label: 'HP', value: `${displayStats.hp} / ${displayStats.maxHp}`, color: '#ff6b6b' },
-                  { icon: SPRITES.ui.icon_atk, label: 'ATK', value: `+${Math.floor((gameStateRef.current?.stats?.damage / 30 - 1) * 100)}%`, color: '#ffd700' },
-                  { icon: SPRITES.ui.icon_spd, label: 'SPD', value: `+${Math.floor((gameStateRef.current?.stats?.moveSpeed - 1) * 100)}%`, color: '#87ceeb' },
-                  { icon: SPRITES.ui.icon_crt, label: 'CRT', value: '+5%', color: '#ff69b4' },
-                  { icon: SPRITES.ui.icon_pickup, label: 'Pickup', value: '+0%', color: '#00ffff' },
-                  { icon: SPRITES.ui.icon_haste, label: 'Haste', value: `+${Math.floor((gameStateRef.current?.stats?.attackSpeed / 1.5 - 1) * 100)}%`, color: '#ffff00' },
-                ].map(stat => (
-                  <div key={stat.label} style={{ display: 'flex', alignItems: 'center', color: '#fff', fontSize: '14px', background: 'rgba(0,0,0,0.5)', padding: '2px 5px' }}>
-                    <img src={stat.icon} alt="" style={{ width: '16px', height: '16px', marginRight: '5px' }} />
-                    <span style={{ width: '50px' }}>{stat.label}</span>
-                    <span style={{ marginLeft: 'auto', color: stat.color }}>{stat.value}</span>
-                  </div>
-                ))}
+              <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '8px 20px' }}>
+                <span style={{ fontFamily: PIXEL_STYLES.fontFamily, color: COLORS.textWhite, fontSize: '12px' }}>
+                  ❤️ {displayStats.hp}/{displayStats.maxHp}
+                </span>
+                <span style={{ fontFamily: PIXEL_STYLES.fontFamily, color: COLORS.atk, fontSize: '12px' }}>
+                  ⚔️ +{Math.floor((gameStateRef.current?.stats?.damage / 30 - 1) * 100)}%
+                </span>
+                <span style={{ fontFamily: PIXEL_STYLES.fontFamily, color: COLORS.spd, fontSize: '12px' }}>
+                  🏃 +{Math.floor((gameStateRef.current?.stats?.moveSpeed - 1) * 100)}%
+                </span>
+                <span style={{ fontFamily: PIXEL_STYLES.fontFamily, color: COLORS.crit, fontSize: '12px' }}>
+                  💥 {Math.round((gameStateRef.current?.stats?.crit || 0) * 100)}%
+                </span>
               </div>
             </div>
 
-            {/* Right Panel - Upgrade Options */}
+            {/* Upgrade Options - Scrollable */}
             <div style={{
               flex: 1,
+              overflowY: 'auto',
+              padding: '15px',
               display: 'flex',
               flexDirection: 'column',
               gap: '10px',
-              paddingTop: '20px',
-              overflowY: 'auto'
             }}>
-              <h1 style={{
-                fontFamily: '"Press Start 2P", cursive, sans-serif',
-                color: '#fff',
-                fontSize: '48px',
-                margin: '0 0 20px',
+              <p style={{ 
+                fontFamily: PIXEL_STYLES.fontFamily, 
+                color: COLORS.textGray, 
+                fontSize: '11px', 
                 textAlign: 'center',
-                textShadow: '4px 4px 0 #000, -2px -2px 0 #000',
-                letterSpacing: '2px'
+                margin: '0 0 5px 0',
               }}>
-                LEVEL UP!
-              </h1>
+                SELECT AN UPGRADE
+              </p>
 
               {levelUpOptions.map((upgrade, index) => (
-                <div
+                <button
                   key={upgrade.id + index}
                   onClick={() => handleUpgrade(upgrade)}
                   style={{
-                    position: 'relative',
-                    height: '80px',
-                    background: upgrade.isSubWeapon
-                      ? 'linear-gradient(90deg, rgba(80,40,0,0.8) 0%, rgba(40,20,0,0.4) 100%)'
-                      : 'linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 100%)',
-                    border: upgrade.isSubWeapon ? '2px solid #FFD700' : '2px solid #00BFFF',
-                    borderRadius: '0 20px 20px 0',
                     display: 'flex',
                     alignItems: 'center',
+                    padding: '12px',
+                    background: upgrade.isSubWeapon 
+                      ? `linear-gradient(90deg, rgba(255,215,0,0.15) 0%, ${COLORS.bgLight} 100%)`
+                      : COLORS.bgLight,
+                    border: `3px solid ${upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
+                    boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
                     cursor: 'pointer',
-                    padding: '0 20px',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.1s',
+                    textAlign: 'left',
+                    width: '100%',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = upgrade.isSubWeapon
-                      ? 'linear-gradient(90deg, rgba(255,200,0,0.4) 0%, rgba(40,20,0,0.4) 100%)'
-                      : 'linear-gradient(90deg, rgba(0,191,255,0.4) 0%, rgba(0,0,0,0.4) 100%)'
-                    e.currentTarget.style.transform = 'translateX(10px)'
+                    e.currentTarget.style.transform = 'translateX(5px)'
+                    e.currentTarget.style.borderColor = upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary
+                    e.currentTarget.style.boxShadow = `0 0 15px ${upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary}40, 3px 3px 0 0 rgba(0,0,0,0.5)`
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = upgrade.isSubWeapon
-                      ? 'linear-gradient(90deg, rgba(80,40,0,0.8) 0%, rgba(40,20,0,0.4) 100%)'
-                      : 'linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 100%)'
                     e.currentTarget.style.transform = 'translateX(0)'
+                    e.currentTarget.style.borderColor = upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder
+                    e.currentTarget.style.boxShadow = '3px 3px 0 0 rgba(0,0,0,0.5)'
                   }}
                 >
-                  {/* Icon Box */}
+                  {/* Icon */}
                   <div style={{
-                    width: '60px', height: '60px',
-                    backgroundImage: `url(${SPRITES.ui.box_item})`,
-                    backgroundSize: 'contain',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'center',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    marginRight: '15px',
-                    position: 'relative'
+                    width: '48px', 
+                    height: '48px',
+                    background: COLORS.bgDark,
+                    border: `2px solid ${upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    marginRight: '12px',
+                    flexShrink: 0,
+                    position: 'relative',
                   }}>
                     {upgrade.isSubWeapon ? (
-                      <span style={{ fontSize: '28px' }}>
+                      <span style={{ fontSize: '24px' }}>
                         {upgrade.id === 'black_dye' && '🖤'}
                         {upgrade.id === 'hair_brush' && '🪥'}
                         {upgrade.id === 'hair_spray' && '💨'}
@@ -1804,41 +1859,63 @@ const GameScreen = ({
                         {upgrade.id === 'dandruff_bomb' && '💣'}
                       </span>
                     ) : (
-                      <img src={SPRITES.items[upgrade.icon]} alt="" style={{ width: '32px', height: '32px', imageRendering: 'pixelated' }} />
+                      <img src={SPRITES.items[upgrade.icon]} alt="" style={{ width: '28px', height: '28px', imageRendering: 'pixelated' }} />
                     )}
                     {upgrade.isSubWeapon && (
                       <div style={{
                         position: 'absolute',
-                        top: '-5px',
-                        right: '-5px',
-                        background: upgrade.grade === 3 ? '#FFD700' : upgrade.grade === 2 ? '#C0C0C0' : '#CD7F32',
+                        top: '-6px',
+                        right: '-6px',
+                        background: upgrade.grade === 3 ? COLORS.primary : upgrade.grade === 2 ? '#C0C0C0' : '#CD7F32',
                         color: '#000',
-                        fontSize: '10px',
+                        fontSize: '9px',
                         fontWeight: 'bold',
-                        padding: '2px 5px',
-                        borderRadius: '4px'
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        padding: '1px 4px',
+                        border: '1px solid #000',
                       }}>
                         ★{upgrade.grade}
                       </div>
                     )}
                   </div>
 
-                  {/* Text Info */}
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                      <span style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{upgrade.name}</span>
-                      <span style={{ color: upgrade.isSubWeapon ? '#FFD700' : '#FFD700', fontSize: '12px' }}>
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap', gap: '4px' }}>
+                      <span style={{ 
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        color: COLORS.textWhite, 
+                        fontSize: 'clamp(12px, 2vw, 14px)', 
+                        fontWeight: 'bold',
+                        textShadow: '1px 1px 0 #000',
+                      }}>
+                        {upgrade.name}
+                      </span>
+                      <span style={{ 
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        color: upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary, 
+                        fontSize: '10px',
+                        background: 'rgba(0,0,0,0.5)',
+                        padding: '2px 6px',
+                      }}>
                         {upgrade.isSubWeapon
-                          ? (upgrade.currentLevel > 0 ? `LV ${upgrade.currentLevel} → ${upgrade.nextLevel}` : 'NEW! >> 무기')
-                          : `NEW! >> ${upgrade.type}`
+                          ? (upgrade.currentLevel > 0 ? `LV${upgrade.currentLevel}→${upgrade.nextLevel}` : '🆕WEAPON')
+                          : `🆕${upgrade.type}`
                         }
                       </span>
                     </div>
-                    <div style={{ color: '#ccc', fontSize: '14px', lineHeight: '1.2' }}>
+                    <div style={{ 
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      color: COLORS.textGray, 
+                      fontSize: '10px', 
+                      lineHeight: '1.3',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
                       {upgrade.description}
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -1850,159 +1927,374 @@ const GameScreen = ({
         <div style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
+          background: 'rgba(0, 0, 0, 0.9)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          zIndex: 10,
+          padding: '20px',
         }}>
+          {/* Scanline overlay */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px)',
+            pointerEvents: 'none',
+          }} />
+          
           {/* Main Pause Menu */}
           {pauseTab === 'main' && (
             <div style={{
-              width: '300px',
-              background: 'linear-gradient(180deg, #4AA9FF 0%, #0077EA 100%)',
-              borderRadius: '10px',
-              padding: '20px',
-              border: '4px solid #fff',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '15px',
-              alignItems: 'center',
-              boxShadow: '0 0 20px rgba(0,0,0,0.5)'
+              width: '100%',
+              maxWidth: '280px',
+              background: 'rgba(13, 13, 26, 0.98)',
+              border: `4px solid ${COLORS.panelBorder}`,
+              boxShadow: '6px 6px 0 0 rgba(0,0,0,0.6)',
+              overflow: 'hidden',
             }}>
-              <h2 style={{ color: '#fff', fontSize: '32px', margin: '0 0 10px', textShadow: '2px 2px 0 #000', fontFamily: 'Impact, sans-serif' }}>PAUSED</h2>
+              {/* Header */}
+              <div style={{
+                background: `linear-gradient(180deg, ${COLORS.bgLight} 0%, ${COLORS.bgDark} 100%)`,
+                padding: '15px',
+                textAlign: 'center',
+                borderBottom: `3px solid ${COLORS.panelBorder}`,
+              }}>
+                <h2 style={{ 
+                  fontFamily: PIXEL_STYLES.fontFamily,
+                  color: COLORS.textWhite, 
+                  fontSize: '24px', 
+                  margin: 0,
+                  letterSpacing: '4px',
+                  textShadow: '2px 2px 0 #000',
+                }}>
+                  ⏸️ PAUSED
+                </h2>
+              </div>
 
-              {[
-                { label: 'Character', action: () => setPauseTab('character') },
-                { label: 'Settings', disabled: true },
-                { label: 'Resume', action: () => setGamePhase('playing') },
-                { label: 'Quit', action: handleQuit }
-              ].map((btn, i) => (
-                <div
-                  key={btn.label}
-                  onClick={btn.action}
-                  style={{
-                    width: '100%',
-                    height: '50px',
-                    backgroundImage: `url(${SPRITES.ui.button})`,
-                    backgroundSize: '100% 100%',
-                    backgroundRepeat: 'no-repeat',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: btn.disabled ? '#888' : '#333',
-                    fontSize: '20px', fontWeight: 'bold',
-                    cursor: btn.disabled ? 'not-allowed' : 'pointer',
-                    opacity: btn.disabled ? 0.7 : 1,
-                    imageRendering: 'pixelated',
-                    textShadow: '1px 1px 0 #fff'
-                  }}
-                >
-                  {btn.label}
-                </div>
-              ))}
+              {/* Menu Buttons */}
+              <div style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[
+                  { label: '📊 CHARACTER', action: () => setPauseTab('character'), variant: 'dark' },
+                  { label: '⚙️ SETTINGS', disabled: true, variant: 'ghost' },
+                  { label: '▶ RESUME', action: () => setGamePhase('playing'), variant: 'primary' },
+                  { label: '✖ QUIT', action: handleQuit, variant: 'danger' },
+                ].map((btn) => (
+                  <button
+                    key={btn.label}
+                    onClick={btn.disabled ? undefined : btn.action}
+                    disabled={btn.disabled}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      letterSpacing: '1px',
+                      cursor: btn.disabled ? 'not-allowed' : 'pointer',
+                      border: '3px solid',
+                      borderColor: btn.disabled ? '#333' 
+                        : btn.variant === 'primary' ? '#000' 
+                        : btn.variant === 'danger' ? '#8B0000' 
+                        : COLORS.panelBorder,
+                      background: btn.disabled ? '#333'
+                        : btn.variant === 'primary' ? `linear-gradient(180deg, ${COLORS.primary} 0%, ${COLORS.primaryDark} 100%)`
+                        : btn.variant === 'danger' ? `linear-gradient(180deg, ${COLORS.danger} 0%, #CC5555 100%)`
+                        : COLORS.bgLight,
+                      color: btn.disabled ? '#666'
+                        : btn.variant === 'primary' ? '#000'
+                        : btn.variant === 'danger' ? '#fff'
+                        : COLORS.textWhite,
+                      boxShadow: btn.disabled ? 'none' : '3px 3px 0 0 rgba(0,0,0,0.5)',
+                      textShadow: (btn.variant === 'primary') ? 'none' : '1px 1px 0 #000',
+                      transition: 'all 0.1s',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!btn.disabled) {
+                        e.currentTarget.style.transform = 'translate(2px, 2px)'
+                        e.currentTarget.style.boxShadow = '1px 1px 0 0 rgba(0,0,0,0.5)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translate(0, 0)'
+                      e.currentTarget.style.boxShadow = btn.disabled ? 'none' : '3px 3px 0 0 rgba(0,0,0,0.5)'
+                    }}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
           {/* Character Details Screen */}
           {pauseTab === 'character' && (
             <div style={{
-              position: 'relative',
-              width: '900px',
-              height: '550px',
-              background: 'rgba(20, 20, 30, 0.95)',
-              borderRadius: '16px',
-              border: '2px solid #444',
+              width: '100%',
+              maxWidth: '800px',
+              maxHeight: '85vh',
               display: 'flex',
-              padding: '30px',
-              gap: '30px',
-              color: '#fff'
+              flexDirection: 'column',
+              background: 'rgba(13, 13, 26, 0.98)',
+              border: `4px solid ${COLORS.panelBorder}`,
+              boxShadow: '6px 6px 0 0 rgba(0,0,0,0.6)',
+              overflow: 'hidden',
             }}>
-              {/* Close Button */}
-              <button
-                onClick={() => setPauseTab('main')}
-                style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}
-              >
-                ESC / BACK
-              </button>
+              {/* Header with Back Button */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 15px',
+                background: `linear-gradient(180deg, ${COLORS.bgLight} 0%, ${COLORS.bgDark} 100%)`,
+                borderBottom: `3px solid ${COLORS.panelBorder}`,
+              }}>
+                <button
+                  onClick={() => setPauseTab('main')}
+                  style={{
+                    padding: '8px 12px',
+                    fontFamily: PIXEL_STYLES.fontFamily,
+                    fontSize: '12px',
+                    background: 'transparent',
+                    border: `2px solid ${COLORS.panelBorder}`,
+                    color: COLORS.textWhite,
+                    cursor: 'pointer',
+                    boxShadow: '2px 2px 0 0 rgba(0,0,0,0.3)',
+                  }}
+                >
+                  ◀ BACK
+                </button>
+                <h2 style={{ 
+                  fontFamily: PIXEL_STYLES.fontFamily,
+                  color: COLORS.textWhite, 
+                  fontSize: '18px', 
+                  margin: 0,
+                  letterSpacing: '2px',
+                  textShadow: '2px 2px 0 #000',
+                }}>
+                  📊 CHARACTER
+                </h2>
+                <div style={{ width: '70px' }} /> {/* Spacer for centering */}
+              </div>
 
-              {/* Left - Character Stats */}
-              <div style={{ width: '300px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-                  <img
-                    src={SPRITES.characters[selectedCharacter.id]}
-                    alt=""
-                    style={{ width: '80px', height: '80px', border: '2px solid #fff', borderRadius: '50%', background: '#334', imageRendering: 'pixelated' }}
-                  />
-                  <div style={{ marginLeft: '15px' }}>
-                    <h2 style={{ margin: 0, fontSize: '24px' }}>{selectedCharacter.name}</h2>
-                    <p style={{ margin: 0, color: selectedCharacter.color }}>Level {displayStats.level}</p>
+              {/* Content Area */}
+              <div style={{ 
+                display: 'flex', 
+                flex: 1, 
+                overflow: 'hidden',
+                flexDirection: 'row',
+                '@media (max-width: 600px)': { flexDirection: 'column' },
+              }}>
+                {/* Left - Character Stats */}
+                <div style={{ 
+                  width: '250px',
+                  minWidth: '200px',
+                  padding: '15px',
+                  background: 'rgba(0,0,0,0.3)',
+                  borderRight: `2px solid ${COLORS.panelBorder}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}>
+                  {/* Character Info */}
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
+                    <div style={{
+                      width: '60px',
+                      height: '60px',
+                      background: COLORS.bgLight,
+                      border: `3px solid ${selectedCharacter?.color || COLORS.secondary}`,
+                      boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <img
+                        src={SPRITES.characters[selectedCharacter.id]}
+                        alt=""
+                        style={{ width: '48px', height: '48px', objectFit: 'contain', imageRendering: 'pixelated' }}
+                      />
+                    </div>
+                    <div style={{ marginLeft: '12px' }}>
+                      <h3 style={{ 
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        margin: 0, 
+                        fontSize: '14px',
+                        color: COLORS.textWhite,
+                        textShadow: '1px 1px 0 #000',
+                      }}>
+                        {selectedCharacter.name}
+                      </h3>
+                      <p style={{ 
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        margin: '4px 0 0', 
+                        color: selectedCharacter.color,
+                        fontSize: '12px',
+                      }}>
+                        Level {displayStats.level}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div style={{ 
+                    background: 'rgba(0,0,0,0.4)', 
+                    border: `2px solid ${COLORS.panelBorder}`,
+                    padding: '10px',
+                  }}>
+                    <h4 style={{ 
+                      fontFamily: PIXEL_STYLES.fontFamily, 
+                      color: COLORS.textGray, 
+                      fontSize: '10px', 
+                      margin: '0 0 8px 0',
+                      letterSpacing: '1px',
+                    }}>
+                      STATS
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {[
+                        { icon: '❤️', label: 'HP', value: `${displayStats.hp}/${displayStats.maxHp}`, color: COLORS.hp },
+                        { icon: '⚔️', label: 'ATK', value: Math.round(gameStateRef.current?.stats?.damage || 0), color: COLORS.atk },
+                        { icon: '🏃', label: 'SPD', value: `${Math.round((gameStateRef.current?.stats?.moveSpeed || 1) * 100)}%`, color: COLORS.spd },
+                        { icon: '💥', label: 'CRT', value: `${Math.round((gameStateRef.current?.stats?.crit || 0) * 100)}%`, color: COLORS.crit },
+                        { icon: '🛡️', label: 'DEF', value: `${Math.round((gameStateRef.current?.stats?.defense || 0) * 100)}%`, color: COLORS.textGray },
+                      ].map(stat => (
+                        <div key={stat.label} style={{ 
+                          display: 'flex', 
+                          alignItems: 'center',
+                          fontFamily: PIXEL_STYLES.fontFamily,
+                          fontSize: '11px',
+                        }}>
+                          <span style={{ width: '20px' }}>{stat.icon}</span>
+                          <span style={{ color: COLORS.textGray, width: '40px' }}>{stat.label}</span>
+                          <span style={{ color: stat.color, fontWeight: 'bold', marginLeft: 'auto' }}>{stat.value}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(0,0,0,0.5)', padding: '15px', borderRadius: '8px' }}>
-                  {[
-                    { label: 'HP', val: `${displayStats.hp}/${displayStats.maxHp}`, icon: SPRITES.ui.icon_hp, color: '#ff6b6b' },
-                    { label: 'ATK', val: `${Math.round(gameStateRef.current?.stats?.damage || 0)}`, icon: SPRITES.ui.icon_atk, color: '#ffd700' },
-                    { label: 'SPD', val: `${Math.round((gameStateRef.current?.stats?.moveSpeed || 1) * 100)}%`, icon: SPRITES.ui.icon_spd, color: '#87ceeb' },
-                    { label: 'CRT', val: `${Math.round((gameStateRef.current?.stats?.crit || 0) * 100)}%`, icon: SPRITES.ui.icon_crt, color: '#ff69b4' },
-                    { label: 'DEF', val: `${Math.round((gameStateRef.current?.stats?.defense || 0) * 100)}%`, icon: SPRITES.ui.icon_pickup, color: '#aaa' },
-                  ].map(s => (
-                    <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '18px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <img src={s.icon} style={{ width: '20px', marginRight: '10px' }} />
-                        <span>{s.label}</span>
-                      </div>
-                      <span style={{ color: s.color, fontWeight: 'bold' }}>{s.val}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right - Inventory List */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <h3 style={{ borderBottom: '2px solid #fff', paddingBottom: '10px', marginBottom: '15px' }}>Inventory</h3>
-                <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {gameStateRef.current?.inventory?.length === 0 && <p style={{ color: '#888', textAlign: 'center' }}>No items collected yet.</p>}
-
-                  {gameStateRef.current?.inventory?.map((item, idx) => (
-                    <div key={idx} style={{
-                      background: item.isSubWeapon ? 'rgba(80,40,0,0.3)' : 'rgba(255,255,255,0.1)',
-                      padding: '10px',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      border: item.isSubWeapon ? '1px solid #FFD700' : 'none'
+                {/* Right - Inventory */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <div style={{ 
+                    padding: '10px 15px', 
+                    borderBottom: `2px solid ${COLORS.panelBorder}`,
+                    background: 'rgba(0,0,0,0.2)',
+                  }}>
+                    <h3 style={{ 
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      color: COLORS.textWhite,
+                      fontSize: '12px',
+                      margin: 0,
+                      letterSpacing: '1px',
                     }}>
-                      <div style={{
-                        width: '48px', height: '48px',
-                        backgroundImage: `url(${SPRITES.ui.box_item})`,
-                        backgroundSize: '100% 100%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        marginRight: '15px'
+                      📦 INVENTORY ({gameStateRef.current?.inventory?.length || 0})
+                    </h3>
+                  </div>
+                  
+                  <div style={{ 
+                    flex: 1, 
+                    overflowY: 'auto', 
+                    padding: '10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}>
+                    {(!gameStateRef.current?.inventory || gameStateRef.current?.inventory?.length === 0) && (
+                      <p style={{ 
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        color: COLORS.textDark, 
+                        textAlign: 'center',
+                        marginTop: '30px',
+                        fontSize: '12px',
                       }}>
-                        {item.isSubWeapon ? (
-                          <span style={{ fontSize: '24px' }}>
-                            {item.id === 'black_dye' && '🖤'}
-                            {item.id === 'hair_brush' && '🪥'}
-                            {item.id === 'hair_spray' && '💨'}
-                            {item.id === 'hair_dryer' && '🔥'}
-                            {item.id === 'electric_clipper' && '⚡'}
-                            {item.id === 'dandruff_bomb' && '💣'}
-                          </span>
-                        ) : (
-                          <img src={SPRITES.items[item.icon]} style={{ width: '24px', height: '24px', imageRendering: 'pixelated' }} />
-                        )}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 'bold', color: item.isSubWeapon ? '#FFD700' : '#fff' }}>
-                          {item.name}
-                          {item.isSubWeapon && <span style={{ fontSize: '10px', marginLeft: '8px', color: '#888' }}>[무기]</span>}
+                        No items collected yet.
+                      </p>
+                    )}
+
+                    {gameStateRef.current?.inventory?.map((item, idx) => (
+                      <div 
+                        key={idx} 
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '8px 10px',
+                          background: item.isSubWeapon 
+                            ? `linear-gradient(90deg, rgba(255,215,0,0.1) 0%, ${COLORS.bgLight} 100%)`
+                            : COLORS.bgLight,
+                          border: `2px solid ${item.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
+                          boxShadow: '2px 2px 0 0 rgba(0,0,0,0.3)',
+                        }}
+                      >
+                        <div style={{
+                          width: '36px', 
+                          height: '36px',
+                          background: COLORS.bgDark,
+                          border: `2px solid ${item.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          marginRight: '10px',
+                          flexShrink: 0,
+                        }}>
+                          {item.isSubWeapon ? (
+                            <span style={{ fontSize: '18px' }}>
+                              {item.id === 'black_dye' && '🖤'}
+                              {item.id === 'hair_brush' && '🪥'}
+                              {item.id === 'hair_spray' && '💨'}
+                              {item.id === 'hair_dryer' && '🔥'}
+                              {item.id === 'electric_clipper' && '⚡'}
+                              {item.id === 'dandruff_bomb' && '💣'}
+                            </span>
+                          ) : (
+                            <img src={SPRITES.items[item.icon]} style={{ width: '20px', height: '20px', imageRendering: 'pixelated' }} />
+                          )}
                         </div>
-                        <div style={{ fontSize: '12px', color: '#bbb' }}>{item.description}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ 
+                            fontFamily: PIXEL_STYLES.fontFamily,
+                            fontWeight: 'bold', 
+                            color: item.isSubWeapon ? COLORS.primary : COLORS.textWhite,
+                            fontSize: '11px',
+                            textShadow: '1px 1px 0 #000',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}>
+                            {item.name}
+                            {item.isSubWeapon && (
+                              <span style={{ 
+                                fontSize: '8px', 
+                                color: COLORS.bgDark,
+                                background: COLORS.primary,
+                                padding: '1px 4px',
+                              }}>WPN</span>
+                            )}
+                          </div>
+                          <div style={{ 
+                            fontFamily: PIXEL_STYLES.fontFamily,
+                            fontSize: '9px', 
+                            color: COLORS.textGray,
+                            marginTop: '2px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {item.description}
+                          </div>
+                        </div>
+                        <div style={{ 
+                          fontFamily: PIXEL_STYLES.fontFamily,
+                          fontSize: '10px', 
+                          color: COLORS.primary,
+                          fontWeight: 'bold',
+                          background: 'rgba(0,0,0,0.4)',
+                          padding: '2px 6px',
+                          marginLeft: '8px',
+                        }}>
+                          LV{item.level || 1}
+                        </div>
                       </div>
-                      <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#FFD700' }}>
-                        LV {item.level || 1}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
