@@ -54,6 +54,10 @@ export const SPRITES = {
     areata: '/sprites/char_areata_1769163447640.webp',
     wongfeihung: '/sprites/char_wong_feihung_1769163464961.webp',
     heihachi: '/sprites/char_heihachi_1769163501406.webp',
+    talmo_docter: '/sprites/talmo_docter/talmo_docter.png',
+  },
+  attacks: {
+    talmo_docter_projectile: '/sprites/talmo_docter/talmo_docter_attack.png',
   },
   enemies: {
     shrimp: '/sprites/holo/enemy_shrimp.webp',
@@ -147,6 +151,19 @@ export const CHARACTERS = [
     attackType: 'lightning',
     attackColor: '#FFFF00',
     baseStats: { hp: 70, maxHp: 70, damage: 40, speed: 1.30, attackSpeed: 1.4, defense: 0.05, crit: 0.15 }
+  },
+  {
+    id: 'talmo_docter',
+    name: '탈모의사',
+    subName: '탈모전문 모발이식 의사',
+    weapon: 'Hair Transplant Gun',
+    description: '식모기 발사! 관통 공격 (원거리형)',
+    color: '#00CED1',
+    attackType: 'transplant',
+    attackColor: 'rgba(0, 206, 209, 0.8)',
+    projectileRange: 350,
+    projectileSpeed: 400,
+    baseStats: { hp: 65, maxHp: 65, damage: 38, speed: 1.30, attackSpeed: 1.3, defense: 0, crit: 0.12 }
   },
 ]
 

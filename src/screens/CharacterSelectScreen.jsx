@@ -63,6 +63,18 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
               }}>
                 {selectedCharacter.name}
               </h2>
+              {selectedCharacter.subName && (
+                <p style={{ 
+                  fontFamily: PIXEL_STYLES.fontFamily,
+                  color: COLORS.textDark, 
+                  textAlign: 'center', 
+                  margin: '0 0 5px',
+                  fontSize: '11px',
+                  fontStyle: 'italic',
+                }}>
+                  {selectedCharacter.subName}
+                </p>
+              )}
               <p style={{ 
                 fontFamily: PIXEL_STYLES.fontFamily,
                 color: selectedCharacter.color, 

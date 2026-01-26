@@ -460,6 +460,42 @@ const GameScreen = ({
       })
       state.enemyProjectiles = state.enemyProjectiles.filter((p) => !p.hit && currentTime - p.createdAt < 3000)
 
+      // Update transplant projectiles (탈모의사 공격)
+      if (state.transplantProjectiles) {
+        state.transplantProjectiles.forEach((proj) => {
+          proj.x += proj.vx * deltaTime
+          proj.y += proj.vy * deltaTime
+
+          // Check distance traveled
+          const distTraveled = distance({ x: proj.startX, y: proj.startY }, proj)
+          if (distTraveled >= proj.range) {
+            proj.shouldRemove = true
+            return
+          }
+
+          // Check collision with enemies (piercing - can hit multiple)
+          state.enemies.forEach((enemy) => {
+            if (enemy.isDead || proj.hitEnemies.includes(enemy.id)) return
+            const d = distance(proj, enemy)
+            if (d < 40) {
+              proj.hitEnemies.push(enemy.id)
+              const isCrit = Math.random() < (state.stats.crit || 0)
+              const finalDamage = proj.damage * (isCrit ? 1.5 : 1.0)
+              enemy.currentHp -= finalDamage
+              state.damageNumbers.push({
+                id: generateId(),
+                x: enemy.x,
+                y: enemy.y,
+                damage: Math.floor(finalDamage),
+                isCritical: isCrit,
+                createdAt: currentTime,
+              })
+            }
+          })
+        })
+        state.transplantProjectiles = state.transplantProjectiles.filter(p => !p.shouldRemove)
+      }
+
       // Update explosions
       state.explosions.forEach((exp) => {
         if (currentTime - exp.createdAt < 100) {
@@ -603,6 +639,47 @@ const GameScreen = ({
                 damage: Math.floor(damage),
                 createdAt: currentTime,
               })
+            })
+            break
+
+          case 'transplant':
+            // Hair Transplant Gun - Piercing projectile that hits all enemies in a line
+            const projectileRange = character.projectileRange || 350
+            const projectileSpeed = character.projectileSpeed || 400
+            
+            // Find direction to nearest enemy, or use facing direction
+            let targetAngle = state.player.facing === 1 ? 0 : Math.PI
+            let nearestEnemy = null
+            let nearestEnemyDist = Infinity
+            
+            state.enemies.forEach((enemy) => {
+              const d = distance(state.player, enemy)
+              if (d < nearestEnemyDist && d <= projectileRange * 1.5) {
+                nearestEnemy = enemy
+                nearestEnemyDist = d
+              }
+            })
+            
+            if (nearestEnemy) {
+              targetAngle = Math.atan2(nearestEnemy.y - state.player.y, nearestEnemy.x - state.player.x)
+            }
+            
+            // Create piercing projectile
+            if (!state.transplantProjectiles) state.transplantProjectiles = []
+            state.transplantProjectiles.push({
+              id: generateId(),
+              x: state.player.x,
+              y: state.player.y,
+              startX: state.player.x,
+              startY: state.player.y,
+              vx: Math.cos(targetAngle) * projectileSpeed,
+              vy: Math.sin(targetAngle) * projectileSpeed,
+              angle: targetAngle,
+              damage: state.stats.damage * 1.2,
+              range: projectileRange,
+              hitEnemies: [],
+              createdAt: currentTime,
+              color: character.attackColor,
             })
             break
         }
@@ -1112,6 +1189,72 @@ const GameScreen = ({
           ctx.fill()
         }
       })
+
+      // Draw transplant projectiles (탈모의사 식모기)
+      if (state.transplantProjectiles) {
+        state.transplantProjectiles.forEach((proj) => {
+          const sx = proj.x - state.camera.x
+          const sy = proj.y - state.camera.y
+
+          if (sx < -50 || sx > canvas.width + 50 || sy < -50 || sy > canvas.height + 50) return
+
+          // Try to draw sprite
+          const transplantImg = loadedImages[SPRITES.attacks?.talmo_docter_projectile]
+          if (transplantImg) {
+            ctx.save()
+            ctx.translate(sx, sy)
+            ctx.rotate(proj.angle)
+            const imgSize = 60
+            ctx.drawImage(transplantImg, -imgSize / 2, -imgSize / 2, imgSize, imgSize)
+            ctx.restore()
+          } else {
+            // Fallback: Draw a stylized syringe/transplant tool
+            ctx.save()
+            ctx.translate(sx, sy)
+            ctx.rotate(proj.angle)
+
+            // Glow effect
+            ctx.shadowColor = proj.color || '#00CED1'
+            ctx.shadowBlur = 15
+
+            // Main body (syringe shape)
+            ctx.fillStyle = '#E0FFFF'
+            ctx.fillRect(-25, -6, 40, 12)
+
+            // Needle part
+            ctx.fillStyle = '#C0C0C0'
+            ctx.beginPath()
+            ctx.moveTo(15, -4)
+            ctx.lineTo(30, 0)
+            ctx.lineTo(15, 4)
+            ctx.closePath()
+            ctx.fill()
+
+            // Plunger
+            ctx.fillStyle = '#00CED1'
+            ctx.fillRect(-30, -4, 8, 8)
+
+            // Hair follicle detail
+            ctx.fillStyle = '#8B4513'
+            ctx.beginPath()
+            ctx.arc(25, 0, 3, 0, Math.PI * 2)
+            ctx.fill()
+
+            ctx.shadowBlur = 0
+            ctx.restore()
+          }
+
+          // Draw trail effect
+          ctx.globalAlpha = 0.4
+          ctx.strokeStyle = proj.color || '#00CED1'
+          ctx.lineWidth = 4
+          ctx.beginPath()
+          ctx.moveTo(proj.startX - state.camera.x, proj.startY - state.camera.y)
+          ctx.lineTo(sx, sy)
+          ctx.stroke()
+          ctx.globalAlpha = 1
+        })
+      }
 
       // Draw attack effects
       state.attackEffects.forEach((effect) => {
