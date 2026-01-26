@@ -64,6 +64,7 @@ export const SPRITES = {
     dna: '/sprites/enemy_dna_1769163577183.webp',
     cigarette: '/sprites/enemy_cigarette_1769163592604.webp',
     soju: '/sprites/enemy_soju_1769163624862.webp',
+    cigarette_projectile: '/sprites/cigarette_fire.png',
   },
   boss: '/sprites/boss_complainant_1769163642840.webp',
   ui: {
@@ -150,11 +151,11 @@ export const CHARACTERS = [
 ]
 
 export const ENEMIES = [
-  { type: 'clipper', name: 'Barikan', sprite: SPRITES.enemies.clipper, speed: 100, hp: 20, damage: 5, xp: 10, size: 40, attackType: 'dash' },
-  { type: 'zombie', name: 'Overwork Zombie', sprite: SPRITES.enemies.zombie, speed: 60, hp: 40, damage: 10, xp: 15, size: 50, attackType: 'melee' },
-  { type: 'dna', name: 'Bad Genetics', sprite: SPRITES.enemies.dna, speed: 80, hp: 30, damage: 8, xp: 12, size: 40, attackType: 'spiral' },
-  { type: 'cigarette', name: 'Stress Smoke', sprite: SPRITES.enemies.cigarette, speed: 90, hp: 25, damage: 12, xp: 12, size: 40, attackType: 'ranged' },
-  { type: 'soju', name: 'Alcohol', sprite: SPRITES.enemies.soju, speed: 70, hp: 45, damage: 15, xp: 20, size: 50, attackType: 'dash' },
+  { type: 'clipper', name: 'Barikan', sprite: SPRITES.enemies.clipper, speed: 100, hp: 20, damage: 5, xp: 10, size: 55, attackType: 'dash' },
+  { type: 'zombie', name: 'Overwork Zombie', sprite: SPRITES.enemies.zombie, speed: 60, hp: 40, damage: 10, xp: 15, size: 60, attackType: 'melee' },
+  { type: 'dna', name: 'Bad Genetics', sprite: SPRITES.enemies.dna, speed: 80, hp: 30, damage: 8, xp: 12, size: 55, attackType: 'spiral' },
+  { type: 'cigarette', name: 'Stress Smoke', sprite: SPRITES.enemies.cigarette, speed: 90, hp: 25, damage: 8, xp: 12, size: 55, attackType: 'ranged' },
+  { type: 'soju', name: 'Alcohol', sprite: SPRITES.enemies.soju, speed: 70, hp: 45, damage: 15, xp: 20, size: 60, attackType: 'dash' },
 ]
 
 export const BOSS = {

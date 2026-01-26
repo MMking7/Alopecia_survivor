@@ -246,7 +246,15 @@ const GameScreen = ({
 
         // 한번에 여러 적 스폰
         for (let i = 0; i < difficulty.enemyCount; i++) {
-          const enemyType = ENEMIES[Math.floor(Math.random() * ENEMIES.length)]
+          // 담배 몹은 20% 확률로만 소환
+          let enemyType
+          if (Math.random() < 0.2) {
+            enemyType = ENEMIES[Math.floor(Math.random() * ENEMIES.length)]
+          } else {
+            // 담배를 제외한 다른 몹 중에서 선택
+            const nonCigaretteEnemies = ENEMIES.filter(e => e.type !== 'cigarette')
+            enemyType = nonCigaretteEnemies[Math.floor(Math.random() * nonCigaretteEnemies.length)]
+          }
           const angle = Math.random() * Math.PI * 2
           const dist = GAME_CONFIG.SPAWN_DISTANCE_MIN + Math.random() * (GAME_CONFIG.SPAWN_DISTANCE_MAX - GAME_CONFIG.SPAWN_DISTANCE_MIN)
 
@@ -330,12 +338,13 @@ const GameScreen = ({
               const projSpeed = enemy.projectileSpeed || 200
               state.enemyProjectiles.push({
                 id: generateId(),
+                type: 'cigarette_projectile',
                 x: enemy.x,
                 y: enemy.y,
                 vx: (edx / dist) * projSpeed,
                 vy: (edy / dist) * projSpeed,
                 damage: enemy.scaledDamage || enemy.damage,
-                size: 12,
+                size: 20, // Increased hitbox size
                 createdAt: currentTime,
               })
             }
@@ -1604,20 +1613,63 @@ const GameScreen = ({
       state.enemyProjectiles.forEach((proj) => {
         const px = proj.x - state.camera.x
         const py = proj.y - state.camera.y
-        if (px > -20 && px < canvas.width + 20 && py > -20 && py < canvas.height + 20) {
-          const gradient = ctx.createRadialGradient(px, py, 0, px, py, proj.size + 5)
-          gradient.addColorStop(0, 'rgba(255, 100, 50, 0.9)')
-          gradient.addColorStop(0.5, 'rgba(255, 50, 0, 0.5)')
-          gradient.addColorStop(1, 'rgba(100, 50, 0, 0)')
-          ctx.fillStyle = gradient
-          ctx.beginPath()
-          ctx.arc(px, py, proj.size + 5, 0, Math.PI * 2)
-          ctx.fill()
+        if (px > -50 && px < canvas.width + 50 && py > -50 && py < canvas.height + 50) {
+          if (proj.type === 'cigarette_projectile') {
+            const img = loadedImages[SPRITES.enemies.cigarette_projectile]
+            if (img) {
+              // User preferred the "Previous" direction (which was -Math.PI / 2).
+              // Also fixing the "stretched" look by respecting aspect ratio.
+              const angle = Math.atan2(proj.vy, proj.vx) - Math.PI / 2
+              
+              const aspect = img.width / img.height
+              const baseSize = 80 // Target size
+              let w = baseSize
+              let h = baseSize
+              
+              // Maintain aspect ratio
+              if (aspect > 1) {
+                h = baseSize / aspect
+              } else {
+                w = baseSize * aspect
+              }
 
-          ctx.fillStyle = '#FF6600'
-          ctx.beginPath()
-          ctx.arc(px, py, proj.size, 0, Math.PI * 2)
-          ctx.fill()
+              ctx.save()
+              ctx.translate(px, py)
+              ctx.rotate(angle)
+              ctx.drawImage(img, -w / 2, -h / 2, w, h)
+              ctx.restore()
+            } else {
+               // Fallback
+              const gradient = ctx.createRadialGradient(px, py, 0, px, py, proj.size + 5)
+              gradient.addColorStop(0, 'rgba(255, 100, 50, 0.9)')
+              gradient.addColorStop(0.5, 'rgba(255, 50, 0, 0.5)')
+              gradient.addColorStop(1, 'rgba(100, 50, 0, 0)')
+              ctx.fillStyle = gradient
+              ctx.beginPath()
+              ctx.arc(px, py, proj.size + 5, 0, Math.PI * 2)
+              ctx.fill()
+
+              ctx.fillStyle = '#FF6600'
+              ctx.beginPath()
+              ctx.arc(px, py, proj.size, 0, Math.PI * 2)
+              ctx.fill()
+            }
+          } else {
+            // Default projectile handling
+            const gradient = ctx.createRadialGradient(px, py, 0, px, py, proj.size + 5)
+            gradient.addColorStop(0, 'rgba(255, 100, 50, 0.9)')
+            gradient.addColorStop(0.5, 'rgba(255, 50, 0, 0.5)')
+            gradient.addColorStop(1, 'rgba(100, 50, 0, 0)')
+            ctx.fillStyle = gradient
+            ctx.beginPath()
+            ctx.arc(px, py, proj.size + 5, 0, Math.PI * 2)
+            ctx.fill()
+
+            ctx.fillStyle = '#FF6600'
+            ctx.beginPath()
+            ctx.arc(px, py, proj.size, 0, Math.PI * 2)
+            ctx.fill()
+          }
         }
       })
 
