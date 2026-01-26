@@ -1,6 +1,6 @@
 import React from 'react'
 import { GAME_CONFIG, SPRITES } from '../constants'
-import { getSpecialAbility } from '../MainWeapons'
+import { getMainWeapon, getPassiveSkills, getSpecialAbility } from '../MainWeapons'
 import { useGameEngine } from '../game/adapters/react/useGameEngine'
 import { formatTime } from '../game/domain/xp'
 import { COLORS, PIXEL_STYLES } from '../styles/PixelUI'
@@ -34,6 +34,168 @@ const GameScreen = ({
     onGameOver,
     onQuit,
   })
+
+  const mainWeapon = getMainWeapon(selectedCharacter?.id)
+  const mainWeaponLevel = gameStateRef.current?.mainWeaponLevel || 1
+  const mainWeaponIconKey = selectedCharacter?.id
+    ? (mainWeaponLevel >= (mainWeapon?.maxLevel || 7)
+      ? `${selectedCharacter.id}_gaksung`
+      : `${selectedCharacter.id}_mainattack`)
+    : null
+  const mainWeaponEntry = mainWeapon ? {
+    id: mainWeapon.id,
+    name: mainWeapon.name,
+    description: mainWeapon.description,
+    iconKey: mainWeaponIconKey,
+    level: mainWeaponLevel,
+    maxLevel: mainWeapon.maxLevel || 7,
+    category: 'main',
+  } : null
+  const passiveSkillDefs = getPassiveSkills(selectedCharacter?.id)
+  const passiveSkillEntries = (gameStateRef.current?.passiveSkills || []).map((skill) => {
+    const def = passiveSkillDefs.find((entry) => entry.id === skill.id)
+    return {
+      id: skill.id,
+      name: def?.name || skill.name,
+      description: def?.description || '',
+      iconKey: def?.icon || skill.id,
+      level: skill.level || 1,
+      maxLevel: def?.maxLevel || skill.maxLevel || 1,
+      category: 'passive',
+    }
+  })
+  const inventoryEntries = (gameStateRef.current?.inventory || []).map((item) => ({
+    ...item,
+    level: item.level || 1,
+    category: item.isSubWeapon ? 'subweapon' : 'item',
+  }))
+  const selectionCount = (mainWeaponEntry ? 1 : 0) + passiveSkillEntries.length + inventoryEntries.length
+  const selectionSections = [
+    {
+      id: 'main',
+      title: 'MAIN WEAPON',
+      entries: mainWeaponEntry ? [mainWeaponEntry] : [],
+      emptyText: 'Main weapon missing.',
+    },
+    {
+      id: 'passive',
+      title: 'PASSIVE SKILLS',
+      entries: passiveSkillEntries,
+      emptyText: 'No passive skills yet.',
+    },
+    {
+      id: 'inventory',
+      title: 'ITEMS',
+      entries: inventoryEntries,
+      emptyText: 'No items collected yet.',
+    },
+  ]
+
+  const renderSelectionEntry = (entry, idx) => {
+    const isMainWeapon = entry.category === 'main'
+    const isPassiveSkill = entry.category === 'passive'
+    const isSubWeapon = entry.category === 'subweapon'
+    const accentColor = isSubWeapon
+      ? COLORS.primary
+      : (isMainWeapon || isPassiveSkill)
+        ? COLORS.warning
+        : COLORS.panelBorder
+    const badgeText = isMainWeapon ? 'MAIN' : isPassiveSkill ? 'SKILL' : isSubWeapon ? 'WPN' : null
+    const abilityIcon = (isMainWeapon || isPassiveSkill) && entry.iconKey
+      ? SPRITES.abilities?.[entry.iconKey]
+      : null
+    const subweaponIcon = isSubWeapon ? SPRITES.subweapons?.[entry.icon] : null
+    const itemIcon = (!isMainWeapon && !isPassiveSkill && !isSubWeapon)
+      ? SPRITES.items?.[entry.icon]
+      : null
+    const fallbackLetter = isMainWeapon ? 'W' : isPassiveSkill ? 'S' : isSubWeapon ? 'W' : 'I'
+
+    return (
+      <div
+        key={`${entry.id}-${idx}`}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px 10px',
+          background: isSubWeapon
+            ? `linear-gradient(90deg, rgba(255,215,0,0.1) 0%, ${COLORS.bgLight} 100%)`
+            : COLORS.bgLight,
+          border: `2px solid ${accentColor}`,
+          boxShadow: '2px 2px 0 0 rgba(0,0,0,0.3)',
+        }}
+      >
+        <div style={{
+          width: '36px',
+          height: '36px',
+          background: COLORS.bgDark,
+          border: `2px solid ${accentColor}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: '10px',
+          flexShrink: 0,
+        }}>
+          {abilityIcon ? (
+            <img src={abilityIcon} alt="" style={{ width: '22px', height: '22px', imageRendering: 'pixelated', objectFit: 'contain' }} />
+          ) : isSubWeapon ? (
+            subweaponIcon ? (
+              <img src={subweaponIcon} alt="" style={{ width: '22px', height: '22px', imageRendering: 'pixelated', objectFit: 'contain' }} />
+            ) : (
+              <span style={{ fontSize: '16px' }}>{fallbackLetter}</span>
+            )
+          ) : itemIcon ? (
+            <img src={itemIcon} alt="" style={{ width: '20px', height: '20px', imageRendering: 'pixelated' }} />
+          ) : (
+            <span style={{ fontSize: '16px' }}>{fallbackLetter}</span>
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: PIXEL_STYLES.fontFamily,
+            fontWeight: 'bold',
+            color: isSubWeapon ? COLORS.primary : (isMainWeapon || isPassiveSkill) ? COLORS.warning : COLORS.textWhite,
+            fontSize: '11px',
+            textShadow: '1px 1px 0 #000',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}>
+            {entry.name}
+            {badgeText && (
+              <span style={{
+                fontSize: '8px',
+                color: COLORS.bgDark,
+                background: isSubWeapon ? COLORS.primary : COLORS.warning,
+                padding: '1px 4px',
+              }}>{badgeText}</span>
+            )}
+          </div>
+          <div style={{
+            fontFamily: PIXEL_STYLES.fontFamily,
+            fontSize: '9px',
+            color: COLORS.textGray,
+            marginTop: '2px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {entry.description}
+          </div>
+        </div>
+        <div style={{
+          fontFamily: PIXEL_STYLES.fontFamily,
+          fontSize: '10px',
+          color: accentColor,
+          fontWeight: 'bold',
+          background: 'rgba(0,0,0,0.4)',
+          padding: '2px 6px',
+          marginLeft: '8px',
+        }}>
+          LV{entry.level || 1}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -749,6 +911,7 @@ const GameScreen = ({
               <div style={{
                 display: 'flex',
                 flex: 1,
+                minHeight: 0,
                 overflow: 'hidden',
                 flexDirection: 'row',
                 '@media (max-width: 600px)': { flexDirection: 'column' },
@@ -757,6 +920,7 @@ const GameScreen = ({
                 <div style={{
                   width: '250px',
                   minWidth: '200px',
+                  minHeight: 0,
                   padding: '15px',
                   background: 'rgba(0,0,0,0.3)',
                   borderRight: `2px solid ${COLORS.panelBorder}`,
@@ -843,7 +1007,7 @@ const GameScreen = ({
                 </div>
 
                 {/* Right - Inventory */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
                   <div style={{
                     padding: '10px 15px',
                     borderBottom: `2px solid ${COLORS.panelBorder}`,
@@ -856,112 +1020,43 @@ const GameScreen = ({
                       margin: 0,
                       letterSpacing: '1px',
                     }}>
-                      📦 INVENTORY ({gameStateRef.current?.inventory?.length || 0})
+                      📦 INVENTORY ({selectionCount})
                     </h3>
                   </div>
 
                   <div style={{
                     flex: 1,
                     overflowY: 'auto',
+                    minHeight: 0,
+                    maxHeight: '60vh',
                     padding: '10px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '8px',
+                    gap: '12px',
                   }}>
-                    {(!gameStateRef.current?.inventory || gameStateRef.current?.inventory?.length === 0) && (
-                      <p style={{
-                        fontFamily: PIXEL_STYLES.fontFamily,
-                        color: COLORS.textDark,
-                        textAlign: 'center',
-                        marginTop: '30px',
-                        fontSize: '12px',
-                      }}>
-                        No items collected yet.
-                      </p>
-                    )}
-
-                    {gameStateRef.current?.inventory?.map((item, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          padding: '8px 10px',
-                          background: item.isSubWeapon
-                            ? `linear-gradient(90deg, rgba(255,215,0,0.1) 0%, ${COLORS.bgLight} 100%)`
-                            : COLORS.bgLight,
-                          border: `2px solid ${item.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
-                          boxShadow: '2px 2px 0 0 rgba(0,0,0,0.3)',
-                        }}
-                      >
-                        <div style={{
-                          width: '36px',
-                          height: '36px',
-                          background: COLORS.bgDark,
-                          border: `2px solid ${item.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginRight: '10px',
-                          flexShrink: 0,
-                        }}>
-                          {item.isSubWeapon ? (
-                            <span style={{ fontSize: '18px' }}>
-                              {item.id === 'black_dye' && '🖤'}
-                              {item.id === 'hair_brush' && '🪥'}
-                              {item.id === 'hair_spray' && '💨'}
-                              {item.id === 'hair_dryer' && '🔥'}
-                              {item.id === 'electric_clipper' && '⚡'}
-                              {item.id === 'dandruff_bomb' && '💣'}
-                            </span>
-                          ) : (
-                            <img src={SPRITES.items[item.icon]} style={{ width: '20px', height: '20px', imageRendering: 'pixelated' }} />
-                          )}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{
-                            fontFamily: PIXEL_STYLES.fontFamily,
-                            fontWeight: 'bold',
-                            color: item.isSubWeapon ? COLORS.primary : COLORS.textWhite,
-                            fontSize: '11px',
-                            textShadow: '1px 1px 0 #000',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                          }}>
-                            {item.name}
-                            {item.isSubWeapon && (
-                              <span style={{
-                                fontSize: '8px',
-                                color: COLORS.bgDark,
-                                background: COLORS.primary,
-                                padding: '1px 4px',
-                              }}>WPN</span>
-                            )}
-                          </div>
-                          <div style={{
-                            fontFamily: PIXEL_STYLES.fontFamily,
-                            fontSize: '9px',
-                            color: COLORS.textGray,
-                            marginTop: '2px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}>
-                            {item.description}
-                          </div>
-                        </div>
+                    {selectionSections.map((section) => (
+                      <div key={section.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <div style={{
                           fontFamily: PIXEL_STYLES.fontFamily,
+                          color: COLORS.textGray,
                           fontSize: '10px',
-                          color: COLORS.primary,
-                          fontWeight: 'bold',
-                          background: 'rgba(0,0,0,0.4)',
-                          padding: '2px 6px',
-                          marginLeft: '8px',
+                          letterSpacing: '1px',
                         }}>
-                          LV{item.level || 1}
+                          {section.title} ({section.entries.length})
                         </div>
+                        {section.entries.length === 0 ? (
+                          <p style={{
+                            fontFamily: PIXEL_STYLES.fontFamily,
+                            color: COLORS.textDark,
+                            textAlign: 'center',
+                            margin: '6px 0 10px',
+                            fontSize: '11px',
+                          }}>
+                            {section.emptyText}
+                          </p>
+                        ) : (
+                          section.entries.map(renderSelectionEntry)
+                        )}
                       </div>
                     ))}
                   </div>
