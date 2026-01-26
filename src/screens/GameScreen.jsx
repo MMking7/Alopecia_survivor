@@ -164,7 +164,10 @@ const GameScreen = ({
           gameStateRef.current.keys.shift = true;
           break
         case 'Escape':
-          if (gamePhase === 'playing') setGamePhase('paused')
+          if (gamePhase === 'playing') {
+            setGamePhase('paused')
+            setPauseTab('main') // ESC를 누르면 항상 메인 메뉴로
+          }
           else if (gamePhase === 'paused') setGamePhase('playing')
           break
       }

@@ -101,7 +101,7 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                   <StatBar icon="⚔️" label="ATK" value={selectedCharacter.baseStats.damage} color={COLORS.atk} />
                   <StatBar icon="🏃" label="SPD" value={selectedCharacter.baseStats.speed} color={COLORS.spd} />
                   <StatBar icon="💥" label="CRT" value={`${(selectedCharacter.baseStats.crit * 100)}%`} color={COLORS.crit} />
-                  <StatBar icon="⚡" label="HASTE" value={selectedCharacter.baseStats.attackSpeed} color={COLORS.warning} />
+                  <StatBar icon="⚡" label="AS" value={selectedCharacter.baseStats.attackSpeed} color={COLORS.warning} />
                 </div>
               </PixelPanel>
 
