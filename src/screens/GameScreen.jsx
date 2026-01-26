@@ -4,6 +4,8 @@ import { getMainWeapon, getPassiveSkills, getSpecialAbility } from '../MainWeapo
 import { useGameEngine } from '../game/adapters/react/useGameEngine'
 import { formatTime } from '../game/domain/xp'
 import { COLORS, PIXEL_STYLES } from '../styles/PixelUI'
+import autoAimCursor from '../assets/cursors/auto_aim.png'
+import manualAimCursor from '../assets/cursors/manual_aim.png'
 
 const GameScreen = ({
   selectedCharacter,
@@ -198,7 +200,12 @@ const GameScreen = ({
   }
 
   return (
-    <>
+    <div style={{
+      width: '100%',
+      height: '100%',
+      position: 'relative',
+      cursor: `url(${displayStats.aimMode === 'manual' ? manualAimCursor : autoAimCursor}) 16 16, auto`
+    }}>
       <canvas
         ref={canvasRef}
         width={GAME_CONFIG.CANVAS_WIDTH}
@@ -1080,7 +1087,7 @@ const GameScreen = ({
           )}
         </div>
       )}
-    </>
+    </div>
   )
 }
 
