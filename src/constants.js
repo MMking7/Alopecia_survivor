@@ -55,9 +55,11 @@ export const SPRITES = {
     wongfeihung: '/sprites/char_wong_feihung_1769163464961.webp',
     heihachi: '/sprites/char_heihachi_1769163501406.webp',
     talmo_docter: '/sprites/talmo_docter/talmo_docter.png',
+    mzamen: '/sprites/mzaman/Mzaman.png',
   },
   attacks: {
     talmo_docter_projectile: '/sprites/talmo_docter/talmo_docter_attack.png',
+    mzamen_boomerang: '/sprites/mzaman/mzamanmainattack.png',
   },
   enemies: {
     shrimp: '/sprites/holo/enemy_shrimp.webp',
@@ -166,6 +168,22 @@ export const CHARACTERS = [
     projectileSize: 80,
     spriteScale: 1.0,
     baseStats: { hp: 65, maxHp: 65, damage: 38, speed: 1.30, attackSpeed: 1.3, defense: 0, crit: 0.12 }
+  },
+  {
+    id: 'mzamen',
+    name: 'M자맨',
+    subName: 'M자 탈모의 전설',
+    weapon: 'Boomerang M',
+    description: '부메랑 투척! 돌아오는 광역 공격',
+    color: '#FF6B35',
+    attackType: 'boomerang',
+    attackColor: 'rgba(255, 107, 53, 0.8)',
+    projectileRange: 200,
+    projectileSpeed: 350,
+    projectileSize: 80,
+    returnSpeed: 450,
+    spriteScale: 1.0,
+    baseStats: { hp: 70, maxHp: 70, damage: 42, speed: 1.25, attackSpeed: 1.4, defense: 0.08, crit: 0.10 }
   },
 ]
 

@@ -496,6 +496,77 @@ const GameScreen = ({
         state.transplantProjectiles = state.transplantProjectiles.filter(p => !p.shouldRemove)
       }
 
+      // Update boomerang projectiles (Mzamen 공격)
+      if (state.boomerangProjectiles) {
+        state.boomerangProjectiles.forEach((proj) => {
+          // Update rotation for visual effect
+          proj.rotation += deltaTime * 15
+
+          if (!proj.returning) {
+            // Moving outward
+            proj.x += proj.vx * deltaTime
+            proj.y += proj.vy * deltaTime
+
+            // Check distance traveled
+            const distTraveled = distance({ x: proj.startX, y: proj.startY }, proj)
+            if (distTraveled >= proj.range) {
+              // Start returning
+              proj.returning = true
+            }
+          } else {
+            // Returning to player
+            const dx = state.player.x - proj.x
+            const dy = state.player.y - proj.y
+            const distToPlayer = Math.sqrt(dx * dx + dy * dy)
+            
+            if (distToPlayer < 30) {
+              // Reached player
+              proj.shouldRemove = true
+              return
+            }
+
+            // Move toward player
+            proj.vx = (dx / distToPlayer) * proj.returnSpeed
+            proj.vy = (dy / distToPlayer) * proj.returnSpeed
+            proj.x += proj.vx * deltaTime
+            proj.y += proj.vy * deltaTime
+          }
+
+          // Check collision with enemies (can hit multiple times, but with cooldown per enemy)
+          state.enemies.forEach((enemy) => {
+            if (enemy.isDead) return
+            
+            // Check if this enemy was recently hit (cooldown 0.3s)
+            const lastHitTime = proj.hitEnemies.find(h => h.id === enemy.id)?.time || 0
+            if (currentTime - lastHitTime < 300) return
+
+            const d = distance(proj, enemy)
+            if (d < 45) {
+              // Record hit
+              const existingHit = proj.hitEnemies.find(h => h.id === enemy.id)
+              if (existingHit) {
+                existingHit.time = currentTime
+              } else {
+                proj.hitEnemies.push({ id: enemy.id, time: currentTime })
+              }
+
+              const isCrit = Math.random() < (state.stats.crit || 0)
+              const finalDamage = proj.damage * (isCrit ? 1.5 : 1.0) * (proj.returning ? 0.8 : 1.0)
+              enemy.currentHp -= finalDamage
+              state.damageNumbers.push({
+                id: generateId(),
+                x: enemy.x,
+                y: enemy.y,
+                damage: Math.floor(finalDamage),
+                isCritical: isCrit,
+                createdAt: currentTime,
+              })
+            }
+          })
+        })
+        state.boomerangProjectiles = state.boomerangProjectiles.filter(p => !p.shouldRemove)
+      }
+
       // Update explosions
       state.explosions.forEach((exp) => {
         if (currentTime - exp.createdAt < 100) {
@@ -679,6 +750,58 @@ const GameScreen = ({
               range: projectileRange,
               size: character.projectileSize || 100,
               hitEnemies: [],
+              createdAt: currentTime,
+              color: character.attackColor,
+            })
+            break
+
+          case 'boomerang':
+            // Boomerang - Throws and returns, hitting enemies multiple times
+            // Only allow one boomerang at a time
+            if (!state.boomerangProjectiles) state.boomerangProjectiles = []
+            
+            // Check if there's already an active boomerang
+            if (state.boomerangProjectiles.length > 0) break
+            
+            const boomerangRange = character.projectileRange || 200
+            const boomerangSpeed = character.projectileSpeed || 350
+            const returnSpeed = character.returnSpeed || 450
+            
+            // Find direction to nearest enemy, or use facing direction
+            let boomerangAngle = state.player.facing === 1 ? 0 : Math.PI
+            let nearestBoomerangEnemy = null
+            let nearestBoomerangDist = Infinity
+            
+            state.enemies.forEach((enemy) => {
+              const d = distance(state.player, enemy)
+              if (d < nearestBoomerangDist && d <= boomerangRange * 1.5) {
+                nearestBoomerangEnemy = enemy
+                nearestBoomerangDist = d
+              }
+            })
+            
+            if (nearestBoomerangEnemy) {
+              boomerangAngle = Math.atan2(nearestBoomerangEnemy.y - state.player.y, nearestBoomerangEnemy.x - state.player.x)
+            }
+            
+            // Create boomerang projectile
+            state.boomerangProjectiles.push({
+              id: generateId(),
+              x: state.player.x,
+              y: state.player.y,
+              startX: state.player.x,
+              startY: state.player.y,
+              vx: Math.cos(boomerangAngle) * boomerangSpeed,
+              vy: Math.sin(boomerangAngle) * boomerangSpeed,
+              angle: boomerangAngle,
+              rotation: 0,
+              damage: state.stats.damage * 1.3,
+              range: boomerangRange,
+              speed: boomerangSpeed,
+              returnSpeed: returnSpeed,
+              size: character.projectileSize || 80,
+              hitEnemies: [],
+              returning: false,
               createdAt: currentTime,
               color: character.attackColor,
             })
@@ -1243,6 +1366,75 @@ const GameScreen = ({
             ctx.beginPath()
             ctx.arc(25, 0, 3, 0, Math.PI * 2)
             ctx.fill()
+
+            ctx.shadowBlur = 0
+            ctx.restore()
+          }
+        })
+      }
+
+      // Draw boomerang projectiles (Mzamen 부메랑)
+      if (state.boomerangProjectiles) {
+        state.boomerangProjectiles.forEach((proj) => {
+          const sx = proj.x - state.camera.x
+          const sy = proj.y - state.camera.y
+
+          if (sx < -50 || sx > canvas.width + 50 || sy < -50 || sy > canvas.height + 50) return
+
+          // Try to draw sprite
+          const boomerangImg = loadedImages[SPRITES.attacks?.mzamen_boomerang]
+          if (boomerangImg) {
+            ctx.save()
+            ctx.translate(sx, sy)
+            // 회전 효과 (부메랑이 빙글빙글 돌면서 날아감)
+            ctx.rotate(proj.rotation)
+            const imgSize = proj.size || 80
+            ctx.imageSmoothingEnabled = false
+            
+            // Returning일 때 약간 크기 감소 효과
+            const scale = proj.returning ? 0.85 : 1.0
+            const drawSize = imgSize * scale
+            
+            // Glow effect
+            if (proj.returning) {
+              ctx.shadowColor = proj.color || '#FF6B35'
+              ctx.shadowBlur = 20
+            }
+            
+            ctx.drawImage(boomerangImg, -drawSize / 2, -drawSize / 2, drawSize, drawSize)
+            ctx.restore()
+          } else {
+            // Fallback: Draw a stylized boomerang
+            ctx.save()
+            ctx.translate(sx, sy)
+            ctx.rotate(proj.rotation)
+
+            // Glow effect
+            ctx.shadowColor = proj.color || '#FF6B35'
+            ctx.shadowBlur = proj.returning ? 20 : 15
+
+            // Boomerang shape (curved)
+            ctx.fillStyle = '#FF6B35'
+            ctx.strokeStyle = '#FFD700'
+            ctx.lineWidth = 2
+
+            ctx.beginPath()
+            ctx.moveTo(-25, -8)
+            ctx.quadraticCurveTo(-15, -15, 0, -12)
+            ctx.quadraticCurveTo(15, -15, 25, -8)
+            ctx.lineTo(20, 0)
+            ctx.quadraticCurveTo(10, 8, 0, 6)
+            ctx.quadraticCurveTo(-10, 8, -20, 0)
+            ctx.closePath()
+            ctx.fill()
+            ctx.stroke()
+
+            // M shape detail
+            ctx.fillStyle = '#FFD700'
+            ctx.font = 'bold 12px Arial'
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+            ctx.fillText('M', 0, 0)
 
             ctx.shadowBlur = 0
             ctx.restore()
