@@ -16,6 +16,51 @@ const generateId = () => Math.random().toString(36).substr(2, 9)
 const distance = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
 const lerp = (a, b, t) => a + (b - a) * t
 
+// M 패턴 내부 체크 함수 (M자 탈모 형태 - 양쪽 후퇴 이마선)
+const isInsideMPattern = (point, center, width, height) => {
+  const relX = point.x - center.x + width / 2 // 0 ~ width 범위로 변환
+  const relY = point.y - center.y + height / 2 // 0 ~ height 범위로 변환
+  
+  // 범위 밖이면 false
+  if (relX < 0 || relX > width || relY < 0 || relY > height) return false
+  
+  const thickness = 80 // M의 두께 (더 두껍게)
+  
+  // M자 탈모 패턴: 양쪽 세로선 + 중앙으로 내려오는 V자
+  // 포인트 정의
+  const leftX = width * 0.1   // 왼쪽 세로선 X
+  const rightX = width * 0.9  // 오른쪽 세로선 X
+  const peakY = height * 0.15 // 상단 꼭지점 Y
+  const valleyY = height * 0.7 // 중앙 V자 바닥 Y
+  const centerX = width * 0.5 // 중앙 X
+  
+  // 왼쪽 세로선 (|)
+  if (relX >= leftX - thickness / 2 && relX <= leftX + thickness / 2) {
+    return true
+  }
+  
+  // 오른쪽 세로선 (|)
+  if (relX >= rightX - thickness / 2 && relX <= rightX + thickness / 2) {
+    return true
+  }
+  
+  // 왼쪽 대각선 (상단에서 중앙 V로)
+  if (relX > leftX && relX < centerX) {
+    const t = (relX - leftX) / (centerX - leftX)
+    const lineY = peakY + t * (valleyY - peakY)
+    if (Math.abs(relY - lineY) < thickness) return true
+  }
+  
+  // 오른쪽 대각선 (중앙 V에서 상단으로)
+  if (relX > centerX && relX < rightX) {
+    const t = (relX - centerX) / (rightX - centerX)
+    const lineY = valleyY + t * (peakY - valleyY)
+    if (Math.abs(relY - lineY) < thickness) return true
+  }
+  
+  return false
+}
+
 // Difficulty scaling function
 const getDifficultyMultiplier = (gameTime) => {
   const minute = gameTime / 60
@@ -346,7 +391,12 @@ const GameScreen = ({
         const edx = state.player.x - enemy.x
         const edy = state.player.y - enemy.y
         const dist = Math.sqrt(edx * edx + edy * edy)
-        const effectiveSpeed = enemy.scaledSpeed || enemy.speed
+        let effectiveSpeed = enemy.scaledSpeed || enemy.speed
+        
+        // M 패턴 슬로우 적용
+        if (enemy.mPatternSlowed && enemy.mPatternSlowAmount) {
+          effectiveSpeed *= (1 - enemy.mPatternSlowAmount)
+        }
 
         // Apply electrify DoT (Heihachi)
         if (enemy.electrified && currentTime < enemy.electrified.until) {
@@ -929,6 +979,51 @@ const GameScreen = ({
               state.stats.attackSpeed *= (1 + effect.attackSpeedBonus)
               // Extra lightning damage handled in attack logic
               break
+
+            case 'm_pattern_field': // Mzamen - M 모양 장판
+              // M 패턴 내 적에게 초당 데미지와 슬로우 적용
+              const mFieldPos = state.specialAbility.mFieldPosition
+              if (mFieldPos) {
+                const mWidth = effect.width || 400
+                const mHeight = effect.height || 300
+                
+                // 초당 데미지 적용 (1초마다)
+                if (currentTime - (state.specialAbility.mFieldLastDamageTime || 0) >= 1000) {
+                  state.specialAbility.mFieldLastDamageTime = currentTime
+                  
+                  state.enemies.forEach((enemy) => {
+                    if (enemy.isDead) return
+                    
+                    // M 패턴 내부인지 체크
+                    if (isInsideMPattern(enemy, mFieldPos, mWidth, mHeight)) {
+                      // 데미지 적용
+                      const damage = state.stats.damage * effect.damagePerSecond
+                      enemy.currentHp -= damage
+                      
+                      state.damageNumbers.push({
+                        id: generateId(),
+                        x: enemy.x,
+                        y: enemy.y,
+                        damage: Math.floor(damage),
+                        createdAt: currentTime,
+                        color: '#FFD700',
+                      })
+                    }
+                  })
+                }
+                
+                // 슬로우 효과는 매 프레임 적용
+                state.enemies.forEach((enemy) => {
+                  if (enemy.isDead) return
+                  if (isInsideMPattern(enemy, mFieldPos, mWidth, mHeight)) {
+                    enemy.mPatternSlowed = true
+                    enemy.mPatternSlowAmount = effect.slowAmount
+                  } else {
+                    enemy.mPatternSlowed = false
+                  }
+                })
+              }
+              break
           }
         }
       }
@@ -1079,6 +1174,16 @@ const GameScreen = ({
               // Reset fragments
               state.fragments = 0
               console.log('[SPECIAL] Fragments reset to 0')
+            }
+
+            // Mzamen - M 패턴 장판 생성
+            if (ability.effect.type === 'm_pattern_field') {
+              console.log('[SPECIAL] Creating M Pattern Field')
+              state.specialAbility.mFieldPosition = {
+                x: state.player.x,
+                y: state.player.y,
+              }
+              state.specialAbility.mFieldLastDamageTime = currentTime
             }
           }
         }
@@ -2829,6 +2934,116 @@ const GameScreen = ({
           }
         }
       })
+
+      // Draw M Pattern Field (Mzamen 스페셜 능력)
+      if (state.specialAbility.active && state.specialAbility.type === 'm_pattern_field') {
+        const mFieldPos = state.specialAbility.mFieldPosition
+        if (mFieldPos) {
+          const effect = state.specialAbility.effect
+          const mWidth = effect.width || 600
+          const mHeight = effect.height || 400
+          
+          const centerX = mFieldPos.x - state.camera.x
+          const centerY = mFieldPos.y - state.camera.y
+          
+          ctx.save()
+          
+          // 시간에 따른 펄스 효과
+          const pulseTime = currentTime % 500
+          const pulseAlpha = 0.35 + Math.sin(pulseTime / 500 * Math.PI) * 0.15
+          
+          // M 패턴 그리기 (M자 탈모 형태)
+          ctx.translate(centerX - mWidth / 2, centerY - mHeight / 2)
+          
+          const thickness = 80
+          const leftX = mWidth * 0.1
+          const rightX = mWidth * 0.9
+          const peakY = mHeight * 0.15
+          const valleyY = mHeight * 0.7
+          const midX = mWidth * 0.5
+          
+          // 글로우 효과
+          ctx.shadowColor = '#6BEEED'
+          ctx.shadowBlur = 40
+          
+          // M 패턴 그라데이션 채우기
+          const gradient = ctx.createLinearGradient(0, 0, mWidth, mHeight)
+          gradient.addColorStop(0, `rgba(107, 238, 237, ${pulseAlpha + 0.1})`)
+          gradient.addColorStop(0.3, `rgba(107, 238, 237, ${pulseAlpha})`)
+          gradient.addColorStop(0.5, `rgba(80, 200, 220, ${pulseAlpha + 0.15})`)
+          gradient.addColorStop(0.7, `rgba(107, 238, 237, ${pulseAlpha})`)
+          gradient.addColorStop(1, `rgba(150, 255, 255, ${pulseAlpha + 0.1})`)
+          
+          ctx.fillStyle = gradient
+          ctx.strokeStyle = `rgba(180, 255, 255, ${pulseAlpha + 0.4})`
+          ctx.lineWidth = 4
+          
+          // M 경로 그리기 (M자 탈모 형태: 양쪽 세로 + 중앙 V)
+          ctx.beginPath()
+          
+          // 왼쪽 세로선 바깥쪽
+          ctx.moveTo(leftX - thickness / 2, mHeight)
+          ctx.lineTo(leftX - thickness / 2, peakY)
+          
+          // 왼쪽 꼭지점에서 중앙 V로
+          ctx.lineTo(leftX + thickness / 2, peakY)
+          ctx.lineTo(midX, valleyY - thickness / 2)
+          
+          // 중앙 V에서 오른쪽 꼭지점으로
+          ctx.lineTo(rightX - thickness / 2, peakY)
+          ctx.lineTo(rightX + thickness / 2, peakY)
+          
+          // 오른쪽 세로선
+          ctx.lineTo(rightX + thickness / 2, mHeight)
+          ctx.lineTo(rightX - thickness / 2, mHeight)
+          ctx.lineTo(rightX - thickness / 2, peakY + thickness)
+          
+          // 오른쪽에서 중앙 V 안쪽으로
+          ctx.lineTo(midX, valleyY + thickness / 2)
+          
+          // 중앙 V 안쪽에서 왼쪽으로
+          ctx.lineTo(leftX + thickness / 2, peakY + thickness)
+          ctx.lineTo(leftX + thickness / 2, mHeight)
+          
+          ctx.closePath()
+          ctx.fill()
+          ctx.stroke()
+          
+          // 에너지 파티클 효과 (M 모양을 따라 이동)
+          for (let i = 0; i < 12; i++) {
+            const t = ((currentTime / 1000 + i * 0.3) % 3) / 3
+            let particleX, particleY
+            
+            if (t < 0.33) {
+              // 왼쪽 세로선
+              particleX = leftX
+              particleY = mHeight - (mHeight - peakY) * (t / 0.33)
+            } else if (t < 0.66) {
+              // 왼쪽에서 중앙으로
+              const tt = (t - 0.33) / 0.33
+              particleX = leftX + (midX - leftX) * tt
+              particleY = peakY + (valleyY - peakY) * tt
+            } else {
+              // 중앙에서 오른쪽으로
+              const tt = (t - 0.66) / 0.34
+              particleX = midX + (rightX - midX) * tt
+              particleY = valleyY + (peakY - valleyY) * tt
+            }
+            
+            const particleAlpha = 0.6 + Math.sin(currentTime / 150 + i) * 0.3
+            const particleSize = 6 + Math.sin(currentTime / 200 + i * 0.7) * 3
+            
+            ctx.fillStyle = `rgba(107, 238, 237, ${particleAlpha})`
+            ctx.shadowColor = '#6BEEED'
+            ctx.shadowBlur = 15
+            ctx.beginPath()
+            ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2)
+            ctx.fill()
+          }
+          
+          ctx.restore()
+        }
+      }
 
       // Draw player
       const playerSx = state.player.x - state.camera.x

@@ -502,8 +502,8 @@ export const SPECIAL_ABILITIES = {
       type: 'm_pattern_field',
       damagePerSecond: 2.00,
       slowAmount: 0.40,
-      width: 400,
-      height: 300,
+      width: 600,
+      height: 400,
     },
   },
 
@@ -511,7 +511,7 @@ export const SPECIAL_ABILITIES = {
     id: 'talmo_docter_special',
     name: '긴급 치료',
     nameEn: 'Emergency Treatment',
-    description: '모근 조각 30개 이상 필요. 전부 소모, 1개당 3% HP 회복, 주변 80% 피해. 40개 이상 시 6초간 공격력 40% 증가, 흡혈 15% 추가',
+    description: '최소 모근 30개 필요, 개당 3% HP 회복 & 주변 80% 피해. 40+개 6초간 공 +40%,흡혈 +15%',
     cooldown: 80000, // 80초
     duration: 6000, // 버프 지속 시간 6초
     minFragments: 30, // 최소 30개 필요
