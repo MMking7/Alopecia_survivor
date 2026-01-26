@@ -1,7 +1,7 @@
 import React from 'react'
 import { SPRITES } from '../constants'
 
-const TitleScreen = ({ onStart, onShop, coins, activeCharacterName }) => {
+const TitleScreen = ({ onStart, onShop, coins }) => {
   return (
     <div style={{
       width: '100%',
@@ -70,7 +70,7 @@ const TitleScreen = ({ onStart, onShop, coins, activeCharacterName }) => {
         fontWeight: 'bold',
         border: '2px solid #fff'
       }}>
-        💰 {coins.toLocaleString()}{activeCharacterName ? ` (${activeCharacterName})` : ''}
+        💰 {coins.toLocaleString()}
       </div>
     </div>
   )
