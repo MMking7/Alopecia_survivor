@@ -2139,7 +2139,7 @@ const GameScreen = ({
                         padding: '2px 6px',
                       }}>
                         {upgrade.isSubWeapon
-                          ? (upgrade.currentLevel > 0 ? `LV${upgrade.currentLevel}→${upgrade.nextLevel}` : '🆕WEAPON')
+                          ? (upgrade.currentLevel > 0 ? `LV${upgrade.currentLevel}→${upgrade.nextLevel}` : '🆕무기')
                           : `🆕${upgrade.type}`
                         }
                       </span>

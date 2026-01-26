@@ -173,57 +173,57 @@ export const BOSS = {
 export const UPGRADES = [
   {
     id: 'glasses',
-    name: 'Follicle Scanner',
-    type: 'Item',
-    description: 'Analyzes scalp health. Increase EXP gain by 15%.',
+    name: '모낭 스캐너',
+    type: '아이템',
+    description: '두피 상태를 분석합니다. 경험치 획득량이 15% 증가합니다.',
     icon: 'glasses',
     effect: (stats) => ({ ...stats, xpMultiplier: (stats.xpMultiplier || 1) + 0.15 })
   },
   {
     id: 'ubersheep',
-    name: 'Biotin Delivery',
-    type: 'Item',
-    description: 'Essential nutrients. Heals 20% HP periodically.',
+    name: '비오틴 보급',
+    type: '아이템',
+    description: '필수 영양소. 주기적으로 HP를 20% 회복합니다.',
     icon: 'ubersheep',
     effect: (stats) => ({ ...stats, hp: Math.min(stats.maxHp, stats.hp + stats.maxHp * 0.2) })
   },
   {
     id: 'horn',
-    name: 'Minoxidil',
-    type: 'Item',
-    description: 'Promotes regrowth. Chance to heal 3 HP on kill.',
+    name: '미녹시딜',
+    type: '아이템',
+    description: '발모 촉진. 처치 시 3 HP를 회복할 확률이 있습니다.',
     icon: 'horn',
     effect: (stats) => ({ ...stats, lifeSteal: (stats.lifeSteal || 0) + 0.05 })
   },
   {
     id: 'pillow',
-    name: 'Silk Cap',
-    type: 'Item',
-    description: 'Reduces friction. Grants a Shield (15 HP).',
+    name: '실크 캡',
+    type: '아이템',
+    description: '마찰을 줄입니다. 15 HP 보호막을 부여합니다.',
     icon: 'pillow',
     effect: (stats) => ({ ...stats, shield: stats.shield + 15 })
   },
   {
     id: 'sake',
-    name: 'Beer Yeast',
-    type: 'Item',
-    description: 'Good for hair? Crit +5%, but Aim wavers.',
+    name: '맥주 효모',
+    type: '아이템',
+    description: '머리에 좋을지도? 치명타 +5%, 하지만 조준이 흔들립니다.',
     icon: 'sake',
     effect: (stats) => ({ ...stats, crit: (stats.crit || 0) + 0.05 })
   },
   {
     id: 'piman',
-    name: 'Black Bean',
-    type: 'Item',
-    description: 'Traditional remedy. Max HP +15.',
+    name: '검은콩',
+    type: '아이템',
+    description: '전통 요법. 최대 HP +15.',
     icon: 'piman',
     effect: (stats) => ({ ...stats, maxHp: stats.maxHp + 15, hp: stats.hp + 15 })
   },
   {
     id: 'halu',
-    name: 'DHT Hormone',
-    type: 'Item',
-    description: 'The root cause. Enemy Spawn Rate UP!',
+    name: 'DHT 호르몬',
+    type: '아이템',
+    description: '원인 그 자체. 적 생성 속도 증가!',
     icon: 'halu',
     effect: (stats) => ({ ...stats, spawnRateMultiplier: (stats.spawnRateMultiplier || 1) + 0.2 })
   },
