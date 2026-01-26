@@ -63,7 +63,7 @@ export const SPRITES = {
   characters: {
     female: '/sprites/female.webp',
     areata: '/sprites/areata.webp',
-    wongfeihung: '/sprites/wongfeihung.webp',
+    wongfeihung: '/sprites/char_wong_feihung_176916346496.webp',
     heihachi: '/sprites/heihachi.webp',
     talmo_docter: '/sprites/talmo_docter/talmo_docter.png',
     mzamen: '/sprites/mzaman/mzamen.png',
