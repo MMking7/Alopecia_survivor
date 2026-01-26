@@ -509,7 +509,8 @@ export const SPECIAL_ABILITIES = {
     name: '긴급 치료',
     nameEn: 'Emergency Treatment',
     description: '모근 조각 전부 소모, 1개당 3% HP 회복, 주변 80% 피해. 10개 이상 시 6초간 공격력 40% 증가, 흡혈 15% 추가',
-    cooldown: 80000,
+    cooldown: 80000, // 80초
+    duration: 6000, // 버프 지속 시간 6초
     effect: {
       type: 'consume_fragments',
       healPerFragment: 0.03,

@@ -175,6 +175,22 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                       }}>
                         {specialAbility.description}
                       </p>
+                      {/* Cooldown Display */}
+                      <div style={{
+                        marginTop: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                      }}>
+                        <span style={{ fontSize: '14px' }}>⏱️</span>
+                        <span style={{
+                          fontFamily: PIXEL_STYLES.fontFamily,
+                          color: COLORS.textGray,
+                          fontSize: '10px',
+                        }}>
+                          쿨타임: {specialAbility.cooldown / 1000}초
+                        </span>
+                      </div>
                     </PixelPanel>
                   )
                 })()}
