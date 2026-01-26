@@ -229,13 +229,10 @@ export const UPGRADES = [
 ]
 
 export const SHOP_UPGRADES = [
-  { id: 'maxHp', name: 'HP 강화', description: '최대 HP +5% per level', icon: '❤️', cost: 100, maxLevel: 10 },
-  { id: 'atk', name: 'ATK 강화', description: '공격력 +3% per level', icon: '⚔️', cost: 150, maxLevel: 10 },
-  { id: 'spd', name: 'SPD 강화', description: '이동속도 +2% per level', icon: '🏃', cost: 120, maxLevel: 10 },
-  { id: 'crt', name: 'CRT 강화', description: '크리티컬 +2% per level', icon: '💥', cost: 200, maxLevel: 10 },
-  { id: 'pickup', name: 'Pickup 강화', description: '습득 범위 +5% per level', icon: '🧲', cost: 80, maxLevel: 10 },
-  { id: 'haste', name: 'Haste 강화', description: '공격속도 +2% per level', icon: '⚡', cost: 180, maxLevel: 10 },
-  { id: 'heal', name: 'Heal 강화', description: '회복량 +3% per level', icon: '💊', cost: 150, maxLevel: 10 },
-  { id: 'luck', name: 'Luck 강화', description: '드랍률 +2% per level', icon: '🎲', cost: 250, maxLevel: 10 },
-  { id: 'revival', name: 'Revival', description: '부활 횟수 +1', icon: '💖', cost: 500, maxLevel: 3 },
+  { id: 'hp', name: 'HP 강화', description: '최대 HP +10 per level', icon: '❤️', cost: 100, maxLevel: 10 },
+  { id: 'atk', name: 'ATK 강화', description: '공격력 +10% per level', icon: '⚔️', cost: 150, maxLevel: 10 },
+  { id: 'spd', name: 'ATK SPD 강화', description: '공격속도 +10% per level', icon: '⚡', cost: 180, maxLevel: 10 },
+  { id: 'mov', name: 'MOVE 강화', description: '이동속도 +5% per level', icon: '🏃', cost: 120, maxLevel: 10 },
+  { id: 'crit', name: 'CRIT 강화', description: '크리티컬 +3% per level', icon: '💥', cost: 200, maxLevel: 10 },
+  { id: 'xp', name: 'XP 강화', description: '경험치 배율 +10% per level', icon: '📈', cost: 250, maxLevel: 10 },
 ]
