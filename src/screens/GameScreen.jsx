@@ -1,13 +1,13 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { GAME_CONFIG, SPRITES, ENEMIES, BOSS, UPGRADES, SHOP_UPGRADES, getBaseStatsWithShop } from '../constants'
 import { generateMixedLevelUpOptions, handleSubWeaponSelection, getSubWeaponById } from '../SubWeapons'
-import { 
-  PixelPanel, 
-  PixelButton, 
+import {
+  PixelPanel,
+  PixelButton,
   PixelTitle,
   StatBar,
   COLORS,
-  PIXEL_STYLES 
+  PIXEL_STYLES
 } from '../styles/PixelUI'
 
 // Utility functions
@@ -953,15 +953,7 @@ const GameScreen = ({
               y: proj.y,
               radius: proj.radius,
               damagePerSecond: proj.cloudDamage,
-              duration: proj.cloudDuration * 1000,
-              createdAt: currentTime,
-            })
-
-            state.explosions.push({
-              id: generateId(),
-              x: proj.x,
-              y: proj.y,
-              radius: proj.radius,
+              duration: 800, // 0.8 seconds for explosion animation
               createdAt: currentTime,
             })
           }
@@ -1521,16 +1513,30 @@ const GameScreen = ({
           const elapsed = currentTime - bomb.createdAt
           const pulse = 1 + Math.sin(elapsed / 200) * 0.1
 
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
-          ctx.beginPath()
-          ctx.arc(bx, by, 12 * pulse, 0, Math.PI * 2)
-          ctx.fill()
+          // Render bomb sprite instead of white circle
+          const bombImg = loadedImages[SPRITES.subweapons.dandruff_bomb]
+          if (bombImg) {
+            const bombSize = 40 * pulse
+            ctx.save()
+            ctx.translate(bx, by)
+            ctx.drawImage(
+              bombImg,
+              -bombSize / 2, -bombSize / 2, bombSize, bombSize
+            )
+            ctx.restore()
+          } else {
+            // Fallback to white circle
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+            ctx.beginPath()
+            ctx.arc(bx, by, 12 * pulse, 0, Math.PI * 2)
+            ctx.fill()
 
-          ctx.strokeStyle = '#888'
-          ctx.lineWidth = 2
-          ctx.beginPath()
-          ctx.arc(bx, by, 12 * pulse, 0, Math.PI * 2)
-          ctx.stroke()
+            ctx.strokeStyle = '#888'
+            ctx.lineWidth = 2
+            ctx.beginPath()
+            ctx.arc(bx, by, 12 * pulse, 0, Math.PI * 2)
+            ctx.stroke()
+          }
 
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'
           ctx.lineWidth = 1
@@ -1767,9 +1773,9 @@ const GameScreen = ({
         pointerEvents: 'none',
       }}>
         {/* Left HUD Group */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '8px', 
+        <div style={{
+          display: 'flex',
+          gap: '8px',
           alignItems: 'flex-start',
           pointerEvents: 'auto',
         }}>
@@ -1816,10 +1822,10 @@ const GameScreen = ({
             boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
             padding: '8px 12px',
           }}>
-            <div style={{ 
+            <div style={{
               fontFamily: PIXEL_STYLES.fontFamily,
-              color: COLORS.textWhite, 
-              fontSize: '10px', 
+              color: COLORS.textWhite,
+              fontSize: '10px',
               marginBottom: '4px',
               textShadow: '1px 1px 0 #000',
               whiteSpace: 'nowrap',
@@ -1852,19 +1858,19 @@ const GameScreen = ({
           textAlign: 'right',
           pointerEvents: 'auto',
         }}>
-          <div style={{ 
+          <div style={{
             fontFamily: PIXEL_STYLES.fontFamily,
-            color: COLORS.primary, 
-            fontSize: 'clamp(14px, 2vw, 18px)', 
+            color: COLORS.primary,
+            fontSize: 'clamp(14px, 2vw, 18px)',
             fontWeight: 'bold',
             textShadow: '2px 2px 0 #000',
           }}>
             LV.{displayStats.level}
           </div>
-          <div style={{ 
+          <div style={{
             fontFamily: PIXEL_STYLES.fontFamily,
-            color: COLORS.textGray, 
-            fontSize: 'clamp(10px, 1.5vw, 12px)', 
+            color: COLORS.textGray,
+            fontSize: 'clamp(10px, 1.5vw, 12px)',
             marginTop: '4px',
             textShadow: '1px 1px 0 #000',
             display: 'flex',
@@ -1896,7 +1902,7 @@ const GameScreen = ({
             background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px)',
             pointerEvents: 'none',
           }} />
-          
+
           {/* Modal Container */}
           <div style={{
             width: '100%',
@@ -1919,7 +1925,7 @@ const GameScreen = ({
               textAlign: 'center',
               borderBottom: '4px solid #000',
             }}>
-              <h1 style={{ 
+              <h1 style={{
                 fontFamily: PIXEL_STYLES.fontFamily,
                 fontSize: 'clamp(20px, 4vw, 32px)',
                 color: '#000',
@@ -1981,10 +1987,10 @@ const GameScreen = ({
               flexDirection: 'column',
               gap: '10px',
             }}>
-              <p style={{ 
-                fontFamily: PIXEL_STYLES.fontFamily, 
-                color: COLORS.textGray, 
-                fontSize: '11px', 
+              <p style={{
+                fontFamily: PIXEL_STYLES.fontFamily,
+                color: COLORS.textGray,
+                fontSize: '11px',
                 textAlign: 'center',
                 margin: '0 0 5px 0',
               }}>
@@ -1999,7 +2005,7 @@ const GameScreen = ({
                     display: 'flex',
                     alignItems: 'center',
                     padding: '12px',
-                    background: upgrade.isSubWeapon 
+                    background: upgrade.isSubWeapon
                       ? `linear-gradient(90deg, rgba(255,215,0,0.15) 0%, ${COLORS.bgLight} 100%)`
                       : COLORS.bgLight,
                     border: `3px solid ${upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
@@ -2022,12 +2028,12 @@ const GameScreen = ({
                 >
                   {/* Icon */}
                   <div style={{
-                    width: '48px', 
+                    width: '48px',
                     height: '48px',
                     background: COLORS.bgDark,
                     border: `2px solid ${upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
-                    display: 'flex', 
-                    alignItems: 'center', 
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     marginRight: '12px',
                     flexShrink: 0,
@@ -2059,18 +2065,18 @@ const GameScreen = ({
                   {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap', gap: '4px' }}>
-                      <span style={{ 
+                      <span style={{
                         fontFamily: PIXEL_STYLES.fontFamily,
-                        color: COLORS.textWhite, 
-                        fontSize: 'clamp(12px, 2vw, 14px)', 
+                        color: COLORS.textWhite,
+                        fontSize: 'clamp(12px, 2vw, 14px)',
                         fontWeight: 'bold',
                         textShadow: '1px 1px 0 #000',
                       }}>
                         {upgrade.name}
                       </span>
-                      <span style={{ 
+                      <span style={{
                         fontFamily: PIXEL_STYLES.fontFamily,
-                        color: upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary, 
+                        color: upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary,
                         fontSize: '10px',
                         background: 'rgba(0,0,0,0.5)',
                         padding: '2px 6px',
@@ -2081,10 +2087,10 @@ const GameScreen = ({
                         }
                       </span>
                     </div>
-                    <div style={{ 
+                    <div style={{
                       fontFamily: PIXEL_STYLES.fontFamily,
-                      color: COLORS.textGray, 
-                      fontSize: '10px', 
+                      color: COLORS.textGray,
+                      fontSize: '10px',
                       lineHeight: '1.3',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -2118,7 +2124,7 @@ const GameScreen = ({
             background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px)',
             pointerEvents: 'none',
           }} />
-          
+
           {/* Main Pause Menu */}
           {pauseTab === 'main' && (
             <div style={{
@@ -2136,10 +2142,10 @@ const GameScreen = ({
                 textAlign: 'center',
                 borderBottom: `3px solid ${COLORS.panelBorder}`,
               }}>
-                <h2 style={{ 
+                <h2 style={{
                   fontFamily: PIXEL_STYLES.fontFamily,
-                  color: COLORS.textWhite, 
-                  fontSize: '24px', 
+                  color: COLORS.textWhite,
+                  fontSize: '24px',
                   margin: 0,
                   letterSpacing: '4px',
                   textShadow: '2px 2px 0 #000',
@@ -2169,18 +2175,18 @@ const GameScreen = ({
                       letterSpacing: '1px',
                       cursor: btn.disabled ? 'not-allowed' : 'pointer',
                       border: '3px solid',
-                      borderColor: btn.disabled ? '#333' 
-                        : btn.variant === 'primary' ? '#000' 
-                        : btn.variant === 'danger' ? '#8B0000' 
-                        : COLORS.panelBorder,
+                      borderColor: btn.disabled ? '#333'
+                        : btn.variant === 'primary' ? '#000'
+                          : btn.variant === 'danger' ? '#8B0000'
+                            : COLORS.panelBorder,
                       background: btn.disabled ? '#333'
                         : btn.variant === 'primary' ? `linear-gradient(180deg, ${COLORS.primary} 0%, ${COLORS.primaryDark} 100%)`
-                        : btn.variant === 'danger' ? `linear-gradient(180deg, ${COLORS.danger} 0%, #CC5555 100%)`
-                        : COLORS.bgLight,
+                          : btn.variant === 'danger' ? `linear-gradient(180deg, ${COLORS.danger} 0%, #CC5555 100%)`
+                            : COLORS.bgLight,
                       color: btn.disabled ? '#666'
                         : btn.variant === 'primary' ? '#000'
-                        : btn.variant === 'danger' ? '#fff'
-                        : COLORS.textWhite,
+                          : btn.variant === 'danger' ? '#fff'
+                            : COLORS.textWhite,
                       boxShadow: btn.disabled ? 'none' : '3px 3px 0 0 rgba(0,0,0,0.5)',
                       textShadow: (btn.variant === 'primary') ? 'none' : '1px 1px 0 #000',
                       transition: 'all 0.1s',
@@ -2240,10 +2246,10 @@ const GameScreen = ({
                 >
                   ◀ BACK
                 </button>
-                <h2 style={{ 
+                <h2 style={{
                   fontFamily: PIXEL_STYLES.fontFamily,
-                  color: COLORS.textWhite, 
-                  fontSize: '18px', 
+                  color: COLORS.textWhite,
+                  fontSize: '18px',
                   margin: 0,
                   letterSpacing: '2px',
                   textShadow: '2px 2px 0 #000',
@@ -2254,15 +2260,15 @@ const GameScreen = ({
               </div>
 
               {/* Content Area */}
-              <div style={{ 
-                display: 'flex', 
-                flex: 1, 
+              <div style={{
+                display: 'flex',
+                flex: 1,
                 overflow: 'hidden',
                 flexDirection: 'row',
                 '@media (max-width: 600px)': { flexDirection: 'column' },
               }}>
                 {/* Left - Character Stats */}
-                <div style={{ 
+                <div style={{
                   width: '250px',
                   minWidth: '200px',
                   padding: '15px',
@@ -2291,18 +2297,18 @@ const GameScreen = ({
                       />
                     </div>
                     <div style={{ marginLeft: '12px' }}>
-                      <h3 style={{ 
+                      <h3 style={{
                         fontFamily: PIXEL_STYLES.fontFamily,
-                        margin: 0, 
+                        margin: 0,
                         fontSize: '14px',
                         color: COLORS.textWhite,
                         textShadow: '1px 1px 0 #000',
                       }}>
                         {selectedCharacter.name}
                       </h3>
-                      <p style={{ 
+                      <p style={{
                         fontFamily: PIXEL_STYLES.fontFamily,
-                        margin: '4px 0 0', 
+                        margin: '4px 0 0',
                         color: selectedCharacter.color,
                         fontSize: '12px',
                       }}>
@@ -2312,15 +2318,15 @@ const GameScreen = ({
                   </div>
 
                   {/* Stats */}
-                  <div style={{ 
-                    background: 'rgba(0,0,0,0.4)', 
+                  <div style={{
+                    background: 'rgba(0,0,0,0.4)',
                     border: `2px solid ${COLORS.panelBorder}`,
                     padding: '10px',
                   }}>
-                    <h4 style={{ 
-                      fontFamily: PIXEL_STYLES.fontFamily, 
-                      color: COLORS.textGray, 
-                      fontSize: '10px', 
+                    <h4 style={{
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      color: COLORS.textGray,
+                      fontSize: '10px',
                       margin: '0 0 8px 0',
                       letterSpacing: '1px',
                     }}>
@@ -2334,8 +2340,8 @@ const GameScreen = ({
                         { icon: '💥', label: 'CRT', value: `${Math.round((gameStateRef.current?.stats?.crit || 0) * 100)}%`, color: COLORS.crit },
                         { icon: '🛡️', label: 'DEF', value: `${Math.round((gameStateRef.current?.stats?.defense || 0) * 100)}%`, color: COLORS.textGray },
                       ].map(stat => (
-                        <div key={stat.label} style={{ 
-                          display: 'flex', 
+                        <div key={stat.label} style={{
+                          display: 'flex',
                           alignItems: 'center',
                           fontFamily: PIXEL_STYLES.fontFamily,
                           fontSize: '11px',
@@ -2351,12 +2357,12 @@ const GameScreen = ({
 
                 {/* Right - Inventory */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                  <div style={{ 
-                    padding: '10px 15px', 
+                  <div style={{
+                    padding: '10px 15px',
                     borderBottom: `2px solid ${COLORS.panelBorder}`,
                     background: 'rgba(0,0,0,0.2)',
                   }}>
-                    <h3 style={{ 
+                    <h3 style={{
                       fontFamily: PIXEL_STYLES.fontFamily,
                       color: COLORS.textWhite,
                       fontSize: '12px',
@@ -2366,19 +2372,19 @@ const GameScreen = ({
                       📦 INVENTORY ({gameStateRef.current?.inventory?.length || 0})
                     </h3>
                   </div>
-                  
-                  <div style={{ 
-                    flex: 1, 
-                    overflowY: 'auto', 
+
+                  <div style={{
+                    flex: 1,
+                    overflowY: 'auto',
                     padding: '10px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '8px',
                   }}>
                     {(!gameStateRef.current?.inventory || gameStateRef.current?.inventory?.length === 0) && (
-                      <p style={{ 
+                      <p style={{
                         fontFamily: PIXEL_STYLES.fontFamily,
-                        color: COLORS.textDark, 
+                        color: COLORS.textDark,
                         textAlign: 'center',
                         marginTop: '30px',
                         fontSize: '12px',
@@ -2388,13 +2394,13 @@ const GameScreen = ({
                     )}
 
                     {gameStateRef.current?.inventory?.map((item, idx) => (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           padding: '8px 10px',
-                          background: item.isSubWeapon 
+                          background: item.isSubWeapon
                             ? `linear-gradient(90deg, rgba(255,215,0,0.1) 0%, ${COLORS.bgLight} 100%)`
                             : COLORS.bgLight,
                           border: `2px solid ${item.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
@@ -2402,12 +2408,12 @@ const GameScreen = ({
                         }}
                       >
                         <div style={{
-                          width: '36px', 
+                          width: '36px',
                           height: '36px',
                           background: COLORS.bgDark,
                           border: `2px solid ${item.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
-                          display: 'flex', 
-                          alignItems: 'center', 
+                          display: 'flex',
+                          alignItems: 'center',
                           justifyContent: 'center',
                           marginRight: '10px',
                           flexShrink: 0,
@@ -2426,9 +2432,9 @@ const GameScreen = ({
                           )}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ 
+                          <div style={{
                             fontFamily: PIXEL_STYLES.fontFamily,
-                            fontWeight: 'bold', 
+                            fontWeight: 'bold',
                             color: item.isSubWeapon ? COLORS.primary : COLORS.textWhite,
                             fontSize: '11px',
                             textShadow: '1px 1px 0 #000',
@@ -2438,17 +2444,17 @@ const GameScreen = ({
                           }}>
                             {item.name}
                             {item.isSubWeapon && (
-                              <span style={{ 
-                                fontSize: '8px', 
+                              <span style={{
+                                fontSize: '8px',
                                 color: COLORS.bgDark,
                                 background: COLORS.primary,
                                 padding: '1px 4px',
                               }}>WPN</span>
                             )}
                           </div>
-                          <div style={{ 
+                          <div style={{
                             fontFamily: PIXEL_STYLES.fontFamily,
-                            fontSize: '9px', 
+                            fontSize: '9px',
                             color: COLORS.textGray,
                             marginTop: '2px',
                             overflow: 'hidden',
@@ -2458,9 +2464,9 @@ const GameScreen = ({
                             {item.description}
                           </div>
                         </div>
-                        <div style={{ 
+                        <div style={{
                           fontFamily: PIXEL_STYLES.fontFamily,
-                          fontSize: '10px', 
+                          fontSize: '10px',
                           color: COLORS.primary,
                           fontWeight: 'bold',
                           background: 'rgba(0,0,0,0.4)',
