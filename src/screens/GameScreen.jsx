@@ -426,17 +426,17 @@ const GameScreen = ({
         // Death Check & Animation Update
         if (enemy.isDead) {
           enemy.deathTimer += deltaTime
-          // Knockback physics
+          // Knockback physics - 캐릭터 반대 방향으로 날아감
           enemy.x += enemy.vx * deltaTime
           enemy.y += enemy.vy * deltaTime
-          enemy.vx *= 0.9 // Friction
-          enemy.vy *= 0.9
+          enemy.vx *= 0.95 // 더 천천히 감속
+          enemy.vy *= 0.95
         } else if (enemy.currentHp <= 0) {
           enemy.isDead = true
           enemy.deathTimer = 0
-          // Apply Knockback away from player
+          // Apply Knockback away from player (캐릭터 반대 방향으로 멀리 날아감)
           const angle = Math.atan2(enemy.y - state.player.y, enemy.x - state.player.x)
-          const force = 300 // Knockback strength
+          const force = 500 // 더 강한 knockback
           enemy.vx = Math.cos(angle) * force
           enemy.vy = Math.sin(angle) * force
 
@@ -2561,7 +2561,8 @@ const GameScreen = ({
             ctx.translate(sx, sy)
             if (enemy.isDead) {
               ctx.globalAlpha = 1 - (enemy.deathTimer / 0.5)
-              ctx.scale(1 + enemy.deathTimer, 1 - enemy.deathTimer)
+              const shrinkScale = 1 - (enemy.deathTimer / 0.5) // 0.5초 동안 1 -> 0으로 작아짐
+              ctx.scale(shrinkScale, shrinkScale)
             }
             if (enemy.rotation) ctx.rotate(enemy.rotation)
 
