@@ -807,6 +807,17 @@ const GameScreen = ({
                 })
               }
             })
+
+            // Add visual slash effect
+            state.attackEffects.push({
+              id: generateId(),
+              type: 'electric_clipper_slash',
+              x: state.player.x + (facing === 1 ? 30 : -30),
+              y: state.player.y,
+              facing: facing,
+              createdAt: currentTime,
+              duration: 150,
+            })
             break
           }
 
@@ -1426,6 +1437,35 @@ const GameScreen = ({
         ctx.restore()
       })
 
+      // Draw electric clipper slash
+      state.attackEffects.filter(e => e.type === 'electric_clipper_slash').forEach(effect => {
+        const elapsed = currentTime - effect.createdAt
+        const progress = elapsed / effect.duration
+
+        if (progress < 1) {
+          const slashImg = loadedImages[SPRITES.subweapons.electric_clipper_slash]
+          if (slashImg) {
+            const sx = effect.x - state.camera.x
+            const sy = effect.y - state.camera.y
+            const slashSize = 80
+            const fadeOut = progress > 0.5 ? (1 - progress) / 0.5 : 1
+
+            ctx.save()
+            ctx.translate(sx, sy)
+            // Flip if facing left
+            if (effect.facing === -1) {
+              ctx.scale(-1, 1)
+            }
+            ctx.globalAlpha = fadeOut
+            ctx.drawImage(
+              slashImg,
+              -slashSize / 2, -slashSize / 2, slashSize, slashSize
+            )
+            ctx.restore()
+          }
+        }
+      })
+
       // Draw sub weapon projectiles
       state.subWeaponProjectiles.forEach(proj => {
         const px = proj.x - state.camera.x
@@ -1581,24 +1621,52 @@ const GameScreen = ({
         const ex = exp.x - state.camera.x
         const ey = exp.y - state.camera.y
         const elapsed = currentTime - exp.createdAt
-        const progress = elapsed / 500
-        const radius = exp.radius * Math.min(1, progress * 2)
-        const alpha = 1 - progress
+        const duration = 1000 // 1 second total animation
+        const progress = elapsed / duration
 
-        ctx.strokeStyle = `rgba(255, 100, 0, ${alpha})`
-        ctx.lineWidth = 8 * (1 - progress)
-        ctx.beginPath()
-        ctx.arc(ex, ey, radius, 0, Math.PI * 2)
-        ctx.stroke()
+        // Sprite-based explosion using bomb225.png (5 frames, 225x225 each)
+        const bombExplosionImg = loadedImages[SPRITES.subweapons.dandruff_bomb_anim]
+        if (bombExplosionImg && progress < 1) {
+          const totalFrames = 5
+          const frameWidth = 225
+          const frameHeight = 225
 
-        const gradient = ctx.createRadialGradient(ex, ey, 0, ex, ey, radius)
-        gradient.addColorStop(0, `rgba(255, 200, 100, ${alpha * 0.5})`)
-        gradient.addColorStop(0.5, `rgba(255, 100, 0, ${alpha * 0.3})`)
-        gradient.addColorStop(1, 'rgba(255, 50, 0, 0)')
-        ctx.fillStyle = gradient
-        ctx.beginPath()
-        ctx.arc(ex, ey, radius, 0, Math.PI * 2)
-        ctx.fill()
+          const frameIndex = Math.min(Math.floor(progress * totalFrames), totalFrames - 1)
+          const srcX = frameIndex * frameWidth
+          const srcY = 0
+
+          // Draw size based on explosion radius
+          const drawSize = exp.radius * 3
+          const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1
+
+          ctx.save()
+          ctx.globalAlpha = fadeOut
+          ctx.drawImage(
+            bombExplosionImg,
+            srcX, srcY, frameWidth, frameHeight,
+            ex - drawSize / 2, ey - drawSize / 2, drawSize, drawSize
+          )
+          ctx.restore()
+        } else if (progress < 1) {
+          // Fallback to original gradient rendering
+          const radius = exp.radius * Math.min(1, progress * 2)
+          const alpha = 1 - progress
+
+          ctx.strokeStyle = `rgba(255, 100, 0, ${alpha})`
+          ctx.lineWidth = 8 * (1 - progress)
+          ctx.beginPath()
+          ctx.arc(ex, ey, radius, 0, Math.PI * 2)
+          ctx.stroke()
+
+          const gradient = ctx.createRadialGradient(ex, ey, 0, ex, ey, radius)
+          gradient.addColorStop(0, `rgba(255, 200, 100, ${alpha * 0.5})`)
+          gradient.addColorStop(0.5, `rgba(255, 100, 0, ${alpha * 0.3})`)
+          gradient.addColorStop(1, 'rgba(255, 50, 0, 0)')
+          ctx.fillStyle = gradient
+          ctx.beginPath()
+          ctx.arc(ex, ey, radius, 0, Math.PI * 2)
+          ctx.fill()
+        }
       })
 
       // Draw damage numbers
