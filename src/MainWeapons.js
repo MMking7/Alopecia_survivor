@@ -215,6 +215,7 @@ export const MAIN_WEAPONS = {
     characterId: 'heihachi',
     type: 'dash_punch',
     description: '돌진 후 전방에 감전 피해',
+    attackCooldown: 2000, // 2초 쿨다운
     maxLevel: 7,
     levelEffects: {
       1: {

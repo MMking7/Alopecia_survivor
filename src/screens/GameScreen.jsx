@@ -16,6 +16,26 @@ const generateId = () => Math.random().toString(36).substr(2, 9)
 const distance = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
 const lerp = (a, b, t) => a + (b - a) * t
 
+// 점과 선분 사이의 거리 계산 (돌진 공격용)
+const pointToLineDistance = (px, py, x1, y1, x2, y2) => {
+  const A = px - x1
+  const B = py - y1
+  const C = x2 - x1
+  const D = y2 - y1
+
+  const dot = A * C + B * D
+  const lenSq = C * C + D * D
+  let t = lenSq !== 0 ? dot / lenSq : -1
+
+  // 선분 범위 내로 제한
+  t = Math.max(0, Math.min(1, t))
+
+  const nearestX = x1 + t * C
+  const nearestY = y1 + t * D
+
+  return Math.sqrt((px - nearestX) ** 2 + (py - nearestY) ** 2)
+}
+
 // M 패턴 내부 체크 함수 (M자 탈모 형태 - 양쪽 후퇴 이마선)
 const isInsideMPattern = (point, center, width, height) => {
   const relX = point.x - center.x + width / 2 // 0 ~ width 범위로 변환
@@ -140,7 +160,14 @@ const GameScreen = ({
         y: GAME_CONFIG.CANVAS_HEIGHT / 2,
         character: selectedCharacter,
         facing: 1,
+        facingAngle: 0, // 마우스 방향 각도 (라디안)
         lastFacingDirection: 'right',
+      },
+      mouse: {
+        x: GAME_CONFIG.CANVAS_WIDTH / 2,
+        y: GAME_CONFIG.CANVAS_HEIGHT / 2,
+        worldX: GAME_CONFIG.CANVAS_WIDTH / 2,
+        worldY: GAME_CONFIG.CANVAS_HEIGHT / 2,
       },
       stats: {
         hp: startingMaxHp,
@@ -245,14 +272,35 @@ const GameScreen = ({
       }
     }
 
+    const handleMouseMove = (e) => {
+      if (!gameStateRef.current || !canvasRef.current) return
+      const canvas = canvasRef.current
+      const rect = canvas.getBoundingClientRect()
+      const scaleX = canvas.width / rect.width
+      const scaleY = canvas.height / rect.height
+      
+      // 캔버스 내 마우스 위치
+      const mouseX = (e.clientX - rect.left) * scaleX
+      const mouseY = (e.clientY - rect.top) * scaleY
+      
+      gameStateRef.current.mouse.x = mouseX
+      gameStateRef.current.mouse.y = mouseY
+      
+      // 월드 좌표로 변환
+      gameStateRef.current.mouse.worldX = mouseX + gameStateRef.current.camera.x
+      gameStateRef.current.mouse.worldY = mouseY + gameStateRef.current.camera.y
+    }
+
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
     window.addEventListener('blur', handleBlur)
+    window.addEventListener('mousemove', handleMouseMove)
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
       window.removeEventListener('blur', handleBlur)
+      window.removeEventListener('mousemove', handleMouseMove)
     }
   }, [gamePhase])
 
@@ -316,10 +364,18 @@ const GameScreen = ({
       state.player.x += dx * speed
       state.player.y += dy * speed
 
-      // Track last horizontal facing direction for attack placement
-      if (dx !== 0) {
-        state.player.lastFacingDirection = dx > 0 ? 'right' : 'left'
-      }
+      // 마우스 커서 방향으로 facing 업데이트
+      const mouseWorldX = state.mouse.worldX
+      const mouseWorldY = state.mouse.worldY
+      const toMouseX = mouseWorldX - state.player.x
+      const toMouseY = mouseWorldY - state.player.y
+      
+      // facing angle 계산 (마우스 방향)
+      state.player.facingAngle = Math.atan2(toMouseY, toMouseX)
+      
+      // facing (좌/우) 업데이트 - 마우스가 플레이어 오른쪽이면 1, 왼쪽이면 -1
+      state.player.facing = toMouseX >= 0 ? 1 : -1
+      state.player.lastFacingDirection = toMouseX >= 0 ? 'right' : 'left'
 
       // Update camera
       state.camera.x = state.player.x - GAME_CONFIG.CANVAS_WIDTH / 2
@@ -1197,10 +1253,11 @@ const GameScreen = ({
       const finalAttackSpeed = state.stats.attackSpeed * (1 + attackSpeedBonus)
 
       // For female character (aoe), use weapon's attackCooldown directly
+      // For heihachi (lightning), use weapon's attackCooldown
       // For other characters, use attackSpeed-based interval
       let attackInterval
-      if (character.attackType === 'aoe' && mainWeapon?.attackCooldown) {
-        attackInterval = mainWeapon.attackCooldown // Fixed 5000ms cooldown
+      if ((character.attackType === 'aoe' || character.attackType === 'lightning') && mainWeapon?.attackCooldown) {
+        attackInterval = mainWeapon.attackCooldown // Fixed cooldown (e.g., 2000ms for heihachi)
       } else {
         attackInterval = 1000 / finalAttackSpeed
       }
@@ -1368,44 +1425,99 @@ const GameScreen = ({
             break
 
           case 'lightning':
-            // 헤이하치 - 초 풍신권 (Lightning strikes with level scaling)
+            // 헤이하치 - 초 풍신권 (돌진 후 전방에 감전 피해)
             const heihachiWeapon = getMainWeapon('heihachi')
-            const heihachiEffect = heihachiWeapon ? heihachiWeapon.levelEffects[state.mainWeaponLevel] : { damage: 1.5 }
+            const heihachiEffect = heihachiWeapon ? heihachiWeapon.levelEffects[state.mainWeaponLevel] : { damage: 1.5, dashDistance: 80, radius: 60 }
 
-            const inRange = state.enemies.filter((e) => distance(state.player, e) <= state.stats.attackRange * 1.5)
-            const targets = inRange.sort(() => Math.random() - 0.5).slice(0, 4)
-            targets.forEach((enemy) => {
-              state.attackEffects.push({
-                id: generateId(),
-                type: 'lightning',
-                x: enemy.x,
-                y: enemy.y,
-                color: character.attackColor,
-                createdAt: currentTime,
-              })
+            const dashDistance = heihachiEffect.dashDistance || 80
+            const attackRadius = heihachiEffect.radius || 60
+            
+            // 마우스 커서 방향으로 돌진
+            const dashAngle = state.player.facingAngle
+            const dashDx = Math.cos(dashAngle) * dashDistance
+            const dashDy = Math.sin(dashAngle) * dashDistance
+            
+            // 돌진 시작점과 끝점
+            const dashStartX = state.player.x
+            const dashStartY = state.player.y
+            const dashEndX = state.player.x + dashDx
+            const dashEndY = state.player.y + dashDy
+            
+            // 플레이어 이동
+            state.player.x = dashEndX
+            state.player.y = dashEndY
+            
+            // 돌진 궤적 이펙트
+            state.attackEffects.push({
+              id: generateId(),
+              type: 'dash_trail',
+              startX: dashStartX,
+              startY: dashStartY,
+              endX: dashEndX,
+              endY: dashEndY,
+              color: '#FFFF00',
+              createdAt: currentTime,
+            })
+            
+            // 돌진 끝점에서 전방 범위 감전 공격
+            state.attackEffects.push({
+              id: generateId(),
+              type: 'lightning_punch',
+              x: dashEndX + Math.cos(dashAngle) * 30, // 약간 앞
+              y: dashEndY,
+              radius: attackRadius,
+              color: character.attackColor,
+              createdAt: currentTime,
+            })
 
-              // Apply bonus damage if enemy is already electrified (passive skill)
-              const electrifiedDamageBonus = (enemy.electrified && currentTime < enemy.electrified.until)
-                ? (state.passiveBonuses.electrifiedDamageBonus || 0)
-                : 0
-              const damage = state.stats.damage * heihachiEffect.damage * (1 + electrifiedDamageBonus)
-              enemy.currentHp -= damage
+            // 돌진 경로 및 전방 범위 내 적에게 피해
+            const dashHitEnemies = new Set() // 중복 피해 방지
+            
+            state.enemies.forEach((enemy) => {
+              if (enemy.isDead) return
+              
+              // 1. 돌진 경로에 있는 적 체크 (선분과 점 사이 거리)
+              const dashPathWidth = 40 // 돌진 경로 폭
+              const enemyDistToPath = pointToLineDistance(
+                enemy.x, enemy.y,
+                dashStartX, dashStartY,
+                dashEndX, dashEndY
+              )
+              
+              // 2. 돌진 끝점 앞쪽 범위 체크
+              const punchX = dashEndX + Math.cos(dashAngle) * 30
+              const punchY = dashEndY
+              const distToPunch = distance({ x: punchX, y: punchY }, enemy)
+              
+              const hitByDash = enemyDistToPath <= dashPathWidth
+              const hitByPunch = distToPunch <= attackRadius
+              
+              if (hitByDash || hitByPunch) {
+                // Apply bonus damage if enemy is already electrified (passive skill)
+                const electrifiedDamageBonus = (enemy.electrified && currentTime < enemy.electrified.until)
+                  ? (state.passiveBonuses.electrifiedDamageBonus || 0)
+                  : 0
+                // 돌진 경로 피해는 50%, 펀치 피해는 100%
+                const damageMultiplier = hitByPunch ? 1 : 0.5
+                const damage = state.stats.damage * heihachiEffect.damage * damageMultiplier * (1 + electrifiedDamageBonus)
+                enemy.currentHp -= damage
 
-              // Apply electrify debuff
-              if (heihachiEffect.electrifyDuration) {
-                enemy.electrified = {
-                  damagePerSecond: heihachiEffect.electrifyDamagePerSecond || 0.40,
-                  until: currentTime + heihachiEffect.electrifyDuration * 1000,
+                // Apply electrify debuff
+                if (heihachiEffect.electrifyDuration) {
+                  enemy.electrified = {
+                    damagePerSecond: heihachiEffect.electrifyDamagePerSecond || 0.40,
+                    until: currentTime + heihachiEffect.electrifyDuration * 1000,
+                  }
                 }
-              }
 
-              state.damageNumbers.push({
-                id: generateId(),
-                x: enemy.x,
-                y: enemy.y,
-                damage: Math.floor(damage),
-                createdAt: currentTime,
-              })
+                state.damageNumbers.push({
+                  id: generateId(),
+                  x: enemy.x,
+                  y: enemy.y,
+                  damage: Math.floor(damage),
+                  createdAt: currentTime,
+                })
+              }
             })
             break
 
@@ -2551,6 +2663,94 @@ const GameScreen = ({
             }
             ctx.stroke()
             ctx.shadowBlur = 0
+            break
+
+          case 'dash_trail':
+            // 헤이하치 돌진 궤적
+            const trailStartX = effect.startX - state.camera.x
+            const trailStartY = effect.startY - state.camera.y
+            const trailEndX = effect.endX - state.camera.x
+            const trailEndY = effect.endY - state.camera.y
+            
+            ctx.save()
+            ctx.globalAlpha = 0.7 * (1 - progress)
+            
+            // 번개 효과가 있는 돌진 궤적
+            const trailGradient = ctx.createLinearGradient(trailStartX, trailStartY, trailEndX, trailEndY)
+            trailGradient.addColorStop(0, 'rgba(255, 255, 0, 0.2)')
+            trailGradient.addColorStop(0.5, 'rgba(255, 255, 100, 0.6)')
+            trailGradient.addColorStop(1, 'rgba(255, 255, 255, 0.8)')
+            
+            ctx.strokeStyle = trailGradient
+            ctx.lineWidth = 20
+            ctx.lineCap = 'round'
+            ctx.shadowColor = '#FFFF00'
+            ctx.shadowBlur = 20
+            
+            ctx.beginPath()
+            ctx.moveTo(trailStartX, trailStartY)
+            ctx.lineTo(trailEndX, trailEndY)
+            ctx.stroke()
+            
+            // 번개 스파크 효과
+            ctx.strokeStyle = '#FFFFFF'
+            ctx.lineWidth = 2
+            for (let i = 0; i < 5; i++) {
+              const t = i / 5
+              const sparkX = trailStartX + (trailEndX - trailStartX) * t
+              const sparkY = trailStartY + (trailEndY - trailStartY) * t
+              ctx.beginPath()
+              ctx.moveTo(sparkX, sparkY - 15)
+              ctx.lineTo(sparkX + (Math.random() - 0.5) * 20, sparkY)
+              ctx.lineTo(sparkX, sparkY + 15)
+              ctx.stroke()
+            }
+            
+            ctx.restore()
+            break
+
+          case 'lightning_punch':
+            // 헤이하치 감전 펀치 범위 공격
+            const punchX = effect.x - state.camera.x
+            const punchY = effect.y - state.camera.y
+            const punchRadius = effect.radius || 60
+            
+            ctx.save()
+            ctx.globalAlpha = 0.8 * (1 - progress)
+            
+            // 전기 충격파
+            const punchGradient = ctx.createRadialGradient(punchX, punchY, 0, punchX, punchY, punchRadius)
+            punchGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)')
+            punchGradient.addColorStop(0.3, 'rgba(255, 255, 0, 0.7)')
+            punchGradient.addColorStop(0.6, 'rgba(255, 200, 0, 0.4)')
+            punchGradient.addColorStop(1, 'rgba(255, 255, 0, 0)')
+            
+            ctx.fillStyle = punchGradient
+            ctx.beginPath()
+            ctx.arc(punchX, punchY, punchRadius * (1 + progress * 0.5), 0, Math.PI * 2)
+            ctx.fill()
+            
+            // 번개 방사
+            ctx.strokeStyle = '#FFFF00'
+            ctx.lineWidth = 3
+            ctx.shadowColor = '#FFFF00'
+            ctx.shadowBlur = 15
+            
+            for (let i = 0; i < 8; i++) {
+              const angle = (i / 8) * Math.PI * 2 + progress * Math.PI
+              const innerR = punchRadius * 0.3
+              const outerR = punchRadius * (1 + progress * 0.3)
+              
+              ctx.beginPath()
+              ctx.moveTo(punchX + Math.cos(angle) * innerR, punchY + Math.sin(angle) * innerR)
+              // 지그재그 번개
+              const midR = (innerR + outerR) / 2
+              ctx.lineTo(punchX + Math.cos(angle + 0.1) * midR, punchY + Math.sin(angle + 0.1) * midR)
+              ctx.lineTo(punchX + Math.cos(angle) * outerR, punchY + Math.sin(angle) * outerR)
+              ctx.stroke()
+            }
+            
+            ctx.restore()
             break
         }
       })
