@@ -71,6 +71,9 @@ export const createInitialState = ({
     fragments: 0,
     coins: [],
     collectedCoins: 0,
+    fragments: 0,
+    coins: [],
+    collectedCoins: 0,
     xp: 0,
     xpNeeded: getXpNeededForLevel(startingLevel),
     level: startingLevel,
@@ -78,7 +81,8 @@ export const createInitialState = ({
     gameTime: 0,
     lastAttackTime: 0,
     lastEnemySpawn: 0,
-    bossSpawned: false,
+    spawnedBossIds: [], // Track spawned bosses by ID
+    bossSpawned: false, // Legacy/UI flag
     keys: { w: false, a: false, s: false, d: false, shift: false, shiftPressed: false },
     camera: { x: 0, y: 0 },
   }

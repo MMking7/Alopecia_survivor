@@ -60,6 +60,11 @@ export const getBaseStatsWithShop = (character, shopLevels = {}, characterRanks 
 
 export const SPRITES = {
   background: '/sprites/holo/background.webp',
+  bosses: {
+    original: '/sprites/boss.webp',
+    subway: '/sprites/boss_subway.png',
+    airraid: '/sprites/boss_airraid.jpg',
+  },
   characters: {
     female: '/sprites/female.webp',
     areata: '/sprites/areata.webp',
@@ -258,17 +263,55 @@ export const ENEMIES = [
   { type: 'soju', name: 'Alcohol', sprite: SPRITES.enemies.soju, speed: 70, hp: 45, damage: 15, xp: 20, size: 60, attackType: 'dash' },
 ]
 
-export const BOSS = {
-  type: 'boss',
-  name: 'Smol Ame (Boss)',
-  speed: 80,
-  hp: 2000,
-  damage: 40,
-  xp: 1000,
-  size: 90,
-  attackType: 'boss',
-  attackCooldown: 800,
-}
+// ============================================================
+// BOSS CONFIG
+// ============================================================
+export const BOSSES = [
+  {
+    id: 'boss_ame',
+    spawnTime: 120, // 2분
+    type: 'boss',
+    name: 'Smol Ame (Boss)',
+    sprite: '/sprites/boss.webp',
+    speed: 80,
+    hp: 2000,
+    damage: 40,
+    xp: 1000,
+    size: 90,
+    attackType: 'boss',
+    attackCooldown: 800,
+  },
+  {
+    id: 'boss_subway',
+    spawnTime: 300, // 5분
+    type: 'boss_subway',
+    name: '지하철의 제왕',
+    sprite: '/sprites/boss_subway.png',
+    speed: 40,
+    hp: 20000,
+    damage: 60,
+    xp: 5000,
+    size: 150,
+    attackType: 'boss',
+    attackCooldown: 1000,
+  },
+  {
+    id: 'boss_airraid',
+    spawnTime: 600, // 10분
+    type: 'boss_airraid',
+    name: '공습 경보',
+    sprite: '/sprites/boss_airraid.jpg',
+    speed: 30,
+    hp: 50000,
+    damage: 100,
+    xp: 10000,
+    size: 200,
+    attackType: 'boss',
+    attackCooldown: 1200,
+  },
+]
+
+export const BOSS = BOSSES[0]
 
 export const UPGRADES = [
   {

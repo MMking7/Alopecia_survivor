@@ -30,6 +30,7 @@ const preloadImages = () => {
   const sources = [
     SPRITES.background,
     SPRITES.boss,
+    ...Object.values(SPRITES.bosses || {}),
     ...Object.values(SPRITES.characters),
     ...Object.values(SPRITES.enemies),
     ...Object.values(SPRITES.items),
