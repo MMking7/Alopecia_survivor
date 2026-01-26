@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { GAME_CONFIG, SPRITES, ENEMIES, BOSS, UPGRADES, SHOP_UPGRADES, getBaseStatsWithShop, getRankMultiplier } from '../constants'
 import { generateMixedLevelUpOptions, handleSubWeaponSelection, getSubWeaponById } from '../SubWeapons'
+import { getMainWeapon, getSpecialAbility, getPassiveSkillOptions, handlePassiveSkillSelection, CHARACTER_PASSIVE_SKILLS } from '../MainWeapons'
 import {
   PixelPanel,
   PixelButton,
@@ -70,7 +71,7 @@ const GameScreen = ({
   // Local state for UI
   const [gamePhase, setGamePhase] = useState('playing') // 'playing', 'levelup', 'paused'
   const [displayStats, setDisplayStats] = useState({
-    level: 1, xp: 0, xpNeeded: 100, kills: 0, time: 0, hp: 100, maxHp: 100, shield: 0, coins: 0
+    level: 1, xp: 0, xpNeeded: 100, kills: 0, time: 0, hp: 100, maxHp: 100, shield: 0, fragments: 0, coins: 0
   })
   const [levelUpOptions, setLevelUpOptions] = useState([])
   const [pauseTab, setPauseTab] = useState('main')
@@ -118,6 +119,16 @@ const GameScreen = ({
       subWeaponEffects: [],
       subWeaponProjectiles: [],
       inventory: [],
+      mainWeaponLevel: 1, // 메인 무기 레벨 (1~7)
+      passiveSkills: [], // 캐릭터 전용 패시브 스킬
+      passiveBonuses: {}, // 패시브 스킬 효과 (매 프레임 계산)
+      specialAbility: {
+        cooldown: 0,
+        lastUsed: 0,
+        active: false,
+        activeUntil: 0,
+      },
+      fragments: 0, // 탈모의사 전용 - 모근 조각
       coins: [],
       collectedCoins: 0,
       xp: 0,
@@ -128,7 +139,7 @@ const GameScreen = ({
       lastAttackTime: 0,
       lastEnemySpawn: 0,
       bossSpawned: false,
-      keys: { w: false, a: false, s: false, d: false },
+      keys: { w: false, a: false, s: false, d: false, shift: false },
       camera: { x: 0, y: 0 },
     }
   }, [selectedCharacter, shopLevels, characterProgress])
@@ -148,6 +159,10 @@ const GameScreen = ({
         case 'KeyS': gameStateRef.current.keys.s = true; break
         case 'KeyA': gameStateRef.current.keys.a = true; break
         case 'KeyD': gameStateRef.current.keys.d = true; break
+        case 'ShiftLeft':
+        case 'ShiftRight':
+          gameStateRef.current.keys.shift = true;
+          break
         case 'Escape':
           if (gamePhase === 'playing') setGamePhase('paused')
           else if (gamePhase === 'paused') setGamePhase('playing')
@@ -163,12 +178,16 @@ const GameScreen = ({
         case 'KeyS': gameStateRef.current.keys.s = false; break
         case 'KeyA': gameStateRef.current.keys.a = false; break
         case 'KeyD': gameStateRef.current.keys.d = false; break
+        case 'ShiftLeft':
+        case 'ShiftRight':
+          gameStateRef.current.keys.shift = false;
+          break
       }
     }
 
     const handleBlur = () => {
       if (gameStateRef.current) {
-        gameStateRef.current.keys = { w: false, a: false, s: false, d: false }
+        gameStateRef.current.keys = { w: false, a: false, s: false, d: false, shift: false }
       }
     }
 
@@ -314,6 +333,14 @@ const GameScreen = ({
         const edy = state.player.y - enemy.y
         const dist = Math.sqrt(edx * edx + edy * edy)
         const effectiveSpeed = enemy.scaledSpeed || enemy.speed
+
+        // Apply electrify DoT (Heihachi)
+        if (enemy.electrified && currentTime < enemy.electrified.until) {
+          const electrifyDamage = state.stats.damage * enemy.electrified.damagePerSecond * deltaTime
+          enemy.currentHp -= electrifyDamage
+        } else if (enemy.electrified) {
+          delete enemy.electrified
+        }
 
         // 몬스터별 행동 패턴
         switch (enemy.attackType) {
@@ -478,6 +505,90 @@ const GameScreen = ({
       // Garbage Collection for Enemies
       state.enemies = state.enemies.filter(e => !e.shouldRemove)
 
+      // Update ground zones (여성형 탈모 장판)
+      if (state.groundZones) {
+        state.groundZones.forEach((zone) => {
+          const age = currentTime - zone.createdAt
+          if (age >= zone.duration) {
+            zone.shouldRemove = true
+            return
+          }
+
+          // Deal damage to enemies in zone
+          state.enemies.forEach((enemy) => {
+            if (enemy.isDead) return
+
+            // Check if enemy is in rectangular zone
+            const dx = enemy.x - zone.x
+            const dy = enemy.y - zone.y
+            const rotatedX = dx * Math.cos(-zone.angle) - dy * Math.sin(-zone.angle)
+            const rotatedY = dx * Math.sin(-zone.angle) + dy * Math.cos(-zone.angle)
+
+            if (Math.abs(rotatedX) < zone.length / 2 && Math.abs(rotatedY) < zone.width / 2) {
+              // Apply zone damage with passive bonus
+              const zoneDamageBonus = state.passiveBonuses.zoneDamageBonus || 0
+              const damage = state.stats.damage * zone.damagePerSecond * (1 + zoneDamageBonus) * deltaTime
+              enemy.currentHp -= damage
+
+              // Show damage numbers periodically (not every frame to avoid spam)
+              if (!enemy.lastZoneDamageNumber || currentTime - enemy.lastZoneDamageNumber > 200) {
+                enemy.lastZoneDamageNumber = currentTime
+                state.damageNumbers.push({
+                  id: generateId(),
+                  x: enemy.x,
+                  y: enemy.y,
+                  damage: Math.floor(state.stats.damage * zone.damagePerSecond * (1 + zoneDamageBonus) * 0.2), // Show ~0.2s worth of damage
+                  createdAt: currentTime,
+                })
+              }
+            }
+          })
+
+          // Awakening: Shockwave at zone end
+          if (zone.hasShockwave && currentTime - zone.lastShockwave >= zone.shockwaveInterval) {
+            zone.lastShockwave = currentTime
+            const shockwaveX = zone.x + Math.cos(zone.angle) * (zone.length / 2)
+            const shockwaveY = zone.y + Math.sin(zone.angle) * (zone.length / 2)
+
+            state.enemies.forEach((enemy) => {
+              const dist = distance({ x: shockwaveX, y: shockwaveY }, enemy)
+              if (dist < 60) {
+                enemy.currentHp -= state.stats.damage * zone.shockwaveDamage
+                // Knockback
+                const angle = Math.atan2(enemy.y - shockwaveY, enemy.x - shockwaveX)
+                if (!enemy.vx) enemy.vx = 0
+                if (!enemy.vy) enemy.vy = 0
+                enemy.vx += Math.cos(angle) * zone.shockwaveKnockback
+                enemy.vy += Math.sin(angle) * zone.shockwaveKnockback
+
+                state.damageNumbers.push({
+                  id: generateId(),
+                  x: enemy.x,
+                  y: enemy.y,
+                  damage: Math.floor(state.stats.damage * zone.shockwaveDamage),
+                  isCritical: false,
+                  createdAt: currentTime,
+                })
+              }
+            })
+
+            // Shockwave visual effect
+            state.attackEffects.push({
+              id: generateId(),
+              type: 'shockwave',
+              x: shockwaveX,
+              y: shockwaveY,
+              radius: 0,
+              maxRadius: 60,
+              color: '#FF69B4',
+              createdAt: currentTime,
+              duration: 300,
+            })
+          }
+        })
+        state.groundZones = state.groundZones.filter(z => !z.shouldRemove)
+      }
+
       // Update enemy projectiles
       state.enemyProjectiles.forEach((proj) => {
         proj.x += proj.vx * deltaTime
@@ -521,6 +632,34 @@ const GameScreen = ({
               const isCrit = Math.random() < (state.stats.crit || 0)
               const finalDamage = proj.damage * (isCrit ? 1.5 : 1.0)
               enemy.currentHp -= finalDamage
+
+              // Lifesteal - heal player for % of damage dealt
+              if (proj.lifeSteal && proj.lifeSteal > 0) {
+                const healAmount = finalDamage * proj.lifeSteal
+                const maxHp = state.player.character.baseStats.hp
+                const currentHp = state.stats.hp
+                if (currentHp < maxHp) {
+                  state.stats.hp = Math.min(maxHp, currentHp + healAmount)
+
+                  // Visual feedback for heal
+                  state.damageNumbers.push({
+                    id: generateId(),
+                    x: state.player.x,
+                    y: state.player.y - 20,
+                    damage: Math.floor(healAmount),
+                    isHeal: true,
+                    createdAt: currentTime,
+                  })
+                }
+              }
+
+              // Fragment collection - chance to gain fragment
+              if (proj.fragmentChance && Math.random() < proj.fragmentChance) {
+                if (state.fragments < proj.maxFragments) {
+                  state.fragments += 1
+                }
+              }
+
               state.damageNumbers.push({
                 id: generateId(),
                 x: enemy.x,
@@ -574,7 +713,7 @@ const GameScreen = ({
           // Check collision with enemies (can hit multiple times, but with cooldown per enemy)
           state.enemies.forEach((enemy) => {
             if (enemy.isDead) return
-            
+
             // Check if this enemy was recently hit (cooldown 0.3s)
             const lastHitTime = proj.hitEnemies.find(h => h.id === enemy.id)?.time || 0
             if (currentTime - lastHitTime < 300) return
@@ -603,6 +742,64 @@ const GameScreen = ({
             }
           })
         })
+
+        // Awakening: Check for boomerang crossings during return phase
+        if (state.boomerangProjectiles.length > 1) {
+          for (let i = 0; i < state.boomerangProjectiles.length; i++) {
+            const proj1 = state.boomerangProjectiles[i]
+            if (!proj1.hasReturnExplosion || !proj1.returning || proj1.shouldRemove) continue
+
+            for (let j = i + 1; j < state.boomerangProjectiles.length; j++) {
+              const proj2 = state.boomerangProjectiles[j]
+              if (!proj2.hasReturnExplosion || !proj2.returning || proj2.shouldRemove) continue
+
+              // Check if boomerangs are close (crossing paths)
+              const dist = distance(proj1, proj2)
+              if (dist < 60) {
+                // Create explosion at midpoint
+                const explosionX = (proj1.x + proj2.x) / 2
+                const explosionY = (proj1.y + proj2.y) / 2
+
+                // Mark both projectiles for removal
+                proj1.shouldRemove = true
+                proj2.shouldRemove = true
+
+                // Create explosion visual
+                state.attackEffects.push({
+                  id: generateId(),
+                  type: 'explosion',
+                  x: explosionX,
+                  y: explosionY,
+                  radius: 0,
+                  maxRadius: proj1.returnExplosionRadius,
+                  color: proj1.color,
+                  createdAt: currentTime,
+                  duration: 400,
+                })
+
+                // Deal explosion damage to nearby enemies
+                state.enemies.forEach((enemy) => {
+                  if (enemy.isDead) return
+                  const distToExplosion = distance({ x: explosionX, y: explosionY }, enemy)
+                  if (distToExplosion < proj1.returnExplosionRadius) {
+                    const explosionDamage = state.stats.damage * proj1.returnExplosionDamage
+                    enemy.currentHp -= explosionDamage
+
+                    state.damageNumbers.push({
+                      id: generateId(),
+                      x: enemy.x,
+                      y: enemy.y,
+                      damage: Math.floor(explosionDamage),
+                      isCritical: true, // Explosion damage shows as critical
+                      createdAt: currentTime,
+                    })
+                  }
+                })
+              }
+            }
+          }
+        }
+
         state.boomerangProjectiles = state.boomerangProjectiles.filter(p => !p.shouldRemove)
       }
 
@@ -626,49 +823,262 @@ const GameScreen = ({
       })
       state.explosions = state.explosions.filter((e) => currentTime - e.createdAt < 500)
 
+      // Process active special abilities
+      if (state.specialAbility.active) {
+        if (currentTime >= state.specialAbility.activeUntil) {
+          // Ability expired
+          state.specialAbility.active = false
+          state.specialAbility.hasBonusBuff = false
+        } else {
+          // Apply ability effects during duration
+          const abilityType = state.specialAbility.type
+          const effect = state.specialAbility.effect
+
+          switch (abilityType) {
+            case 'screen_wide_line': // Female - screen-wide line zones
+              // Create zones periodically
+              if (!state.specialAbilityZones) state.specialAbilityZones = []
+              if (!state.lastSpecialZoneTime || currentTime - state.lastSpecialZoneTime > 100) {
+                state.lastSpecialZoneTime = currentTime
+                const numLines = 5
+                for (let i = 0; i < numLines; i++) {
+                  const zoneY = state.camera.y + (GAME_CONFIG.CANVAS_HEIGHT / numLines) * (i + 0.5)
+                  state.groundZones.push({
+                    id: generateId(),
+                    type: 'special_line_zone',
+                    x: state.camera.x + GAME_CONFIG.CANVAS_WIDTH / 2,
+                    y: zoneY,
+                    angle: 0,
+                    length: GAME_CONFIG.CANVAS_WIDTH,
+                    width: 40,
+                    damagePerSecond: effect.damagePerSecond,
+                    duration: 200,
+                    createdAt: currentTime,
+                    color: state.player.character.attackColor,
+                    slowAmount: effect.slowAmount,
+                  })
+                }
+              }
+              break
+
+            case 'attack_buff': // Heihachi - attack speed + lightning damage buff
+              state.stats.attackSpeed *= (1 + effect.attackSpeedBonus)
+              // Extra lightning damage handled in attack logic
+              break
+          }
+        }
+      }
+
+      // Apply passive skill bonuses (reset and recalculate each frame)
+      state.passiveBonuses = {}
+      if (state.passiveSkills && state.passiveSkills.length > 0) {
+        const passiveSkills = CHARACTER_PASSIVE_SKILLS[state.player.character.id] || []
+
+        state.passiveSkills.forEach(playerSkill => {
+          const skillDef = passiveSkills.find(s => s.id === playerSkill.id)
+          if (!skillDef || playerSkill.level < 1) return
+
+          const skillEffect = skillDef.levels[playerSkill.level - 1]
+          if (!skillEffect) return
+
+          const currentHp = state.stats.hp
+          const maxHp = state.stats.maxHp
+          const hpPercent = currentHp / maxHp
+
+          // Apply stat bonuses based on skill type
+          switch (skillDef.id) {
+            // Female skills
+            case 'female_skill1': // Attack + zone damage bonus
+              state.stats.damage *= (1 + skillEffect.attack)
+              state.passiveBonuses.zoneDamageBonus = skillEffect.zoneDamageBonus
+              break
+
+            case 'female_skill2': // Move speed + regen
+              state.stats.speed *= (1 + skillEffect.moveSpeed)
+              break
+
+            // Areata skills
+            case 'areata_skill1': // Attack bonus based on enemy count
+              if (state.enemies.length >= skillEffect.enemyThreshold) {
+                state.stats.damage *= (1 + skillEffect.attackBonus)
+              }
+              break
+
+            // Wong Fei Hung skills
+            case 'wongfeihung_skill1': // Low HP attack + crit bonus
+              if (hpPercent <= skillEffect.hpThreshold) {
+                state.stats.damage *= (1 + skillEffect.attackBonus)
+                state.stats.crit += skillEffect.critBonus
+              }
+              break
+
+            case 'wongfeihung_skill3': // Melee damage bonus
+              state.passiveBonuses.meleeDamageBonus = skillEffect.meleeDamageBonus
+              break
+
+            // Heihachi skills
+            case 'heihachi_skill1': // Bonus damage to electrified enemies
+              state.passiveBonuses.electrifiedDamageBonus = skillEffect.damageBonus
+              break
+
+            case 'heihachi_skill2': // Low HP attack bonus
+              if (hpPercent <= skillEffect.hpThreshold) {
+                state.stats.damage *= (1 + skillEffect.attackBonus)
+              }
+              break
+
+            case 'heihachi_skill3': // Damage reduction
+              state.passiveBonuses.damageReduction = skillEffect.damageReduction
+              break
+
+            // Mzamen skills
+            case 'mzamen_skill2': // Pickup range
+              state.passiveBonuses.pickupRange = skillEffect.pickupRange
+              break
+
+            case 'mzamen_skill3': // Range bonus
+              state.passiveBonuses.rangeBonus = skillEffect.rangeBonus
+              break
+
+            // Talmo Docter skills
+            case 'talmo_docter_skill1': // Lifesteal + low HP attack
+              state.passiveBonuses.lifeStealBonus = skillEffect.lifeStealBonus
+              if (hpPercent <= skillEffect.hpThreshold) {
+                state.stats.damage *= (1 + skillEffect.attackBonus)
+              }
+              break
+          }
+        })
+      }
+
+      // Special Ability activation (Shift key)
+      if (state.keys.shift && !state.specialAbility.active) {
+        const ability = getSpecialAbility(state.player.character.id)
+        if (ability) {
+          const timeSinceLastUse = currentTime - state.specialAbility.lastUsed
+          if (timeSinceLastUse >= ability.cooldown) {
+            // Activate ability
+            state.specialAbility.active = true
+            state.specialAbility.activeUntil = currentTime + ability.duration
+            state.specialAbility.lastUsed = currentTime
+            state.specialAbility.type = ability.effect.type
+            state.specialAbility.effect = ability.effect
+
+            // Character-specific activation effects
+            if (ability.effect.type === 'consume_fragments') {
+              // Talmo Docter - consume fragments immediately
+              const fragments = state.fragments
+              const healAmount = fragments * ability.effect.healPerFragment
+              const maxHp = state.player.character.baseStats.hp
+              state.stats.hp = Math.min(maxHp, state.stats.hp + healAmount * maxHp)
+
+              // Deal damage in area
+              state.enemies.forEach((enemy) => {
+                const dist = distance(state.player, enemy)
+                if (dist < ability.effect.areaRadius) {
+                  const areaDamage = state.stats.damage * ability.effect.areaDamage
+                  enemy.currentHp -= areaDamage
+                  state.damageNumbers.push({
+                    id: generateId(),
+                    x: enemy.x,
+                    y: enemy.y,
+                    damage: Math.floor(areaDamage),
+                    createdAt: currentTime,
+                  })
+                }
+              })
+
+              // Apply buffs if threshold met
+              if (fragments >= ability.effect.bonusThreshold) {
+                state.specialAbility.hasBonusBuff = true
+              }
+
+              // Reset fragments
+              state.fragments = 0
+            }
+          }
+        }
+      }
+
       // Attack logic
-      const attackInterval = 1000 / state.stats.attackSpeed
+      const character = state.player.character
+      const mainWeapon = getMainWeapon(character.id)
+      const weaponEffect = mainWeapon ? mainWeapon.levelEffects[state.mainWeaponLevel] : null
+      const attackSpeedBonus = weaponEffect?.attackSpeedBonus || 0
+      const finalAttackSpeed = state.stats.attackSpeed * (1 + attackSpeedBonus)
+      const attackInterval = 1000 / finalAttackSpeed
+
       if (currentTime - state.lastAttackTime >= attackInterval) {
         state.lastAttackTime = currentTime
-        const character = state.player.character
 
         // Remove old effects
         state.attackEffects = state.attackEffects.filter((e) => currentTime - e.createdAt < 300)
 
         switch (character.attackType) {
           case 'aoe':
-            // Equalizer - AoE around player (확산 효과)
-            state.attackEffects.push({
-              id: generateId(),
-              type: 'aoe',
-              x: state.player.x,
-              y: state.player.y,
-              radius: state.stats.attackRange,
-              maxRadius: state.stats.attackRange,
-              color: character.attackColor,
-              createdAt: currentTime,
-              duration: 400,
-            })
-            state.enemies.forEach((enemy) => {
-              if (distance(state.player, enemy) <= state.stats.attackRange) {
-                const isCrit = Math.random() < (state.stats.crit || 0)
-                const finalDamage = state.stats.damage * (isCrit ? 1.5 : 1.0)
+            // 여성형 탈모 - 일자 탈모 장판 (Line Ground Zones)
+            const femaleWeapon = getMainWeapon('female')
+            if (femaleWeapon) {
+              const weaponEffect = femaleWeapon.levelEffects[state.mainWeaponLevel]
+              const facing = state.player.facing
+              const baseAngle = facing === 1 ? 0 : Math.PI
 
-                enemy.currentHp -= finalDamage
-                state.damageNumbers.push({
+              // Create line zones based on weapon level
+              for (let i = 0; i < (weaponEffect.lines || 1); i++) {
+                let offsetAngle = 0
+                if (weaponEffect.lines > 1) {
+                  // Spread lines if multiple (level 5+)
+                  offsetAngle = (i - (weaponEffect.lines - 1) / 2) * 0.3
+                }
+
+                const zoneAngle = baseAngle + offsetAngle
+                const zoneX = state.player.x + Math.cos(zoneAngle) * (weaponEffect.length / 2)
+                const zoneY = state.player.y + Math.sin(zoneAngle) * (weaponEffect.length / 2)
+
+                // Create ground zone effect
+                if (!state.groundZones) state.groundZones = []
+                state.groundZones.push({
                   id: generateId(),
-                  x: enemy.x,
-                  y: enemy.y,
-                  damage: Math.floor(finalDamage),
-                  isCritical: isCrit,
+                  type: 'female_line_zone',
+                  x: zoneX,
+                  y: zoneY,
+                  angle: zoneAngle,
+                  length: weaponEffect.length,
+                  width: weaponEffect.width,
+                  damagePerSecond: weaponEffect.damagePerSecond,
+                  duration: (weaponEffect.duration || 3) * 1000,
                   createdAt: currentTime,
+                  color: character.attackColor,
+                  // Awakening: shockwave
+                  hasShockwave: weaponEffect.shockwave || false,
+                  shockwaveDamage: weaponEffect.shockwaveDamage || 0,
+                  shockwaveKnockback: weaponEffect.shockwaveKnockback || 0,
+                  shockwaveInterval: weaponEffect.shockwaveInterval || 1000,
+                  lastShockwave: currentTime,
+                })
+
+                // Visual effect
+                state.attackEffects.push({
+                  id: generateId(),
+                  type: 'line_zone',
+                  x: zoneX,
+                  y: zoneY,
+                  angle: zoneAngle,
+                  length: weaponEffect.length,
+                  width: weaponEffect.width,
+                  color: character.attackColor,
+                  createdAt: currentTime,
+                  duration: 300,
                 })
               }
-            })
+            }
             break
 
           case 'beam':
-            // Hair Loss Beam - Single target
+            // 원형 탈모 - 탈모빔 (Hair Loss Beam - Single target with level scaling)
+            const areataWeapon = getMainWeapon('areata')
+            const areataEffect = areataWeapon ? areataWeapon.levelEffects[state.mainWeaponLevel] : { damage: 2.0 }
+
             let nearest = null
             let nearestDist = Infinity
             state.enemies.forEach((enemy) => {
@@ -689,7 +1099,7 @@ const GameScreen = ({
                 createdAt: currentTime,
                 duration: 200,
               })
-              const damage = state.stats.damage * 2
+              const damage = state.stats.damage * areataEffect.damage
               nearest.currentHp -= damage
               state.damageNumbers.push({
                 id: generateId(),
@@ -702,30 +1112,42 @@ const GameScreen = ({
             break
 
           case 'spin':
-            // Ponytail Spin - Melee AoE (최대 5명까지)
+            // 황비홍 - 비홍 편두 (Ponytail Spin with level scaling)
+            const wongWeapon = getMainWeapon('wongfeihung')
+            const wongEffect = wongWeapon ? wongWeapon.levelEffects[state.mainWeaponLevel] : { damage: 1.0, range: 100 }
+
+            // Create spinning hair visual effect
             state.attackEffects.push({
               id: generateId(),
-              type: 'spin',
-              radius: state.stats.attackRange * 0.7,
+              type: 'spin_hair',
+              radius: wongEffect.range || state.stats.attackRange * 0.7,
               angle: (currentTime / 100) % (Math.PI * 2),
               color: character.attackColor,
               createdAt: currentTime,
-              duration: 300,
+              duration: 400,
             })
-            
+
             // 범위 내 모든 적을 찾아서 최대 5명까지 공격
-            const spinRange = state.stats.attackRange * 0.7
-            const enemiesInRange = state.enemies.filter((enemy) => 
+            const spinRange = wongEffect.range || state.stats.attackRange * 0.7
+            const enemiesInRange = state.enemies.filter((enemy) =>
               !enemy.isDead && distance(state.player, enemy) <= spinRange
             )
-            
+
             // 최대 5명까지만 공격
             const spinTargets = enemiesInRange.slice(0, 5)
-            
+
             spinTargets.forEach((enemy) => {
               const isCrit = Math.random() < (state.stats.crit || 0)
-              const damage = state.stats.damage * 1.2 * (isCrit ? 1.5 : 1.0)
+              const meleeDamageBonus = state.passiveBonuses.meleeDamageBonus || 0
+              const damage = state.stats.damage * wongEffect.damage * (1 + meleeDamageBonus) * (isCrit ? 1.5 : 1.0)
               enemy.currentHp -= damage
+
+              // Stun chance (level 5+)
+              if (wongEffect.stunChance && Math.random() < wongEffect.stunChance) {
+                enemy.stunned = true
+                enemy.stunUntil = currentTime + (wongEffect.stunDuration || 0.5) * 1000
+              }
+
               state.damageNumbers.push({
                 id: generateId(),
                 x: enemy.x,
@@ -738,7 +1160,10 @@ const GameScreen = ({
             break
 
           case 'lightning':
-            // Lightning - Random strikes
+            // 헤이하치 - 초 풍신권 (Lightning strikes with level scaling)
+            const heihachiWeapon = getMainWeapon('heihachi')
+            const heihachiEffect = heihachiWeapon ? heihachiWeapon.levelEffects[state.mainWeaponLevel] : { damage: 1.5 }
+
             const inRange = state.enemies.filter((e) => distance(state.player, e) <= state.stats.attackRange * 1.5)
             const targets = inRange.sort(() => Math.random() - 0.5).slice(0, 4)
             targets.forEach((enemy) => {
@@ -750,8 +1175,22 @@ const GameScreen = ({
                 color: character.attackColor,
                 createdAt: currentTime,
               })
-              const damage = state.stats.damage * 1.3
+
+              // Apply bonus damage if enemy is already electrified (passive skill)
+              const electrifiedDamageBonus = (enemy.electrified && currentTime < enemy.electrified.until)
+                ? (state.passiveBonuses.electrifiedDamageBonus || 0)
+                : 0
+              const damage = state.stats.damage * heihachiEffect.damage * (1 + electrifiedDamageBonus)
               enemy.currentHp -= damage
+
+              // Apply electrify debuff
+              if (heihachiEffect.electrifyDuration) {
+                enemy.electrified = {
+                  damagePerSecond: heihachiEffect.electrifyDamagePerSecond || 0.40,
+                  until: currentTime + heihachiEffect.electrifyDuration * 1000,
+                }
+              }
+
               state.damageNumbers.push({
                 id: generateId(),
                 x: enemy.x,
@@ -764,14 +1203,19 @@ const GameScreen = ({
 
           case 'transplant':
             // Hair Transplant Gun - Piercing projectile that hits all enemies in a line
-            const projectileRange = character.projectileRange || 350
+            const talmoWeapon = getMainWeapon('talmo_docter')
+            const talmoEffect = talmoWeapon ?
+              talmoWeapon.levelEffects[state.mainWeaponLevel] :
+              { damage: 1.20, range: 130, angle: 120, lifeSteal: 0.15 }
+
+            const projectileRange = talmoEffect.range
             const projectileSpeed = character.projectileSpeed || 400
-            
+
             // Find direction to nearest enemy, or use facing direction
             let targetAngle = state.player.facing === 1 ? 0 : Math.PI
             let nearestEnemy = null
             let nearestEnemyDist = Infinity
-            
+
             state.enemies.forEach((enemy) => {
               const d = distance(state.player, enemy)
               if (d < nearestEnemyDist && d <= projectileRange * 1.5) {
@@ -779,48 +1223,72 @@ const GameScreen = ({
                 nearestEnemyDist = d
               }
             })
-            
+
             if (nearestEnemy) {
               targetAngle = Math.atan2(nearestEnemy.y - state.player.y, nearestEnemy.x - state.player.x)
             }
-            
-            // Create piercing projectile
+
+            // Calculate damage with fragment bonus (awakening)
+            let baseDamage = state.stats.damage * talmoEffect.damage
+            if (talmoEffect.fragmentBonus &&
+                state.fragments >= talmoEffect.fragmentBonusThreshold) {
+              baseDamage *= (1 + talmoEffect.fragmentBonusDamage)
+            }
+
+            // Create piercing projectile(s)
             if (!state.transplantProjectiles) state.transplantProjectiles = []
-            state.transplantProjectiles.push({
-              id: generateId(),
-              x: state.player.x,
-              y: state.player.y,
-              startX: state.player.x,
-              startY: state.player.y,
-              vx: Math.cos(targetAngle) * projectileSpeed,
-              vy: Math.sin(targetAngle) * projectileSpeed,
-              angle: targetAngle,
-              damage: state.stats.damage * 1.2,
-              range: projectileRange,
-              size: character.projectileSize || 100,
-              hitEnemies: [],
-              createdAt: currentTime,
-              color: character.attackColor,
-            })
+
+            const swingCount = talmoEffect.multiSwing || 1
+            for (let i = 0; i < swingCount; i++) {
+              // Slight angle offset for multiple swings
+              const swingAngleOffset = (i - (swingCount - 1) / 2) * 0.2
+              const finalAngle = targetAngle + swingAngleOffset
+
+              state.transplantProjectiles.push({
+                id: generateId(),
+                x: state.player.x,
+                y: state.player.y,
+                startX: state.player.x,
+                startY: state.player.y,
+                vx: Math.cos(finalAngle) * projectileSpeed,
+                vy: Math.sin(finalAngle) * projectileSpeed,
+                angle: finalAngle,
+                damage: baseDamage,
+                range: projectileRange,
+                size: character.projectileSize || 100,
+                hitEnemies: [],
+                createdAt: currentTime,
+                color: character.attackColor,
+                // Talmo Docter specific effects
+                lifeSteal: talmoEffect.lifeSteal,
+                fragmentChance: talmoEffect.fragmentChance || 0,
+                maxFragments: talmoEffect.maxFragments || 15,
+              })
+            }
             break
 
           case 'boomerang':
             // Boomerang - Throws and returns, hitting enemies multiple times
-            // Only allow one boomerang at a time
             if (!state.boomerangProjectiles) state.boomerangProjectiles = []
-            
-            // Check if there's already an active boomerang
-            if (state.boomerangProjectiles.length > 0) break
-            
-            const boomerangRange = character.projectileRange || 200
-            const boomerangSpeed = character.projectileSpeed || 350
+
+            // Get weapon level effects
+            const mzamenWeapon = getMainWeapon('mzamen')
+            const mzamenEffect = mzamenWeapon ?
+              mzamenWeapon.levelEffects[state.mainWeaponLevel] :
+              { waveCount: 1, damage: 1.00, speed: 300, range: 250 }
+
+            // Check if we've reached the max active boomerangs
+            if (state.boomerangProjectiles.length >= mzamenEffect.waveCount) break
+
+            const boomerangRange = mzamenEffect.range
+            const boomerangSpeed = mzamenEffect.speed
             const returnSpeed = character.returnSpeed || 450
-            
+
             // Find direction to nearest enemy, or use facing direction
             let boomerangAngle = state.player.facing === 1 ? 0 : Math.PI
             let nearestBoomerangEnemy = null
             let nearestBoomerangDist = Infinity
-            
+
             state.enemies.forEach((enemy) => {
               const d = distance(state.player, enemy)
               if (d < nearestBoomerangDist && d <= boomerangRange * 1.5) {
@@ -828,32 +1296,48 @@ const GameScreen = ({
                 nearestBoomerangDist = d
               }
             })
-            
+
             if (nearestBoomerangEnemy) {
               boomerangAngle = Math.atan2(nearestBoomerangEnemy.y - state.player.y, nearestBoomerangEnemy.x - state.player.x)
             }
-            
-            // Create boomerang projectile
-            state.boomerangProjectiles.push({
-              id: generateId(),
-              x: state.player.x,
-              y: state.player.y,
-              startX: state.player.x,
-              startY: state.player.y,
-              vx: Math.cos(boomerangAngle) * boomerangSpeed,
-              vy: Math.sin(boomerangAngle) * boomerangSpeed,
-              angle: boomerangAngle,
-              rotation: 0,
-              damage: state.stats.damage * 1.3,
-              range: boomerangRange,
-              speed: boomerangSpeed,
-              returnSpeed: returnSpeed,
-              size: character.projectileSize || 80,
-              hitEnemies: [],
-              returning: false,
-              createdAt: currentTime,
-              color: character.attackColor,
-            })
+
+            // Create multiple boomerangs in a spread pattern
+            const spreadAngle = 0.3 // 30 degree spread between boomerangs
+            for (let i = 0; i < mzamenEffect.waveCount; i++) {
+              let offsetAngle = 0
+              if (mzamenEffect.waveCount > 1) {
+                offsetAngle = (i - (mzamenEffect.waveCount - 1) / 2) * spreadAngle
+              }
+
+              const finalAngle = boomerangAngle + offsetAngle
+
+              // Create boomerang projectile
+              state.boomerangProjectiles.push({
+                id: generateId(),
+                x: state.player.x,
+                y: state.player.y,
+                startX: state.player.x,
+                startY: state.player.y,
+                vx: Math.cos(finalAngle) * boomerangSpeed,
+                vy: Math.sin(finalAngle) * boomerangSpeed,
+                angle: finalAngle,
+                rotation: 0,
+                damage: state.stats.damage * mzamenEffect.damage,
+                range: boomerangRange,
+                speed: boomerangSpeed,
+                returnSpeed: returnSpeed,
+                size: character.projectileSize || 80,
+                hitEnemies: [],
+                returning: false,
+                createdAt: currentTime,
+                color: character.attackColor,
+                // Awakening effect
+                hasReturnExplosion: mzamenEffect.returnExplosion || false,
+                returnExplosionDamage: mzamenEffect.returnExplosionDamage || 0,
+                returnExplosionRadius: mzamenEffect.returnExplosionRadius || 0,
+                armorPenetration: mzamenEffect.armorPenetration || 0,
+              })
+            }
             break
         }
       }
@@ -1274,8 +1758,48 @@ const GameScreen = ({
           state.xp = 0
           state.level += 1
           state.xpNeeded = Math.floor(state.xpNeeded * GAME_CONFIG.LEVEL_XP_MULTIPLIER)
-          const options = generateMixedLevelUpOptions(UPGRADES, state.inventory, 3)
-          setLevelUpOptions(options)
+
+          // Generate level-up options - create a pool of all available options
+          const optionPool = []
+
+          // 1. Main Weapon Upgrade (if not maxed) - add to pool
+          if (state.mainWeaponLevel < 7) {
+            const mainWeapon = getMainWeapon(state.player.character.id)
+            if (mainWeapon) {
+              const nextLevel = state.mainWeaponLevel + 1
+              const nextEffect = mainWeapon.levelEffects[nextLevel]
+              optionPool.push({
+                id: mainWeapon.id,
+                name: mainWeapon.name,
+                type: nextLevel === 7 ? '무기 (각성)' : '무기',
+                description: mainWeapon.description,
+                icon: nextLevel === 7 ? `${state.player.character.id}_gaksung` : `${state.player.character.id}_ability`,
+                isMainWeapon: true,
+                currentLevel: state.mainWeaponLevel,
+                nextLevel,
+                effect: nextEffect,
+              })
+            }
+          }
+
+          // 2. Passive Skills - add all available to pool
+          const passiveOptions = getPassiveSkillOptions(state.player.character.id, state.passiveSkills)
+          passiveOptions.forEach(skill => {
+            optionPool.push({
+              ...skill,
+              type: '패시브 스킬',
+              icon: skill.icon,
+            })
+          })
+
+          // 3. Sub Weapons and Items - add to pool
+          const mixedOptions = generateMixedLevelUpOptions(UPGRADES, state.inventory, 5)
+          optionPool.push(...mixedOptions)
+
+          // Randomly select 3 options from the pool
+          const shuffled = [...optionPool].sort(() => Math.random() - 0.5)
+          const finalOptions = shuffled.slice(0, 3)
+          setLevelUpOptions(finalOptions)
           setGamePhase('levelup')
         }
       })
@@ -1311,6 +1835,7 @@ const GameScreen = ({
         maxHp: state.stats.maxHp,
         shield: state.stats.shield,
         coins: state.collectedCoins,
+        fragments: state.fragments || 0,
       })
 
       // ============================================================
@@ -1542,6 +2067,45 @@ const GameScreen = ({
             ctx.globalAlpha = 1
             break
 
+          case 'line_zone':
+            // 여성형 탈모 - 일자 장판 렌더링
+            ctx.save()
+            const lineX = effect.x - state.camera.x
+            const lineY = effect.y - state.camera.y
+
+            ctx.translate(lineX, lineY)
+            ctx.rotate(effect.angle)
+
+            // Draw rectangle
+            ctx.fillStyle = effect.color
+            ctx.globalAlpha = 0.4 * (1 - progress)
+            ctx.fillRect(-effect.length / 2, -effect.width / 2, effect.length, effect.width)
+
+            ctx.strokeStyle = '#fff'
+            ctx.lineWidth = 2
+            ctx.globalAlpha = 0.7 * (1 - progress)
+            ctx.strokeRect(-effect.length / 2, -effect.width / 2, effect.length, effect.width)
+
+            ctx.restore()
+            ctx.globalAlpha = 1
+            break
+
+          case 'shockwave':
+            // 충격파 렌더링
+            const swX = effect.x - state.camera.x
+            const swY = effect.y - state.camera.y
+            const swRadius = effect.maxRadius * progress
+
+            ctx.strokeStyle = effect.color
+            ctx.lineWidth = 3
+            ctx.globalAlpha = 0.8 * (1 - progress)
+            ctx.beginPath()
+            ctx.arc(swX, swY, swRadius, 0, Math.PI * 2)
+            ctx.stroke()
+
+            ctx.globalAlpha = 1
+            break
+
           case 'beam':
             const startX = state.player.x - state.camera.x
             const startY = state.player.y - state.camera.y
@@ -1613,6 +2177,36 @@ const GameScreen = ({
             ctx.arc(spinX, spinY, effect.radius, 0, Math.PI * 2)
             ctx.fill()
 
+            ctx.globalAlpha = 1
+            break
+
+          case 'spin_hair':
+            // 황비홍 spinning hair with sprites
+            const hairX = state.player.x - state.camera.x
+            const hairY = state.player.y - state.camera.y
+            const hairAngle = effect.angle + (progress * Math.PI * 4)
+
+            ctx.save()
+            ctx.translate(hairX, hairY)
+            ctx.rotate(hairAngle)
+            ctx.globalAlpha = 0.9 * (1 - progress * 0.3)
+
+            // Draw hair sprite if loaded
+            if (loadedImages[SPRITES.attacks.wongfeihung_hair]) {
+              const hairImg = loadedImages[SPRITES.attacks.wongfeihung_hair]
+              const hairSize = effect.radius * 2
+              ctx.drawImage(hairImg, -hairSize / 2, -hairSize / 2, hairSize, hairSize)
+            }
+
+            // Draw slash effect trailing behind
+            ctx.rotate(Math.PI / 4)
+            if (loadedImages[SPRITES.attacks.wongfeihung_slash]) {
+              const slashImg = loadedImages[SPRITES.attacks.wongfeihung_slash]
+              const slashSize = effect.radius * 1.5
+              ctx.drawImage(slashImg, -slashSize / 2, -slashSize / 2, slashSize, slashSize)
+            }
+
+            ctx.restore()
             ctx.globalAlpha = 1
             break
 
@@ -1972,6 +2566,44 @@ const GameScreen = ({
             if (enemy.rotation) ctx.rotate(enemy.rotation)
 
             ctx.drawImage(img, -enemy.size / 2, -enemy.size / 2, enemy.size, enemy.size)
+
+            // Draw electrify visual effect
+            if (enemy.electrified && currentTime < enemy.electrified.until) {
+              const sparkCount = 4
+              const sparkRadius = enemy.size / 2 + 10
+              const sparkProgress = (currentTime % 300) / 300 // Cycle every 300ms
+
+              for (let i = 0; i < sparkCount; i++) {
+                const angle = (i / sparkCount) * Math.PI * 2 + sparkProgress * Math.PI * 2
+                const sparkX = Math.cos(angle) * sparkRadius
+                const sparkY = Math.sin(angle) * sparkRadius
+
+                // Draw spark
+                ctx.fillStyle = `rgba(255, 255, 100, ${0.8 - sparkProgress})`
+                ctx.beginPath()
+                ctx.arc(sparkX, sparkY, 3, 0, Math.PI * 2)
+                ctx.fill()
+
+                // Draw lightning bolt to center
+                ctx.strokeStyle = `rgba(100, 200, 255, ${0.6 - sparkProgress * 0.5})`
+                ctx.lineWidth = 2
+                ctx.beginPath()
+                ctx.moveTo(sparkX, sparkY)
+                ctx.lineTo(0, 0)
+                ctx.stroke()
+              }
+
+              // Glow effect
+              ctx.shadowColor = 'rgba(100, 200, 255, 0.5)'
+              ctx.shadowBlur = 10
+              ctx.strokeStyle = `rgba(100, 200, 255, ${0.4 - sparkProgress * 0.2})`
+              ctx.lineWidth = 2
+              ctx.beginPath()
+              ctx.arc(0, 0, enemy.size / 2 + 5, 0, Math.PI * 2)
+              ctx.stroke()
+              ctx.shadowBlur = 0
+            }
+
             ctx.restore()
           }
         }
@@ -2140,22 +2772,26 @@ const GameScreen = ({
         ctx.save()
         ctx.translate(sx, sy)
         ctx.scale(scale, scale)
-        
-        // 크리티컬 데미지: 크고 빨간색, 일반 데미지: 작고 흰색
-        if (dn.isCritical) {
+
+        // Heal numbers: green and upward, Critical damage: large red, Normal damage: white
+        if (dn.isHeal) {
+          ctx.font = '16px "Press Start 2P", cursive'
+          ctx.fillStyle = `rgba(50, 255, 50, ${1 - progress})`
+        } else if (dn.isCritical) {
           ctx.font = '20px "Press Start 2P", cursive'
           ctx.fillStyle = `rgba(255, 82, 82, ${1 - progress})`
         } else {
           ctx.font = '14px "Press Start 2P", cursive'
           ctx.fillStyle = `rgba(255, 255, 255, ${1 - progress})`
         }
-        
+
         ctx.strokeStyle = `rgba(0, 0, 0, ${1 - progress})`
         ctx.lineWidth = 4
         ctx.lineJoin = 'round'
         ctx.textAlign = 'center'
-        ctx.strokeText(dn.damage.toString(), 0, 0)
-        ctx.fillText(dn.damage.toString(), 0, 0)
+        const displayText = dn.isHeal ? `+${dn.damage}` : dn.damage.toString()
+        ctx.strokeText(displayText, 0, 0)
+        ctx.fillText(displayText, 0, 0)
         ctx.restore()
       })
 
@@ -2174,7 +2810,17 @@ const GameScreen = ({
   // Handle upgrade selection
   const handleUpgrade = useCallback((upgrade) => {
     if (gameStateRef.current) {
-      if (upgrade.isSubWeapon) {
+      if (upgrade.isMainWeapon) {
+        // Main Weapon Level Up
+        gameStateRef.current.mainWeaponLevel = upgrade.nextLevel
+      } else if (upgrade.isPassiveSkill) {
+        // Passive Skill Selection
+        gameStateRef.current.passiveSkills = handlePassiveSkillSelection(
+          upgrade,
+          gameStateRef.current.passiveSkills
+        )
+      } else if (upgrade.isSubWeapon) {
+        // Sub Weapon Selection
         const weaponData = upgrade.weaponData || getSubWeaponById(upgrade.id)
         if (weaponData) {
           gameStateRef.current.inventory = handleSubWeaponSelection(
@@ -2183,6 +2829,7 @@ const GameScreen = ({
           )
         }
       } else {
+        // Regular Item
         gameStateRef.current.stats = upgrade.effect(gameStateRef.current.stats)
         gameStateRef.current.inventory.push(upgrade)
       }
@@ -2307,6 +2954,42 @@ const GameScreen = ({
               }} />
             </div>
           </div>
+
+          {/* Fragment Counter (Talmo Docter only) */}
+          {selectedCharacter?.id === 'talmo_docter' && (
+            <div style={{
+              background: 'rgba(13, 13, 26, 0.9)',
+              border: `3px solid ${COLORS.panelBorder}`,
+              boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
+              padding: '8px 12px',
+              minWidth: '100px',
+            }}>
+              <div style={{
+                fontFamily: PIXEL_STYLES.fontFamily,
+                color: COLORS.textWhite,
+                fontSize: '13px',
+                marginBottom: '4px',
+                textShadow: '1px 1px 0 #000',
+                whiteSpace: 'nowrap',
+              }}>
+                🧬 모근조각
+              </div>
+              <div style={{
+                fontFamily: PIXEL_STYLES.fontFamily,
+                color: displayStats.fragments >= 5 ? COLORS.primary : COLORS.textGray,
+                fontSize: '16px',
+                fontWeight: 'bold',
+                textShadow: '1px 1px 0 #000',
+              }}>
+                {displayStats.fragments || 0} / 15
+                {displayStats.fragments >= 5 && (
+                  <span style={{ marginLeft: '5px', fontSize: '12px', color: COLORS.warning }}>
+                    ⚡
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right HUD Group */}
@@ -2492,7 +3175,7 @@ const GameScreen = ({
                     width: '48px',
                     height: '48px',
                     background: COLORS.bgDark,
-                    border: `2px solid ${upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
+                    border: `2px solid ${upgrade.isMainWeapon || upgrade.isPassiveSkill ? COLORS.warning : upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -2500,7 +3183,22 @@ const GameScreen = ({
                     flexShrink: 0,
                     position: 'relative',
                   }}>
-                    {upgrade.isSubWeapon ? (
+                    {upgrade.isMainWeapon || upgrade.isPassiveSkill ? (
+                      SPRITES.abilities && SPRITES.abilities[upgrade.icon] ? (
+                        <img
+                          src={SPRITES.abilities[upgrade.icon]}
+                          alt={upgrade.name}
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            imageRendering: 'pixelated',
+                            objectFit: 'contain'
+                          }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '30px' }}>{upgrade.isMainWeapon ? '⚔️' : '✨'}</span>
+                      )
+                    ) : upgrade.isSubWeapon ? (
                       <img src={SPRITES.subweapons[upgrade.icon]} alt="" style={{ width: '40px', height: '40px', imageRendering: 'pixelated', objectFit: 'contain' }} />
                     ) : (
                       <img src={SPRITES.items[upgrade.icon]} alt="" style={{ width: '28px', height: '28px', imageRendering: 'pixelated' }} />
