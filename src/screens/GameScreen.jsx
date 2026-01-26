@@ -40,12 +40,12 @@ const pointToLineDistance = (px, py, x1, y1, x2, y2) => {
 const isInsideMPattern = (point, center, width, height) => {
   const relX = point.x - center.x + width / 2 // 0 ~ width 범위로 변환
   const relY = point.y - center.y + height / 2 // 0 ~ height 범위로 변환
-  
+
   // 범위 밖이면 false
   if (relX < 0 || relX > width || relY < 0 || relY > height) return false
-  
+
   const thickness = 80 // M의 두께 (더 두껍게)
-  
+
   // M자 탈모 패턴: 양쪽 세로선 + 중앙으로 내려오는 V자
   // 포인트 정의
   const leftX = width * 0.1   // 왼쪽 세로선 X
@@ -53,31 +53,31 @@ const isInsideMPattern = (point, center, width, height) => {
   const peakY = height * 0.15 // 상단 꼭지점 Y
   const valleyY = height * 0.7 // 중앙 V자 바닥 Y
   const centerX = width * 0.5 // 중앙 X
-  
+
   // 왼쪽 세로선 (|)
   if (relX >= leftX - thickness / 2 && relX <= leftX + thickness / 2) {
     return true
   }
-  
+
   // 오른쪽 세로선 (|)
   if (relX >= rightX - thickness / 2 && relX <= rightX + thickness / 2) {
     return true
   }
-  
+
   // 왼쪽 대각선 (상단에서 중앙 V로)
   if (relX > leftX && relX < centerX) {
     const t = (relX - leftX) / (centerX - leftX)
     const lineY = peakY + t * (valleyY - peakY)
     if (Math.abs(relY - lineY) < thickness) return true
   }
-  
+
   // 오른쪽 대각선 (중앙 V에서 상단으로)
   if (relX > centerX && relX < rightX) {
     const t = (relX - centerX) / (rightX - centerX)
     const lineY = valleyY + t * (peakY - valleyY)
     if (Math.abs(relY - lineY) < thickness) return true
   }
-  
+
   return false
 }
 
@@ -188,6 +188,7 @@ const GameScreen = ({
       enemyProjectiles: [],
       explosions: [],
       attackEffects: [],
+      groundZones: [],
       damageNumbers: [],
       subWeaponEffects: [],
       subWeaponProjectiles: [],
@@ -448,7 +449,7 @@ const GameScreen = ({
         const edy = state.player.y - enemy.y
         const dist = Math.sqrt(edx * edx + edy * edy)
         let effectiveSpeed = enemy.scaledSpeed || enemy.speed
-        
+
         // M 패턴 슬로우 적용
         if (enemy.mPatternSlowed && enemy.mPatternSlowAmount) {
           effectiveSpeed *= (1 - enemy.mPatternSlowAmount)
@@ -461,6 +462,9 @@ const GameScreen = ({
         } else if (enemy.electrified) {
           delete enemy.electrified
         }
+
+        // Reset damage taken multiplier (re-applied every frame if in zone)
+        enemy.damageTakenMultiplier = 1.0
 
         // 몬스터별 행동 패턴
         switch (enemy.attackType) {
@@ -662,6 +666,33 @@ const GameScreen = ({
                 })
               }
             }
+            // Circular zones (Areata Special)
+            else if (zone.radius) {
+              const dist = distance(zone, enemy)
+              if (dist < zone.radius) {
+                // Apply Damage Amplification Debuff
+                if (zone.damageAmplification) {
+                  enemy.damageTakenMultiplier = (enemy.damageTakenMultiplier || 1) * (1 + zone.damageAmplification)
+                }
+
+                const damage = state.stats.damage * zone.damagePerSecond * deltaTime
+                // Apply multiplier for zone damage itself (optional, but consistent)
+                enemy.currentHp -= damage * (enemy.damageTakenMultiplier || 1)
+
+                // Show damage numbers periodically
+                if (!enemy.lastZoneDamageNumber || currentTime - enemy.lastZoneDamageNumber > 200) {
+                  enemy.lastZoneDamageNumber = currentTime
+                  state.damageNumbers.push({
+                    id: generateId(),
+                    x: enemy.x,
+                    y: enemy.y,
+                    damage: Math.floor(state.stats.damage * zone.damagePerSecond * 0.2),
+                    createdAt: currentTime,
+                    color: '#32CD32'
+                  })
+                }
+              }
+            }
           })
 
           // Awakening: Shockwave at zone end
@@ -757,7 +788,7 @@ const GameScreen = ({
             const dx = state.player.x - proj.x
             const dy = state.player.y - proj.y
             const distToPlayer = Math.sqrt(dx * dx + dy * dy)
-            
+
             if (distToPlayer < 30) {
               // 플레이어에게 도착
               proj.shouldRemove = true
@@ -1042,20 +1073,20 @@ const GameScreen = ({
               if (mFieldPos) {
                 const mWidth = effect.width || 400
                 const mHeight = effect.height || 300
-                
+
                 // 초당 데미지 적용 (1초마다)
                 if (currentTime - (state.specialAbility.mFieldLastDamageTime || 0) >= 1000) {
                   state.specialAbility.mFieldLastDamageTime = currentTime
-                  
+
                   state.enemies.forEach((enemy) => {
                     if (enemy.isDead) return
-                    
+
                     // M 패턴 내부인지 체크
                     if (isInsideMPattern(enemy, mFieldPos, mWidth, mHeight)) {
                       // 데미지 적용
                       const damage = state.stats.damage * effect.damagePerSecond
                       enemy.currentHp -= damage
-                      
+
                       state.damageNumbers.push({
                         id: generateId(),
                         x: enemy.x,
@@ -1067,7 +1098,7 @@ const GameScreen = ({
                     }
                   })
                 }
-                
+
                 // 슬로우 효과는 매 프레임 적용
                 state.enemies.forEach((enemy) => {
                   if (enemy.isDead) return
@@ -1080,7 +1111,128 @@ const GameScreen = ({
                 })
               }
               break
+
+            case 'circular_zone': // Areata - following zone with damage amplification
+              if (!state.specialAbilityZoneCreated) {
+                state.specialAbilityZoneCreated = true
+
+                // Create following ground zone
+                state.groundZones.push({
+                  id: generateId(),
+                  type: 'areata_special_zone',
+                  x: state.player.x,
+                  y: state.player.y,
+                  radius: effect.radius,
+                  angle: 0, // Initialize angle to prevent NaN in rotation calc
+                  damagePerSecond: effect.damagePerSecond,
+                  damageAmplification: effect.damageAmplification,
+                  duration: state.specialAbility.activeUntil - currentTime,
+                  createdAt: currentTime,
+                  followPlayer: true, // Custom flag to update position
+                  color: state.player.character.attackColor,
+                })
+
+                // Visual effect
+                state.attackEffects.push({
+                  id: generateId(),
+                  type: 'areata_special_zone',
+                  x: state.player.x,
+                  y: state.player.y,
+                  radius: effect.radius,
+                  color: state.player.character.attackColor,
+                  createdAt: currentTime,
+                  duration: state.specialAbility.activeUntil - currentTime,
+                  followPlayer: true,
+                })
+              }
+              break
+
+            case 'rotating_whirlpool': // Wongfeihung - 3 orbiting satellites + pull
+              if (!state.specialAbilityZoneCreated) {
+                state.specialAbilityZoneCreated = true
+
+                // Add visual effect
+                state.attackEffects.push({
+                  id: generateId(),
+                  type: 'rotating_whirlpool',
+                  x: state.player.x,
+                  y: state.player.y,
+                  radius: 180, // Orbit radius
+                  orbits: effect.orbits || 3,
+                  color: state.player.character.attackColor,
+                  createdAt: currentTime,
+                  duration: state.specialAbility.activeUntil - currentTime,
+                  followPlayer: true,
+                })
+              }
+
+              // Apply Pull Physics
+              const pullRadius = 400
+              const pullStrength = effect.pullStrength || 150
+              state.enemies.forEach(enemy => {
+                if (enemy.isDead) return
+                const dist = distance(state.player, enemy)
+                if (dist < pullRadius) {
+                  const angle = Math.atan2(state.player.y - enemy.y, state.player.x - enemy.x)
+                  enemy.vx += Math.cos(angle) * pullStrength * deltaTime
+                  enemy.vy += Math.sin(angle) * pullStrength * deltaTime
+                }
+              })
+
+              // Apply Damage from Satellites
+              const orbitRadius = 180
+              const rotationSpeed = 3 // rad/s
+              const currentAngle = (currentTime / 1000) * rotationSpeed
+              const orbitCount = effect.orbits || 3
+
+              for (let i = 0; i < orbitCount; i++) {
+                const angle = currentAngle + (i * (Math.PI * 2 / orbitCount))
+                const satX = state.player.x + Math.cos(angle) * orbitRadius
+                const satY = state.player.y + Math.sin(angle) * orbitRadius
+
+                // Check collisions with enemies
+                state.enemies.forEach(enemy => {
+                  if (enemy.isDead) return
+                  // Satellite hit radius
+                  // Adjusted by user request (260 - 80 = 180)
+                  if (distance({ x: satX, y: satY }, enemy) < 180) {
+                    // Check damage cooldown per enemy per satellite to avoid instant kill
+                    // Using a composite key for cooldown: enemyId + satIndex
+                    const cooldownKey = `${enemy.id}_whirlpool_${i}`
+                    if (!enemy[cooldownKey] || currentTime - enemy[cooldownKey] > 200) {
+                      enemy[cooldownKey] = currentTime
+                      const damage = state.stats.damage * effect.damagePerSecond * 0.2 // 0.2s worth of Dot
+                      enemy.currentHp -= damage
+                      state.damageNumbers.push({
+                        id: generateId(),
+                        x: enemy.x,
+                        y: enemy.y,
+                        damage: Math.floor(damage),
+                        createdAt: currentTime,
+                        color: '#FFA500'
+                      })
+                    }
+                  }
+                })
+              }
+              break
           }
+        }
+
+        // Update position for following zones/effects
+        if (state.specialAbilityZoneCreated) {
+          state.groundZones.forEach(z => {
+            if (z.followPlayer) {
+              z.x = state.player.x
+              z.y = state.player.y
+            }
+          })
+          state.attackEffects.forEach(e => {
+            if (e.followPlayer) {
+              e.x = state.player.x
+              e.y = state.player.y
+            }
+          })
         }
       }
 
@@ -1176,13 +1328,13 @@ const GameScreen = ({
           // 모근 조각 최소 요구량 체크 (탈모의사 전용)
           const minFragments = ability.minFragments || 0
           const hasEnoughFragments = state.fragments >= minFragments
-          
+
           // lastUsedGameTime이 0이면 한 번도 안 쓴 것 → 바로 사용 가능
           const neverUsed = state.specialAbility.lastUsedGameTime === 0
           const timeSinceLastUse = (state.gameTime - state.specialAbility.lastUsedGameTime) * 1000 // 초 → 밀리초
           const cooldownReady = neverUsed || timeSinceLastUse >= ability.cooldown
           console.log('[SPECIAL] Cooldown check:', { neverUsed, timeSinceLastUse, cooldown: ability.cooldown, ready: cooldownReady, hasEnoughFragments, fragments: state.fragments, minFragments })
-          
+
           if (cooldownReady && hasEnoughFragments) {
             console.log('[SPECIAL] Activating special ability:', ability.name)
             // Activate ability
@@ -1256,8 +1408,8 @@ const GameScreen = ({
       // For heihachi (lightning), use weapon's attackCooldown
       // For other characters, use attackSpeed-based interval
       let attackInterval
-      if ((character.attackType === 'aoe' || character.attackType === 'lightning') && mainWeapon?.attackCooldown) {
-        attackInterval = mainWeapon.attackCooldown // Fixed cooldown (e.g., 2000ms for heihachi)
+      if (mainWeapon?.attackCooldown && (character.attackType === 'aoe' || character.attackType === 'spin' || character.attackType === 'lightning')) {
+        attackInterval = mainWeapon.attackCooldown // Fixed cooldown for special attack types
       } else {
         attackInterval = 1000 / finalAttackSpeed
       }
@@ -1267,7 +1419,7 @@ const GameScreen = ({
 
         // Remove old effects (except for long-duration effects)
         state.attackEffects = state.attackEffects.filter((e) => {
-          if (e.type === 'female_attack_zone' || e.type === 'female_special_zone') {
+          if (e.type === 'female_attack_zone' || e.type === 'female_special_zone' || e.type === 'areata_special_zone' || e.type === 'rotating_whirlpool') {
             return currentTime - e.createdAt < e.duration
           }
           return currentTime - e.createdAt < 300
@@ -1364,14 +1516,34 @@ const GameScreen = ({
                 createdAt: currentTime,
                 duration: 200,
               })
-              const damage = state.stats.damage * areataEffect.damage
-              nearest.currentHp -= damage
-              state.damageNumbers.push({
+
+              // Explosion Effect
+              const explosionRadius = areataEffect.explosionRadius || 50
+              state.attackEffects.push({
                 id: generateId(),
+                type: 'aoe',
                 x: nearest.x,
                 y: nearest.y,
-                damage: Math.floor(damage),
+                maxRadius: explosionRadius,
+                color: character.attackColor,
                 createdAt: currentTime,
+                duration: 300,
+              })
+
+              // AOE Damage
+              const damage = state.stats.damage * areataEffect.damage
+              state.enemies.forEach((enemy) => {
+                if (enemy.isDead) return
+                if (distance(nearest, enemy) <= explosionRadius) {
+                  enemy.currentHp -= damage
+                  state.damageNumbers.push({
+                    id: generateId(),
+                    x: enemy.x,
+                    y: enemy.y,
+                    damage: Math.floor(damage),
+                    createdAt: currentTime,
+                  })
+                }
               })
             }
             break
@@ -1561,7 +1733,7 @@ const GameScreen = ({
             const projectileCount = talmoEffect.projectileCount || 1
             const spreadAngle = talmoEffect.spreadAngle || 0.25
             const returnsToPlayer = talmoEffect.returnsToPlayer || false
-            
+
             for (let i = 0; i < projectileCount; i++) {
               // 부채꼴 형태로 퍼지게 발사
               let angleOffset = 0
@@ -2390,8 +2562,8 @@ const GameScreen = ({
 
         switch (effect.type) {
           case 'aoe':
-            const aoeX = (state.player.x - state.camera.x)
-            const aoeY = (state.player.y - state.camera.y)
+            const aoeX = (effect.x - state.camera.x)
+            const aoeY = (effect.y - state.camera.y)
             const currentRadius = effect.maxRadius * progress
 
             ctx.shadowBlur = 0
@@ -2527,6 +2699,48 @@ const GameScreen = ({
             ctx.globalAlpha = 1
             break
 
+          case 'areata_special_zone':
+            // Areata Special Ability - Following Circular Zone
+            ctx.save()
+            const areataZoneX = effect.x - state.camera.x
+            const areataZoneY = effect.y - state.camera.y
+
+            ctx.translate(areataZoneX, areataZoneY)
+
+            // Try to draw sprite image (areataability.png)
+            const areataAbilityPath = SPRITES.abilities?.areata_ability || '/sprites/areata/areataability.png'
+            const areataAbilityImg = loadedImages[areataAbilityPath]
+
+            if (areataAbilityImg && areataAbilityImg.complete && areataAbilityImg.naturalWidth > 0) {
+              ctx.globalAlpha = 0.6
+              const spriteSize = effect.radius * 2.5 // Slightly larger than hitbox
+              ctx.drawImage(
+                areataAbilityImg,
+                -spriteSize / 2,
+                -spriteSize / 2,
+                spriteSize,
+                spriteSize
+              )
+            } else {
+              // Fallback: Green circle
+              ctx.fillStyle = effect.color
+              ctx.globalAlpha = 0.3
+              ctx.beginPath()
+              ctx.arc(0, 0, effect.radius, 0, Math.PI * 2)
+              ctx.fill()
+
+              ctx.strokeStyle = '#fff'
+              ctx.lineWidth = 2
+              ctx.globalAlpha = 0.6
+              ctx.beginPath()
+              ctx.arc(0, 0, effect.radius, 0, Math.PI * 2)
+              ctx.stroke()
+            }
+
+            ctx.restore()
+            ctx.globalAlpha = 1
+            break
+
           case 'shockwave':
             // 충격파 렌더링
             const swX = effect.x - state.camera.x
@@ -2631,20 +2845,84 @@ const GameScreen = ({
             // Draw hair sprite if loaded
             if (loadedImages[SPRITES.attacks.wongfeihung_hair]) {
               const hairImg = loadedImages[SPRITES.attacks.wongfeihung_hair]
-              const hairSize = effect.radius * 2
-              ctx.drawImage(hairImg, -hairSize / 2, -hairSize / 2, hairSize, hairSize)
+              const hairSize = (effect.radius * 2) / 3
+              ctx.drawImage(hairImg, 0, 0, hairSize, hairSize)
             }
 
             // Draw slash effect trailing behind
             ctx.rotate(Math.PI / 4)
             if (loadedImages[SPRITES.attacks.wongfeihung_slash]) {
               const slashImg = loadedImages[SPRITES.attacks.wongfeihung_slash]
-              const slashSize = effect.radius * 1.5
+              const slashSize = effect.radius * 1.5 + 20
               ctx.drawImage(slashImg, -slashSize / 2, -slashSize / 2, slashSize, slashSize)
             }
 
             ctx.restore()
             ctx.globalAlpha = 1
+            break
+
+          case 'rotating_whirlpool':
+            {
+              const cx = effect.x - state.camera.x
+              const cy = effect.y - state.camera.y
+              const orbitRadius = effect.radius
+              const rotationSpeed = 3 // match logic speed
+              const elapsedS = (currentTime - effect.createdAt) / 1000
+              const currentAngle = elapsedS * rotationSpeed
+              const orbitCount = effect.orbits || 3
+
+              for (let i = 0; i < orbitCount; i++) {
+                const angle = currentAngle + (i * (Math.PI * 2 / orbitCount))
+                const satX = cx + Math.cos(angle) * orbitRadius
+                const satY = cy + Math.sin(angle) * orbitRadius
+
+                ctx.save()
+                ctx.translate(satX, satY)
+
+                // Spin around the satellite's center (axis)
+                const spinAngle = angle + (elapsedS * 10)
+                ctx.rotate(spinAngle)
+
+                const satScale = 0.4 // Scale for satellites relative to main attack
+                const baseSize = 250 // Base size reference
+                const hairSize = baseSize * satScale
+
+                // Draw hair (anchored at top-left = center of rotation)
+                if (loadedImages[SPRITES.attacks.wongfeihung_hair]) {
+                  const hairImg = loadedImages[SPRITES.attacks.wongfeihung_hair]
+                  ctx.drawImage(hairImg, 0, 0, hairSize, hairSize)
+                }
+
+                // Draw slash (rotated 45 degrees relative to hair)
+                ctx.rotate(Math.PI / 4)
+                if (loadedImages[SPRITES.attacks.wongfeihung_slash]) {
+                  const slashImg = loadedImages[SPRITES.attacks.wongfeihung_slash]
+                  const slashSize = hairSize * 3.0
+                  // Draw slash centered
+                  ctx.drawImage(slashImg, -slashSize / 2, -slashSize / 2, slashSize, slashSize)
+                }
+
+                // Fallback if no images
+                if (!loadedImages[SPRITES.attacks.wongfeihung_hair] && !loadedImages[SPRITES.attacks.wongfeihung_slash]) {
+                  ctx.fillStyle = effect.color
+                  ctx.beginPath()
+                  ctx.arc(0, 0, 20, 0, Math.PI * 2)
+                  ctx.fill()
+                }
+
+                ctx.restore()
+
+                // Draw connection line to player (optional visual flair)
+                ctx.strokeStyle = effect.color
+                ctx.globalAlpha = 0.2
+                ctx.lineWidth = 2
+                ctx.beginPath()
+                ctx.moveTo(cx, cy)
+                ctx.lineTo(satX, satY)
+                ctx.stroke()
+                ctx.globalAlpha = 1
+              }
+            }
             break
 
           case 'lightning':
@@ -3142,30 +3420,30 @@ const GameScreen = ({
           const effect = state.specialAbility.effect
           const mWidth = effect.width || 600
           const mHeight = effect.height || 400
-          
+
           const centerX = mFieldPos.x - state.camera.x
           const centerY = mFieldPos.y - state.camera.y
-          
+
           ctx.save()
-          
+
           // 시간에 따른 펄스 효과
           const pulseTime = currentTime % 500
           const pulseAlpha = 0.35 + Math.sin(pulseTime / 500 * Math.PI) * 0.15
-          
+
           // M 패턴 그리기 (M자 탈모 형태)
           ctx.translate(centerX - mWidth / 2, centerY - mHeight / 2)
-          
+
           const thickness = 80
           const leftX = mWidth * 0.1
           const rightX = mWidth * 0.9
           const peakY = mHeight * 0.15
           const valleyY = mHeight * 0.7
           const midX = mWidth * 0.5
-          
+
           // 글로우 효과
           ctx.shadowColor = '#6BEEED'
           ctx.shadowBlur = 40
-          
+
           // M 패턴 그라데이션 채우기
           const gradient = ctx.createLinearGradient(0, 0, mWidth, mHeight)
           gradient.addColorStop(0, `rgba(107, 238, 237, ${pulseAlpha + 0.1})`)
@@ -3173,47 +3451,47 @@ const GameScreen = ({
           gradient.addColorStop(0.5, `rgba(80, 200, 220, ${pulseAlpha + 0.15})`)
           gradient.addColorStop(0.7, `rgba(107, 238, 237, ${pulseAlpha})`)
           gradient.addColorStop(1, `rgba(150, 255, 255, ${pulseAlpha + 0.1})`)
-          
+
           ctx.fillStyle = gradient
           ctx.strokeStyle = `rgba(180, 255, 255, ${pulseAlpha + 0.4})`
           ctx.lineWidth = 4
-          
+
           // M 경로 그리기 (M자 탈모 형태: 양쪽 세로 + 중앙 V)
           ctx.beginPath()
-          
+
           // 왼쪽 세로선 바깥쪽
           ctx.moveTo(leftX - thickness / 2, mHeight)
           ctx.lineTo(leftX - thickness / 2, peakY)
-          
+
           // 왼쪽 꼭지점에서 중앙 V로
           ctx.lineTo(leftX + thickness / 2, peakY)
           ctx.lineTo(midX, valleyY - thickness / 2)
-          
+
           // 중앙 V에서 오른쪽 꼭지점으로
           ctx.lineTo(rightX - thickness / 2, peakY)
           ctx.lineTo(rightX + thickness / 2, peakY)
-          
+
           // 오른쪽 세로선
           ctx.lineTo(rightX + thickness / 2, mHeight)
           ctx.lineTo(rightX - thickness / 2, mHeight)
           ctx.lineTo(rightX - thickness / 2, peakY + thickness)
-          
+
           // 오른쪽에서 중앙 V 안쪽으로
           ctx.lineTo(midX, valleyY + thickness / 2)
-          
+
           // 중앙 V 안쪽에서 왼쪽으로
           ctx.lineTo(leftX + thickness / 2, peakY + thickness)
           ctx.lineTo(leftX + thickness / 2, mHeight)
-          
+
           ctx.closePath()
           ctx.fill()
           ctx.stroke()
-          
+
           // 에너지 파티클 효과 (M 모양을 따라 이동)
           for (let i = 0; i < 12; i++) {
             const t = ((currentTime / 1000 + i * 0.3) % 3) / 3
             let particleX, particleY
-            
+
             if (t < 0.33) {
               // 왼쪽 세로선
               particleX = leftX
@@ -3229,10 +3507,10 @@ const GameScreen = ({
               particleX = midX + (rightX - midX) * tt
               particleY = valleyY + (peakY - valleyY) * tt
             }
-            
+
             const particleAlpha = 0.6 + Math.sin(currentTime / 150 + i) * 0.3
             const particleSize = 6 + Math.sin(currentTime / 200 + i * 0.7) * 3
-            
+
             ctx.fillStyle = `rgba(107, 238, 237, ${particleAlpha})`
             ctx.shadowColor = '#6BEEED'
             ctx.shadowBlur = 15
@@ -3240,7 +3518,7 @@ const GameScreen = ({
             ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2)
             ctx.fill()
           }
-          
+
           ctx.restore()
         }
       }
@@ -3620,15 +3898,15 @@ const GameScreen = ({
               const isOnCooldown = cooldownRemaining > 0
               const cooldownPercent = isOnCooldown ? (cooldownRemaining / ability.cooldown) * 100 : 0
               const cooldownSeconds = Math.ceil(cooldownRemaining / 1000)
-              
+
               // 모근 부족 체크 (탈모의사 전용)
               const minFragments = ability.minFragments || 0
               const currentFragments = displayStats.fragments || 0
               const needsMoreFragments = minFragments > 0 && currentFragments < minFragments
-              
+
               // 사용 불가 상태: 쿨타임 중이거나 모근 부족
               const isDisabled = isOnCooldown || needsMoreFragments
-              
+
               // Build icon path
               const iconPath = SPRITES.abilities?.[`${selectedCharacter.id}_ability`]
 
@@ -3696,7 +3974,7 @@ const GameScreen = ({
                       </div>
                     </>
                   )}
-                  
+
                   {/* 모근 부족 Overlay */}
                   {needsMoreFragments && !isOnCooldown && (
                     <div style={{
@@ -3717,11 +3995,11 @@ const GameScreen = ({
                         textAlign: 'center',
                         lineHeight: '1.1',
                       }}>
-                        모근<br/>부족
+                        모근<br />부족
                       </span>
                     </div>
                   )}
-                  
+
                   {/* Shift Key Hint or Fragment requirement */}
                   {!isOnCooldown && (
                     <div style={{
