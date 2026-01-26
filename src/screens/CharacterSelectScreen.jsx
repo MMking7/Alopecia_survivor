@@ -1,14 +1,15 @@
 import React from 'react'
 import { SPRITES } from '../constants'
-import { 
-  ScreenBackground, 
-  PixelPanel, 
-  PixelButton, 
+import { getMainWeapon, getSpecialAbility } from '../MainWeapons'
+import {
+  ScreenBackground,
+  PixelPanel,
+  PixelButton,
   PixelTitle,
   CoinDisplay,
   StatBar,
   COLORS,
-  PIXEL_STYLES 
+  PIXEL_STYLES
 } from '../styles/PixelUI'
 
 const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStart, onBack, imagesLoaded, characterProgress, coins }) => {
@@ -40,16 +41,24 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                 justifyContent: 'center',
                 overflow: 'hidden',
               }}>
-                <img 
-                  src={SPRITES.characters[selectedCharacter.id]} 
-                  alt="" 
-                  style={{ 
-                    width: '100%', 
-                    height: '100%', 
-                    objectFit: 'contain',
-                    imageRendering: 'pixelated',
-                  }} 
-                />
+                {SPRITES.characters[selectedCharacter.id] ? (
+                  <img
+                    src={SPRITES.characters[selectedCharacter.id]}
+                    alt={selectedCharacter.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      imageRendering: 'pixelated',
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                      e.target.parentElement.innerHTML = `<div style="font-size: 80px; color: ${selectedCharacter.color};">👤</div>`
+                    }}
+                  />
+                ) : (
+                  <div style={{ fontSize: '80px', color: selectedCharacter.color }}>👤</div>
+                )}
               </div>
               
               {/* Character Name */}
@@ -96,6 +105,79 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                   <StatBar icon="⚡" label="HASTE" value={selectedCharacter.baseStats.attackSpeed} color={COLORS.warning} />
                 </div>
               </PixelPanel>
+
+              {/* Main Weapon */}
+              {(() => {
+                const mainWeapon = getMainWeapon(selectedCharacter.id)
+                return mainWeapon && (
+                  <PixelPanel variant="dark" style={{ marginBottom: '15px' }}>
+                    <h3 style={{
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      color: COLORS.primary,
+                      fontSize: '12px',
+                      margin: '0 0 8px',
+                      textShadow: '1px 1px 0 #000',
+                    }}>
+                      🗡️ 전용 무기
+                    </h3>
+                    <p style={{
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      color: COLORS.textWhite,
+                      fontSize: '11px',
+                      margin: '0 0 3px',
+                      fontWeight: 'bold',
+                    }}>
+                      {mainWeapon.name}
+                    </p>
+                    <p style={{
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      color: COLORS.textDark,
+                      fontSize: '10px',
+                      margin: 0,
+                      lineHeight: '1.4',
+                    }}>
+                      {mainWeapon.description}
+                    </p>
+                  </PixelPanel>
+                )
+              })()}
+
+              {/* Special Ability */}
+              {(() => {
+                const specialAbility = getSpecialAbility(selectedCharacter.id)
+                return specialAbility && (
+                  <PixelPanel variant="dark" style={{ marginBottom: '15px' }}>
+                    <h3 style={{
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      color: COLORS.warning,
+                      fontSize: '12px',
+                      margin: '0 0 8px',
+                      textShadow: '1px 1px 0 #000',
+                    }}>
+                      ⚡ 스페셜 (Shift)
+                    </h3>
+                    <p style={{
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      color: COLORS.textWhite,
+                      fontSize: '11px',
+                      margin: '0 0 3px',
+                      fontWeight: 'bold',
+                    }}>
+                      {specialAbility.name}
+                    </p>
+                    <p style={{
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      color: COLORS.textDark,
+                      fontSize: '10px',
+                      margin: 0,
+                      lineHeight: '1.4',
+                    }}>
+                      {specialAbility.description}
+                    </p>
+                  </PixelPanel>
+                )
+              })()}
+
               
               {/* Coins */}
               <div style={{ 
@@ -184,24 +266,35 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                     }}
                   >
                     {/* Character Image */}
-                    <div style={{ 
-                      width: '70px', 
-                      height: '70px', 
-                      margin: '0 auto 10px', 
+                    <div style={{
+                      width: '70px',
+                      height: '70px',
+                      margin: '0 auto 10px',
                       background: 'rgba(0,0,0,0.4)',
                       border: '2px solid rgba(255,255,255,0.1)',
                       overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}>
-                      <img 
-                        src={SPRITES.characters[char.id]} 
-                        alt={char.name} 
-                        style={{ 
-                          width: '100%', 
-                          height: '100%', 
-                          objectFit: 'cover',
-                          imageRendering: 'pixelated',
-                        }} 
-                      />
+                      {SPRITES.characters[char.id] ? (
+                        <img
+                          src={SPRITES.characters[char.id]}
+                          alt={char.name}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            imageRendering: 'pixelated',
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none'
+                            e.target.parentElement.innerHTML = `<div style="font-size: 40px; color: ${char.color};">👤</div>`
+                          }}
+                        />
+                      ) : (
+                        <div style={{ fontSize: '40px', color: char.color }}>👤</div>
+                      )}
                     </div>
                     <h3 style={{ 
                       fontFamily: PIXEL_STYLES.fontFamily,

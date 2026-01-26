@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { GAME_CONFIG, SPRITES, ENEMIES, BOSS, UPGRADES, SHOP_UPGRADES, getBaseStatsWithShop } from '../constants'
 import { generateMixedLevelUpOptions, handleSubWeaponSelection, getSubWeaponById } from '../SubWeapons'
+import { getMainWeapon, getSpecialAbility, getPassiveSkillOptions, handlePassiveSkillSelection } from '../MainWeapons'
 import {
   PixelPanel,
   PixelButton,
@@ -114,6 +115,15 @@ const GameScreen = ({
       subWeaponEffects: [],
       subWeaponProjectiles: [],
       inventory: [],
+      mainWeaponLevel: 1, // 메인 무기 레벨 (1~7)
+      passiveSkills: [], // 캐릭터 전용 패시브 스킬
+      specialAbility: {
+        cooldown: 0,
+        lastUsed: 0,
+        active: false,
+        activeUntil: 0,
+      },
+      fragments: 0, // 탈모의사 전용 - 모근 조각
       xp: 0,
       xpNeeded: getXpNeededForLevel(startingLevel),
       level: startingLevel,
@@ -122,7 +132,7 @@ const GameScreen = ({
       lastAttackTime: 0,
       lastEnemySpawn: 0,
       bossSpawned: false,
-      keys: { w: false, a: false, s: false, d: false },
+      keys: { w: false, a: false, s: false, d: false, shift: false },
       camera: { x: 0, y: 0 },
     }
   }, [selectedCharacter, shopLevels, characterProgress])
@@ -142,6 +152,10 @@ const GameScreen = ({
         case 'KeyS': gameStateRef.current.keys.s = true; break
         case 'KeyA': gameStateRef.current.keys.a = true; break
         case 'KeyD': gameStateRef.current.keys.d = true; break
+        case 'ShiftLeft':
+        case 'ShiftRight':
+          gameStateRef.current.keys.shift = true;
+          break
         case 'Escape':
           if (gamePhase === 'playing') setGamePhase('paused')
           else if (gamePhase === 'paused') setGamePhase('playing')
@@ -157,12 +171,16 @@ const GameScreen = ({
         case 'KeyS': gameStateRef.current.keys.s = false; break
         case 'KeyA': gameStateRef.current.keys.a = false; break
         case 'KeyD': gameStateRef.current.keys.d = false; break
+        case 'ShiftLeft':
+        case 'ShiftRight':
+          gameStateRef.current.keys.shift = false;
+          break
       }
     }
 
     const handleBlur = () => {
       if (gameStateRef.current) {
-        gameStateRef.current.keys = { w: false, a: false, s: false, d: false }
+        gameStateRef.current.keys = { w: false, a: false, s: false, d: false, shift: false }
       }
     }
 
@@ -304,6 +322,14 @@ const GameScreen = ({
         const dist = Math.sqrt(edx * edx + edy * edy)
         const effectiveSpeed = enemy.scaledSpeed || enemy.speed
 
+        // Apply electrify DoT (Heihachi)
+        if (enemy.electrified && currentTime < enemy.electrified.until) {
+          const electrifyDamage = state.stats.damage * enemy.electrified.damagePerSecond * deltaTime
+          enemy.currentHp -= electrifyDamage
+        } else if (enemy.electrified) {
+          delete enemy.electrified
+        }
+
         // 몬스터별 행동 패턴
         switch (enemy.attackType) {
           case 'dash': // 바리깡 - 대시 공격
@@ -438,6 +464,88 @@ const GameScreen = ({
       })
       // Garbage Collection for Enemies
       state.enemies = state.enemies.filter(e => !e.shouldRemove)
+
+      // Update ground zones (여성형 탈모 장판)
+      if (state.groundZones) {
+        state.groundZones.forEach((zone) => {
+          const age = currentTime - zone.createdAt
+          if (age >= zone.duration) {
+            zone.shouldRemove = true
+            return
+          }
+
+          // Deal damage to enemies in zone
+          state.enemies.forEach((enemy) => {
+            if (enemy.isDead) return
+
+            // Check if enemy is in rectangular zone
+            const dx = enemy.x - zone.x
+            const dy = enemy.y - zone.y
+            const rotatedX = dx * Math.cos(-zone.angle) - dy * Math.sin(-zone.angle)
+            const rotatedY = dx * Math.sin(-zone.angle) + dy * Math.cos(-zone.angle)
+
+            if (Math.abs(rotatedX) < zone.length / 2 && Math.abs(rotatedY) < zone.width / 2) {
+              const damage = state.stats.damage * zone.damagePerSecond * deltaTime
+              enemy.currentHp -= damage
+
+              // Show damage numbers periodically (not every frame to avoid spam)
+              if (!enemy.lastZoneDamageNumber || currentTime - enemy.lastZoneDamageNumber > 200) {
+                enemy.lastZoneDamageNumber = currentTime
+                state.damageNumbers.push({
+                  id: generateId(),
+                  x: enemy.x,
+                  y: enemy.y,
+                  damage: Math.floor(state.stats.damage * zone.damagePerSecond * 0.2), // Show ~0.2s worth of damage
+                  createdAt: currentTime,
+                })
+              }
+            }
+          })
+
+          // Awakening: Shockwave at zone end
+          if (zone.hasShockwave && currentTime - zone.lastShockwave >= zone.shockwaveInterval) {
+            zone.lastShockwave = currentTime
+            const shockwaveX = zone.x + Math.cos(zone.angle) * (zone.length / 2)
+            const shockwaveY = zone.y + Math.sin(zone.angle) * (zone.length / 2)
+
+            state.enemies.forEach((enemy) => {
+              const dist = distance({ x: shockwaveX, y: shockwaveY }, enemy)
+              if (dist < 60) {
+                enemy.currentHp -= state.stats.damage * zone.shockwaveDamage
+                // Knockback
+                const angle = Math.atan2(enemy.y - shockwaveY, enemy.x - shockwaveX)
+                if (!enemy.vx) enemy.vx = 0
+                if (!enemy.vy) enemy.vy = 0
+                enemy.vx += Math.cos(angle) * zone.shockwaveKnockback
+                enemy.vy += Math.sin(angle) * zone.shockwaveKnockback
+
+                state.damageNumbers.push({
+                  id: generateId(),
+                  x: enemy.x,
+                  y: enemy.y,
+                  damage: Math.floor(state.stats.damage * zone.shockwaveDamage),
+                  isCritical: false,
+                  createdAt: currentTime,
+                })
+              }
+            })
+
+            // Shockwave visual effect
+            state.attackEffects.push({
+              id: generateId(),
+              type: 'shockwave',
+              x: shockwaveX,
+              y: shockwaveY,
+              radius: 0,
+              maxRadius: 60,
+              color: '#FF69B4',
+              createdAt: currentTime,
+              duration: 300,
+            })
+          }
+        })
+        state.groundZones = state.groundZones.filter(z => !z.shouldRemove)
+      }
 
       // Update enemy projectiles
       state.enemyProjectiles.forEach((proj) => {
@@ -588,48 +696,84 @@ const GameScreen = ({
       state.explosions = state.explosions.filter((e) => currentTime - e.createdAt < 500)
 
       // Attack logic
-      const attackInterval = 1000 / state.stats.attackSpeed
+      const character = state.player.character
+      const mainWeapon = getMainWeapon(character.id)
+      const weaponEffect = mainWeapon ? mainWeapon.levelEffects[state.mainWeaponLevel] : null
+      const attackSpeedBonus = weaponEffect?.attackSpeedBonus || 0
+      const finalAttackSpeed = state.stats.attackSpeed * (1 + attackSpeedBonus)
+      const attackInterval = 1000 / finalAttackSpeed
+
       if (currentTime - state.lastAttackTime >= attackInterval) {
         state.lastAttackTime = currentTime
-        const character = state.player.character
 
         // Remove old effects
         state.attackEffects = state.attackEffects.filter((e) => currentTime - e.createdAt < 300)
 
         switch (character.attackType) {
           case 'aoe':
-            // Equalizer - AoE around player (확산 효과)
-            state.attackEffects.push({
-              id: generateId(),
-              type: 'aoe',
-              x: state.player.x,
-              y: state.player.y,
-              radius: state.stats.attackRange,
-              maxRadius: state.stats.attackRange,
-              color: character.attackColor,
-              createdAt: currentTime,
-              duration: 400,
-            })
-            state.enemies.forEach((enemy) => {
-              if (distance(state.player, enemy) <= state.stats.attackRange) {
-                const isCrit = Math.random() < (state.stats.crit || 0)
-                const finalDamage = state.stats.damage * (isCrit ? 1.5 : 1.0)
+            // 여성형 탈모 - 일자 탈모 장판 (Line Ground Zones)
+            const femaleWeapon = getMainWeapon('female')
+            if (femaleWeapon) {
+              const weaponEffect = femaleWeapon.levelEffects[state.mainWeaponLevel]
+              const facing = state.player.facing
+              const baseAngle = facing === 1 ? 0 : Math.PI
 
-                enemy.currentHp -= finalDamage
-                state.damageNumbers.push({
+              // Create line zones based on weapon level
+              for (let i = 0; i < (weaponEffect.lines || 1); i++) {
+                let offsetAngle = 0
+                if (weaponEffect.lines > 1) {
+                  // Spread lines if multiple (level 5+)
+                  offsetAngle = (i - (weaponEffect.lines - 1) / 2) * 0.3
+                }
+
+                const zoneAngle = baseAngle + offsetAngle
+                const zoneX = state.player.x + Math.cos(zoneAngle) * (weaponEffect.length / 2)
+                const zoneY = state.player.y + Math.sin(zoneAngle) * (weaponEffect.length / 2)
+
+                // Create ground zone effect
+                if (!state.groundZones) state.groundZones = []
+                state.groundZones.push({
                   id: generateId(),
-                  x: enemy.x,
-                  y: enemy.y,
-                  damage: Math.floor(finalDamage),
-                  isCritical: isCrit,
+                  type: 'female_line_zone',
+                  x: zoneX,
+                  y: zoneY,
+                  angle: zoneAngle,
+                  length: weaponEffect.length,
+                  width: weaponEffect.width,
+                  damagePerSecond: weaponEffect.damagePerSecond,
+                  duration: (weaponEffect.duration || 3) * 1000,
                   createdAt: currentTime,
+                  color: character.attackColor,
+                  // Awakening: shockwave
+                  hasShockwave: weaponEffect.shockwave || false,
+                  shockwaveDamage: weaponEffect.shockwaveDamage || 0,
+                  shockwaveKnockback: weaponEffect.shockwaveKnockback || 0,
+                  shockwaveInterval: weaponEffect.shockwaveInterval || 1000,
+                  lastShockwave: currentTime,
+                })
+
+                // Visual effect
+                state.attackEffects.push({
+                  id: generateId(),
+                  type: 'line_zone',
+                  x: zoneX,
+                  y: zoneY,
+                  angle: zoneAngle,
+                  length: weaponEffect.length,
+                  width: weaponEffect.width,
+                  color: character.attackColor,
+                  createdAt: currentTime,
+                  duration: 300,
                 })
               }
-            })
+            }
             break
 
           case 'beam':
-            // Hair Loss Beam - Single target
+            // 원형 탈모 - 탈모빔 (Hair Loss Beam - Single target with level scaling)
+            const areataWeapon = getMainWeapon('areata')
+            const areataEffect = areataWeapon ? areataWeapon.levelEffects[state.mainWeaponLevel] : { damage: 2.0 }
+
             let nearest = null
             let nearestDist = Infinity
             state.enemies.forEach((enemy) => {
@@ -650,7 +794,7 @@ const GameScreen = ({
                 createdAt: currentTime,
                 duration: 200,
               })
-              const damage = state.stats.damage * 2
+              const damage = state.stats.damage * areataEffect.damage
               nearest.currentHp -= damage
               state.damageNumbers.push({
                 id: generateId(),
@@ -663,30 +807,41 @@ const GameScreen = ({
             break
 
           case 'spin':
-            // Ponytail Spin - Melee AoE (최대 5명까지)
+            // 황비홍 - 비홍 편두 (Ponytail Spin with level scaling)
+            const wongWeapon = getMainWeapon('wongfeihung')
+            const wongEffect = wongWeapon ? wongWeapon.levelEffects[state.mainWeaponLevel] : { damage: 1.0, range: 100 }
+
+            // Create spinning hair visual effect
             state.attackEffects.push({
               id: generateId(),
-              type: 'spin',
-              radius: state.stats.attackRange * 0.7,
+              type: 'spin_hair',
+              radius: wongEffect.range || state.stats.attackRange * 0.7,
               angle: (currentTime / 100) % (Math.PI * 2),
               color: character.attackColor,
               createdAt: currentTime,
-              duration: 300,
+              duration: 400,
             })
-            
+
             // 범위 내 모든 적을 찾아서 최대 5명까지 공격
-            const spinRange = state.stats.attackRange * 0.7
-            const enemiesInRange = state.enemies.filter((enemy) => 
+            const spinRange = wongEffect.range || state.stats.attackRange * 0.7
+            const enemiesInRange = state.enemies.filter((enemy) =>
               !enemy.isDead && distance(state.player, enemy) <= spinRange
             )
-            
+
             // 최대 5명까지만 공격
             const spinTargets = enemiesInRange.slice(0, 5)
-            
+
             spinTargets.forEach((enemy) => {
               const isCrit = Math.random() < (state.stats.crit || 0)
-              const damage = state.stats.damage * 1.2 * (isCrit ? 1.5 : 1.0)
+              const damage = state.stats.damage * wongEffect.damage * (isCrit ? 1.5 : 1.0)
               enemy.currentHp -= damage
+
+              // Stun chance (level 5+)
+              if (wongEffect.stunChance && Math.random() < wongEffect.stunChance) {
+                enemy.stunned = true
+                enemy.stunUntil = currentTime + (wongEffect.stunDuration || 0.5) * 1000
+              }
+
               state.damageNumbers.push({
                 id: generateId(),
                 x: enemy.x,
@@ -699,7 +854,10 @@ const GameScreen = ({
             break
 
           case 'lightning':
-            // Lightning - Random strikes
+            // 헤이하치 - 초 풍신권 (Lightning strikes with level scaling)
+            const heihachiWeapon = getMainWeapon('heihachi')
+            const heihachiEffect = heihachiWeapon ? heihachiWeapon.levelEffects[state.mainWeaponLevel] : { damage: 1.5 }
+
             const inRange = state.enemies.filter((e) => distance(state.player, e) <= state.stats.attackRange * 1.5)
             const targets = inRange.sort(() => Math.random() - 0.5).slice(0, 4)
             targets.forEach((enemy) => {
@@ -711,8 +869,17 @@ const GameScreen = ({
                 color: character.attackColor,
                 createdAt: currentTime,
               })
-              const damage = state.stats.damage * 1.3
+              const damage = state.stats.damage * heihachiEffect.damage
               enemy.currentHp -= damage
+
+              // Apply electrify debuff
+              if (heihachiEffect.electrifyDuration) {
+                enemy.electrified = {
+                  damagePerSecond: heihachiEffect.electrifyDamagePerSecond || 0.40,
+                  until: currentTime + heihachiEffect.electrifyDuration * 1000,
+                }
+              }
+
               state.damageNumbers.push({
                 id: generateId(),
                 x: enemy.x,
@@ -1260,8 +1427,48 @@ const GameScreen = ({
           state.xp = 0
           state.level += 1
           state.xpNeeded = Math.floor(state.xpNeeded * GAME_CONFIG.LEVEL_XP_MULTIPLIER)
-          const options = generateMixedLevelUpOptions(UPGRADES, state.inventory, 3)
-          setLevelUpOptions(options)
+
+          // Generate level-up options - create a pool of all available options
+          const optionPool = []
+
+          // 1. Main Weapon Upgrade (if not maxed) - add to pool
+          if (state.mainWeaponLevel < 7) {
+            const mainWeapon = getMainWeapon(state.player.character.id)
+            if (mainWeapon) {
+              const nextLevel = state.mainWeaponLevel + 1
+              const nextEffect = mainWeapon.levelEffects[nextLevel]
+              optionPool.push({
+                id: mainWeapon.id,
+                name: mainWeapon.name,
+                type: nextLevel === 7 ? '무기 (각성)' : '무기',
+                description: mainWeapon.description,
+                icon: nextLevel === 7 ? `${state.player.character.id}_gaksung` : `${state.player.character.id}_ability`,
+                isMainWeapon: true,
+                currentLevel: state.mainWeaponLevel,
+                nextLevel,
+                effect: nextEffect,
+              })
+            }
+          }
+
+          // 2. Passive Skills - add all available to pool
+          const passiveOptions = getPassiveSkillOptions(state.player.character.id, state.passiveSkills)
+          passiveOptions.forEach(skill => {
+            optionPool.push({
+              ...skill,
+              type: '패시브 스킬',
+              icon: skill.icon,
+            })
+          })
+
+          // 3. Sub Weapons and Items - add to pool
+          const mixedOptions = generateMixedLevelUpOptions(UPGRADES, state.inventory, 5)
+          optionPool.push(...mixedOptions)
+
+          // Randomly select 3 options from the pool
+          const shuffled = [...optionPool].sort(() => Math.random() - 0.5)
+          const finalOptions = shuffled.slice(0, 3)
+          setLevelUpOptions(finalOptions)
           setGamePhase('levelup')
         }
       })
@@ -1483,6 +1690,45 @@ const GameScreen = ({
             ctx.globalAlpha = 1
             break
 
+          case 'line_zone':
+            // 여성형 탈모 - 일자 장판 렌더링
+            ctx.save()
+            const lineX = effect.x - state.camera.x
+            const lineY = effect.y - state.camera.y
+
+            ctx.translate(lineX, lineY)
+            ctx.rotate(effect.angle)
+
+            // Draw rectangle
+            ctx.fillStyle = effect.color
+            ctx.globalAlpha = 0.4 * (1 - progress)
+            ctx.fillRect(-effect.length / 2, -effect.width / 2, effect.length, effect.width)
+
+            ctx.strokeStyle = '#fff'
+            ctx.lineWidth = 2
+            ctx.globalAlpha = 0.7 * (1 - progress)
+            ctx.strokeRect(-effect.length / 2, -effect.width / 2, effect.length, effect.width)
+
+            ctx.restore()
+            ctx.globalAlpha = 1
+            break
+
+          case 'shockwave':
+            // 충격파 렌더링
+            const swX = effect.x - state.camera.x
+            const swY = effect.y - state.camera.y
+            const swRadius = effect.maxRadius * progress
+
+            ctx.strokeStyle = effect.color
+            ctx.lineWidth = 3
+            ctx.globalAlpha = 0.8 * (1 - progress)
+            ctx.beginPath()
+            ctx.arc(swX, swY, swRadius, 0, Math.PI * 2)
+            ctx.stroke()
+
+            ctx.globalAlpha = 1
+            break
+
           case 'beam':
             const startX = state.player.x - state.camera.x
             const startY = state.player.y - state.camera.y
@@ -1554,6 +1800,36 @@ const GameScreen = ({
             ctx.arc(spinX, spinY, effect.radius, 0, Math.PI * 2)
             ctx.fill()
 
+            ctx.globalAlpha = 1
+            break
+
+          case 'spin_hair':
+            // 황비홍 spinning hair with sprites
+            const hairX = state.player.x - state.camera.x
+            const hairY = state.player.y - state.camera.y
+            const hairAngle = effect.angle + (progress * Math.PI * 4)
+
+            ctx.save()
+            ctx.translate(hairX, hairY)
+            ctx.rotate(hairAngle)
+            ctx.globalAlpha = 0.9 * (1 - progress * 0.3)
+
+            // Draw hair sprite if loaded
+            if (loadedImages[SPRITES.attacks.wongfeihung_hair]) {
+              const hairImg = loadedImages[SPRITES.attacks.wongfeihung_hair]
+              const hairSize = effect.radius * 2
+              ctx.drawImage(hairImg, -hairSize / 2, -hairSize / 2, hairSize, hairSize)
+            }
+
+            // Draw slash effect trailing behind
+            ctx.rotate(Math.PI / 4)
+            if (loadedImages[SPRITES.attacks.wongfeihung_slash]) {
+              const slashImg = loadedImages[SPRITES.attacks.wongfeihung_slash]
+              const slashSize = effect.radius * 1.5
+              ctx.drawImage(slashImg, -slashSize / 2, -slashSize / 2, slashSize, slashSize)
+            }
+
+            ctx.restore()
             ctx.globalAlpha = 1
             break
 
@@ -2115,7 +2391,17 @@ const GameScreen = ({
   // Handle upgrade selection
   const handleUpgrade = useCallback((upgrade) => {
     if (gameStateRef.current) {
-      if (upgrade.isSubWeapon) {
+      if (upgrade.isMainWeapon) {
+        // Main Weapon Level Up
+        gameStateRef.current.mainWeaponLevel = upgrade.nextLevel
+      } else if (upgrade.isPassiveSkill) {
+        // Passive Skill Selection
+        gameStateRef.current.passiveSkills = handlePassiveSkillSelection(
+          upgrade,
+          gameStateRef.current.passiveSkills
+        )
+      } else if (upgrade.isSubWeapon) {
+        // Sub Weapon Selection
         const weaponData = upgrade.weaponData || getSubWeaponById(upgrade.id)
         if (weaponData) {
           gameStateRef.current.inventory = handleSubWeaponSelection(
@@ -2124,6 +2410,7 @@ const GameScreen = ({
           )
         }
       } else {
+        // Regular Item
         gameStateRef.current.stats = upgrade.effect(gameStateRef.current.stats)
         gameStateRef.current.inventory.push(upgrade)
       }
@@ -2432,7 +2719,7 @@ const GameScreen = ({
                     width: '48px',
                     height: '48px',
                     background: COLORS.bgDark,
-                    border: `2px solid ${upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
+                    border: `2px solid ${upgrade.isMainWeapon || upgrade.isPassiveSkill ? COLORS.warning : upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -2440,7 +2727,22 @@ const GameScreen = ({
                     flexShrink: 0,
                     position: 'relative',
                   }}>
-                    {upgrade.isSubWeapon ? (
+                    {upgrade.isMainWeapon || upgrade.isPassiveSkill ? (
+                      SPRITES.abilities && SPRITES.abilities[upgrade.icon] ? (
+                        <img
+                          src={SPRITES.abilities[upgrade.icon]}
+                          alt={upgrade.name}
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            imageRendering: 'pixelated',
+                            objectFit: 'contain'
+                          }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '30px' }}>{upgrade.isMainWeapon ? '⚔️' : '✨'}</span>
+                      )
+                    ) : upgrade.isSubWeapon ? (
                       <img src={SPRITES.subweapons[upgrade.icon]} alt="" style={{ width: '40px', height: '40px', imageRendering: 'pixelated', objectFit: 'contain' }} />
                     ) : (
                       <img src={SPRITES.items[upgrade.icon]} alt="" style={{ width: '28px', height: '28px', imageRendering: 'pixelated' }} />
