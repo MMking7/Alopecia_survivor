@@ -64,6 +64,7 @@ export const SPRITES = {
     dna: '/sprites/enemy_dna_1769163577183.webp',
     cigarette: '/sprites/enemy_cigarette_1769163592604.webp',
     soju: '/sprites/enemy_soju_1769163624862.webp',
+    cigarette_projectile: '/sprites/cigarette_fire.png',
   },
   boss: '/sprites/boss_complainant_1769163642840.webp',
   ui: {
@@ -89,6 +90,20 @@ export const SPRITES = {
     piman: '/sprites/holo/item_piman.webp',
     sake: '/sprites/holo/item_sake.webp',
     halu: '/sprites/holo/item_halu.webp',
+  },
+  subweapons: {
+    black_dye: '/sprites/subweapon/blackspraythumb.webp',
+    black_dye_anim: '/sprites/subweapon/blackspray.png',
+    hair_brush: '/sprites/subweapon/combspinthumb.webp',
+    hair_brush_anim: '/sprites/subweapon/comb250.png',
+    hair_spray: '/sprites/subweapon/hairspraybombthumb.webp',
+    hair_spray_missile: '/sprites/subweapon/hairspraymissile.png',
+    hair_spray_explosion: '/sprites/subweapon/hairsprayexplosion110x118.png',
+    hair_dryer: '/sprites/subweapon/hairdryerthumb.webp',
+    electric_clipper: '/sprites/subweapon/buzzerthumb.webp',
+    electric_clipper_slash: '/sprites/subweapon/razorslash.png',
+    dandruff_bomb: '/sprites/subweapon/bombthumb.webp',
+    dandruff_bomb_anim: '/sprites/subweapon/bomb225.png',
   }
 }
 
@@ -136,11 +151,11 @@ export const CHARACTERS = [
 ]
 
 export const ENEMIES = [
-  { type: 'clipper', name: 'Barikan', sprite: SPRITES.enemies.clipper, speed: 100, hp: 20, damage: 5, xp: 10, size: 64, attackType: 'dash' },
-  { type: 'zombie', name: 'Overwork Zombie', sprite: SPRITES.enemies.zombie, speed: 60, hp: 40, damage: 10, xp: 15, size: 80, attackType: 'melee' },
-  { type: 'dna', name: 'Bad Genetics', sprite: SPRITES.enemies.dna, speed: 80, hp: 30, damage: 8, xp: 12, size: 64, attackType: 'spiral' },
-  { type: 'cigarette', name: 'Stress Smoke', sprite: SPRITES.enemies.cigarette, speed: 90, hp: 25, damage: 12, xp: 12, size: 64, attackType: 'ranged' },
-  { type: 'soju', name: 'Alcohol', sprite: SPRITES.enemies.soju, speed: 70, hp: 45, damage: 15, xp: 20, size: 80, attackType: 'dash' },
+  { type: 'clipper', name: 'Barikan', sprite: SPRITES.enemies.clipper, speed: 100, hp: 20, damage: 5, xp: 10, size: 55, attackType: 'dash' },
+  { type: 'zombie', name: 'Overwork Zombie', sprite: SPRITES.enemies.zombie, speed: 60, hp: 40, damage: 10, xp: 15, size: 60, attackType: 'melee' },
+  { type: 'dna', name: 'Bad Genetics', sprite: SPRITES.enemies.dna, speed: 80, hp: 30, damage: 8, xp: 12, size: 55, attackType: 'spiral' },
+  { type: 'cigarette', name: 'Stress Smoke', sprite: SPRITES.enemies.cigarette, speed: 90, hp: 25, damage: 8, xp: 12, size: 55, attackType: 'ranged' },
+  { type: 'soju', name: 'Alcohol', sprite: SPRITES.enemies.soju, speed: 70, hp: 45, damage: 15, xp: 20, size: 60, attackType: 'dash' },
 ]
 
 export const BOSS = {
@@ -150,78 +165,75 @@ export const BOSS = {
   hp: 2000,
   damage: 40,
   xp: 1000,
-  size: 140,
+  size: 90,
   attackType: 'boss',
   attackCooldown: 800,
 }
 
 export const UPGRADES = [
-  { 
-    id: 'glasses', 
-    name: 'Follicle Scanner', 
-    type: 'Item', 
-    description: 'Analyzes scalp health. Increase EXP gain by 15%.', 
-    icon: 'glasses', 
-    effect: (stats) => ({ ...stats, xpMultiplier: (stats.xpMultiplier || 1) + 0.15 }) 
-  }, 
-  { 
-    id: 'ubersheep', 
-    name: 'Biotin Delivery', 
-    type: 'Item', 
-    description: 'Essential nutrients. Heals 20% HP periodically.', 
-    icon: 'ubersheep', 
-    effect: (stats) => ({ ...stats, hp: Math.min(stats.maxHp, stats.hp + stats.maxHp * 0.2) }) 
-  }, 
-  { 
-    id: 'horn', 
-    name: 'Minoxidil', 
-    type: 'Item', 
-    description: 'Promotes regrowth. Chance to heal 3 HP on kill.', 
-    icon: 'horn', 
-    effect: (stats) => ({ ...stats, lifeSteal: (stats.lifeSteal || 0) + 0.05 }) 
-  }, 
-  { 
-    id: 'pillow', 
-    name: 'Silk Cap', 
-    type: 'Item', 
-    description: 'Reduces friction. Grants a Shield (15 HP).', 
-    icon: 'pillow', 
-    effect: (stats) => ({ ...stats, shield: stats.shield + 15 }) 
-  }, 
-  { 
-    id: 'sake', 
-    name: 'Beer Yeast', 
-    type: 'Item', 
-    description: 'Good for hair? Crit +5%, but Aim wavers.', 
-    icon: 'sake', 
-    effect: (stats) => ({ ...stats, crit: (stats.crit || 0) + 0.05 }) 
-  }, 
-  { 
-    id: 'piman', 
-    name: 'Black Bean', 
-    type: 'Item', 
-    description: 'Traditional remedy. Max HP +15.', 
-    icon: 'piman', 
-    effect: (stats) => ({ ...stats, maxHp: stats.maxHp + 15, hp: stats.hp + 15 }) 
-  }, 
-  { 
-    id: 'halu', 
-    name: 'DHT Hormone', 
-    type: 'Item', 
-    description: 'The root cause. Enemy Spawn Rate UP!', 
-    icon: 'halu', 
-    effect: (stats) => ({ ...stats, spawnRateMultiplier: (stats.spawnRateMultiplier || 1) + 0.2 }) 
-  }, 
+  {
+    id: 'glasses',
+    name: '모낭 스캐너',
+    type: '아이템',
+    description: '두피 상태를 분석합니다. 경험치 획득량이 15% 증가합니다.',
+    icon: 'glasses',
+    effect: (stats) => ({ ...stats, xpMultiplier: (stats.xpMultiplier || 1) + 0.15 })
+  },
+  {
+    id: 'ubersheep',
+    name: '비오틴 보급',
+    type: '아이템',
+    description: '필수 영양소. 주기적으로 HP를 20% 회복합니다.',
+    icon: 'ubersheep',
+    effect: (stats) => ({ ...stats, hp: Math.min(stats.maxHp, stats.hp + stats.maxHp * 0.2) })
+  },
+  {
+    id: 'horn',
+    name: '미녹시딜',
+    type: '아이템',
+    description: '발모 촉진. 처치 시 3 HP를 회복할 확률이 있습니다.',
+    icon: 'horn',
+    effect: (stats) => ({ ...stats, lifeSteal: (stats.lifeSteal || 0) + 0.05 })
+  },
+  {
+    id: 'pillow',
+    name: '실크 캡',
+    type: '아이템',
+    description: '마찰을 줄입니다. 15 HP 보호막을 부여합니다.',
+    icon: 'pillow',
+    effect: (stats) => ({ ...stats, shield: stats.shield + 15 })
+  },
+  {
+    id: 'sake',
+    name: '맥주 효모',
+    type: '아이템',
+    description: '머리에 좋을지도? 치명타 +5%, 하지만 조준이 흔들립니다.',
+    icon: 'sake',
+    effect: (stats) => ({ ...stats, crit: (stats.crit || 0) + 0.05 })
+  },
+  {
+    id: 'piman',
+    name: '검은콩',
+    type: '아이템',
+    description: '전통 요법. 최대 HP +15.',
+    icon: 'piman',
+    effect: (stats) => ({ ...stats, maxHp: stats.maxHp + 15, hp: stats.hp + 15 })
+  },
+  {
+    id: 'halu',
+    name: 'DHT 호르몬',
+    type: '아이템',
+    description: '원인 그 자체. 적 생성 속도 증가!',
+    icon: 'halu',
+    effect: (stats) => ({ ...stats, spawnRateMultiplier: (stats.spawnRateMultiplier || 1) + 0.2 })
+  },
 ]
 
 export const SHOP_UPGRADES = [
-  { id: 'maxHp', name: 'HP 강화', description: '최대 HP +5% per level', icon: '❤️', cost: 100, maxLevel: 10 },
-  { id: 'atk', name: 'ATK 강화', description: '공격력 +3% per level', icon: '⚔️', cost: 150, maxLevel: 10 },
-  { id: 'spd', name: 'SPD 강화', description: '이동속도 +2% per level', icon: '🏃', cost: 120, maxLevel: 10 },
-  { id: 'crt', name: 'CRT 강화', description: '크리티컬 +2% per level', icon: '💥', cost: 200, maxLevel: 10 },
-  { id: 'pickup', name: 'Pickup 강화', description: '습득 범위 +5% per level', icon: '🧲', cost: 80, maxLevel: 10 },
-  { id: 'haste', name: 'Haste 강화', description: '공격속도 +2% per level', icon: '⚡', cost: 180, maxLevel: 10 },
-  { id: 'heal', name: 'Heal 강화', description: '회복량 +3% per level', icon: '💊', cost: 150, maxLevel: 10 },
-  { id: 'luck', name: 'Luck 강화', description: '드랍률 +2% per level', icon: '🎲', cost: 250, maxLevel: 10 },
-  { id: 'revival', name: 'Revival', description: '부활 횟수 +1', icon: '💖', cost: 500, maxLevel: 3 },
+  { id: 'hp', name: 'HP 강화', description: '최대 HP +10 per level', icon: '❤️', cost: 100, maxLevel: 10 },
+  { id: 'atk', name: 'ATK 강화', description: '공격력 +10% per level', icon: '⚔️', cost: 150, maxLevel: 10 },
+  { id: 'spd', name: 'ATK SPD 강화', description: '공격속도 +10% per level', icon: '⚡', cost: 180, maxLevel: 10 },
+  { id: 'mov', name: 'MOVE 강화', description: '이동속도 +5% per level', icon: '🏃', cost: 120, maxLevel: 10 },
+  { id: 'crit', name: 'CRIT 강화', description: '크리티컬 +3% per level', icon: '💥', cost: 200, maxLevel: 10 },
+  { id: 'xp', name: 'XP 강화', description: '경험치 배율 +10% per level', icon: '📈', cost: 250, maxLevel: 10 },
 ]

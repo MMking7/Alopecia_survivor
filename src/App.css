@@ -1,8 +1,73 @@
+/* Pixel Art Font Imports */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* Custom Pixel Font - NeoDunggeunmo */
+@font-face {
+  font-family: 'NeoDunggeunmo';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.3/NeoDunggeunmo.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Global Pixel Art Styles */
+* {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 #root {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
+}
+
+/* Remove default button styles */
+button {
+  font-family: 'NeoDunggeunmo', 'Press Start 2P', monospace;
+  outline: none;
+}
+
+button:focus {
+  outline: none;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Pixel-style scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1A1A2E;
+  border: 2px solid #3D3D5C;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3D3D5C;
+  border: 2px solid #252540;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4D4D6C;
+}
+
+/* Selection color */
+::selection {
+  background: #FFD700;
+  color: #000;
 }
 
 .logo {
@@ -39,4 +104,20 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* Pixel Art Animations */
+@keyframes pixel-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes pixel-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes pixel-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }

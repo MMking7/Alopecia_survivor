@@ -1,6 +1,14 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { GAME_CONFIG, SPRITES, ENEMIES, BOSS, UPGRADES, SHOP_UPGRADES, getBaseStatsWithShop } from '../constants'
 import { generateMixedLevelUpOptions, handleSubWeaponSelection, getSubWeaponById } from '../SubWeapons'
+import {
+  PixelPanel,
+  PixelButton,
+  PixelTitle,
+  StatBar,
+  COLORS,
+  PIXEL_STYLES
+} from '../styles/PixelUI'
 
 // Utility functions
 const generateId = () => Math.random().toString(36).substr(2, 9)
@@ -238,7 +246,15 @@ const GameScreen = ({
 
         // 한번에 여러 적 스폰
         for (let i = 0; i < difficulty.enemyCount; i++) {
-          const enemyType = ENEMIES[Math.floor(Math.random() * ENEMIES.length)]
+          // 담배 몹은 20% 확률로만 소환
+          let enemyType
+          if (Math.random() < 0.2) {
+            enemyType = ENEMIES[Math.floor(Math.random() * ENEMIES.length)]
+          } else {
+            // 담배를 제외한 다른 몹 중에서 선택
+            const nonCigaretteEnemies = ENEMIES.filter(e => e.type !== 'cigarette')
+            enemyType = nonCigaretteEnemies[Math.floor(Math.random() * nonCigaretteEnemies.length)]
+          }
           const angle = Math.random() * Math.PI * 2
           const dist = GAME_CONFIG.SPAWN_DISTANCE_MIN + Math.random() * (GAME_CONFIG.SPAWN_DISTANCE_MAX - GAME_CONFIG.SPAWN_DISTANCE_MIN)
 
@@ -322,12 +338,13 @@ const GameScreen = ({
               const projSpeed = enemy.projectileSpeed || 200
               state.enemyProjectiles.push({
                 id: generateId(),
+                type: 'cigarette_projectile',
                 x: enemy.x,
                 y: enemy.y,
                 vx: (edx / dist) * projSpeed,
                 vy: (edy / dist) * projSpeed,
                 damage: enemy.scaledDamage || enemy.damage,
-                size: 12,
+                size: 20, // Increased hitbox size
                 createdAt: currentTime,
               })
             }
@@ -807,6 +824,17 @@ const GameScreen = ({
                 })
               }
             })
+
+            // Add visual slash effect
+            state.attackEffects.push({
+              id: generateId(),
+              type: 'electric_clipper_slash',
+              x: state.player.x + (facing === 1 ? 30 : -30),
+              y: state.player.y,
+              facing: facing,
+              createdAt: currentTime,
+              duration: 150,
+            })
             break
           }
 
@@ -934,15 +962,7 @@ const GameScreen = ({
               y: proj.y,
               radius: proj.radius,
               damagePerSecond: proj.cloudDamage,
-              duration: proj.cloudDuration * 1000,
-              createdAt: currentTime,
-            })
-
-            state.explosions.push({
-              id: generateId(),
-              x: proj.x,
-              y: proj.y,
-              radius: proj.radius,
+              duration: 800, // 0.8 seconds for explosion animation
               createdAt: currentTime,
             })
           }
@@ -1232,44 +1252,106 @@ const GameScreen = ({
 
         switch (effect.type) {
           case 'black_dye_zone': {
-            const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1
-            ctx.globalAlpha = 0.6 * fadeOut
+            // Sprite-based animation using blackspray.png (9 frames, 158x158 each)
+            const blackSprayImg = loadedImages[SPRITES.subweapons.black_dye_anim]
+            if (blackSprayImg) {
+              const totalFrames = 9
+              const frameWidth = 158
+              const frameHeight = 158
 
-            const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, effect.radius)
-            gradient.addColorStop(0, 'rgba(20, 20, 20, 0.9)')
-            gradient.addColorStop(0.5, 'rgba(40, 40, 40, 0.7)')
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
+              // Calculate current frame based on progress (0 to 1)
+              // Animation is 1.3x faster, but frame 5 (largest pool) holds for the saved time
+              // Timeline: 0-19% = frames 0-4 (appearing), 19-81% = frame 5 (hold), 81-100% = frames 6-8 (disappearing)
+              let frameIndex
+              if (progress < 0.19) {
+                // Appearing: frames 0 to 4 (1.3x speed)
+                frameIndex = Math.floor(progress / 0.19 * 5)
+              } else if (progress < 0.81) {
+                // Hold at frame 5 (largest pool)
+                frameIndex = 5
+              } else {
+                // Disappearing: frames 6 to 8 (1.3x speed)
+                frameIndex = 6 + Math.floor((progress - 0.81) / 0.19 * 3)
+              }
+              frameIndex = Math.min(frameIndex, totalFrames - 1)
 
-            ctx.fillStyle = gradient
-            ctx.beginPath()
-            ctx.arc(sx, sy, effect.radius, 0, Math.PI * 2)
-            ctx.fill()
+              // Calculate source position in sprite sheet (horizontal strip)
+              const srcX = frameIndex * frameWidth
+              const srcY = 0
 
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)'
-            ctx.lineWidth = 2
-            ctx.beginPath()
-            ctx.arc(sx, sy, effect.radius * 0.9, 0, Math.PI * 2)
-            ctx.stroke()
+              // Draw size based on effect.radius (scale to match game world)
+              const drawSize = effect.radius * 2.5
 
-            ctx.globalAlpha = 1
+              ctx.save()
+              ctx.globalAlpha = progress > 0.85 ? (1 - progress) / 0.15 : 1
+              ctx.drawImage(
+                blackSprayImg,
+                srcX, srcY, frameWidth, frameHeight,
+                sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize
+              )
+              ctx.restore()
+            } else {
+              // Fallback to gradient if image not loaded
+              const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1
+              ctx.globalAlpha = 0.6 * fadeOut
+
+              const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, effect.radius)
+              gradient.addColorStop(0, 'rgba(20, 20, 20, 0.9)')
+              gradient.addColorStop(0.5, 'rgba(40, 40, 40, 0.7)')
+              gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
+
+              ctx.fillStyle = gradient
+              ctx.beginPath()
+              ctx.arc(sx, sy, effect.radius, 0, Math.PI * 2)
+              ctx.fill()
+
+              ctx.globalAlpha = 1
+            }
             break
           }
 
           case 'spray_cloud': {
-            const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1
-            ctx.globalAlpha = 0.4 * fadeOut
+            // Sprite-based explosion animation using hairsprayexplosion110x118.png (5 frames, 110x118 each)
+            const explosionImg = loadedImages[SPRITES.subweapons.hair_spray_explosion]
+            if (explosionImg) {
+              const totalFrames = 5
+              const frameWidth = 110
+              const frameHeight = 118
 
-            const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, effect.radius)
-            gradient.addColorStop(0, 'rgba(150, 255, 150, 0.6)')
-            gradient.addColorStop(0.6, 'rgba(100, 200, 100, 0.4)')
-            gradient.addColorStop(1, 'rgba(50, 150, 50, 0)')
+              // Calculate frame based on progress (0 to 1)
+              const frameIndex = Math.min(Math.floor(progress * totalFrames), totalFrames - 1)
+              const srcX = frameIndex * frameWidth
+              const srcY = 0
 
-            ctx.fillStyle = gradient
-            ctx.beginPath()
-            ctx.arc(sx, sy, effect.radius * (1 + progress * 0.3), 0, Math.PI * 2)
-            ctx.fill()
+              // Draw size based on effect radius
+              const drawSize = effect.radius * 2.5
+              const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1
 
-            ctx.globalAlpha = 1
+              ctx.save()
+              ctx.globalAlpha = fadeOut
+              ctx.drawImage(
+                explosionImg,
+                srcX, srcY, frameWidth, frameHeight,
+                sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize
+              )
+              ctx.restore()
+            } else {
+              // Fallback to gradient
+              const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1
+              ctx.globalAlpha = 0.4 * fadeOut
+
+              const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, effect.radius)
+              gradient.addColorStop(0, 'rgba(150, 255, 150, 0.6)')
+              gradient.addColorStop(0.6, 'rgba(100, 200, 100, 0.4)')
+              gradient.addColorStop(1, 'rgba(50, 150, 50, 0)')
+
+              ctx.fillStyle = gradient
+              ctx.beginPath()
+              ctx.arc(sx, sy, effect.radius * (1 + progress * 0.3), 0, Math.PI * 2)
+              ctx.fill()
+
+              ctx.globalAlpha = 1
+            }
             break
           }
         }
@@ -1280,27 +1362,64 @@ const GameScreen = ({
         const cx = state.player.x - state.camera.x
         const cy = state.player.y - state.camera.y
 
-        for (let i = 0; i < effect.teethCount; i++) {
-          const angle = effect.rotation + (Math.PI * 2 * i) / effect.teethCount
-          const tx = cx + Math.cos(angle) * effect.range
-          const ty = cy + Math.sin(angle) * effect.range
+        // Sprite-based animation using comb250.png (4 frames, 249x249 each)
+        const combImg = loadedImages[SPRITES.subweapons.hair_brush_anim]
+        if (combImg) {
+          const totalFrames = 4
+          const frameWidth = 249
+          const frameHeight = 249
+          const combSize = 60 // Draw size for each comb
 
-          ctx.fillStyle = '#8B4513'
-          ctx.beginPath()
-          ctx.ellipse(tx, ty, 15, 8, angle, 0, Math.PI * 2)
-          ctx.fill()
+          for (let i = 0; i < effect.teethCount; i++) {
+            const angle = effect.rotation + (Math.PI * 2 * i) / effect.teethCount
+            const tx = cx + Math.cos(angle) * effect.range
+            const ty = cy + Math.sin(angle) * effect.range
 
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'
+            // Select frame based on rotation angle (cycles through all 4 frames)
+            const frameIndex = Math.floor(((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / (Math.PI * 2) * totalFrames) % totalFrames
+            const srcX = frameIndex * frameWidth
+            const srcY = 0
+
+            ctx.save()
+            ctx.translate(tx, ty)
+            ctx.drawImage(
+              combImg,
+              srcX, srcY, frameWidth, frameHeight,
+              -combSize / 2, -combSize / 2, combSize, combSize
+            )
+            ctx.restore()
+          }
+
+          // Draw faint orbit circle
+          ctx.strokeStyle = 'rgba(255, 182, 193, 0.3)'
+          ctx.lineWidth = 3
           ctx.beginPath()
-          ctx.ellipse(tx - 3, ty - 3, 6, 3, angle, 0, Math.PI * 2)
-          ctx.fill()
+          ctx.arc(cx, cy, effect.range, 0, Math.PI * 2)
+          ctx.stroke()
+        } else {
+          // Fallback to original rendering
+          for (let i = 0; i < effect.teethCount; i++) {
+            const angle = effect.rotation + (Math.PI * 2 * i) / effect.teethCount
+            const tx = cx + Math.cos(angle) * effect.range
+            const ty = cy + Math.sin(angle) * effect.range
+
+            ctx.fillStyle = '#8B4513'
+            ctx.beginPath()
+            ctx.ellipse(tx, ty, 15, 8, angle, 0, Math.PI * 2)
+            ctx.fill()
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'
+            ctx.beginPath()
+            ctx.ellipse(tx - 3, ty - 3, 6, 3, angle, 0, Math.PI * 2)
+            ctx.fill()
+          }
+
+          ctx.strokeStyle = 'rgba(139, 69, 19, 0.3)'
+          ctx.lineWidth = 10
+          ctx.beginPath()
+          ctx.arc(cx, cy, effect.range, 0, Math.PI * 2)
+          ctx.stroke()
         }
-
-        ctx.strokeStyle = 'rgba(139, 69, 19, 0.3)'
-        ctx.lineWidth = 10
-        ctx.beginPath()
-        ctx.arc(cx, cy, effect.range, 0, Math.PI * 2)
-        ctx.stroke()
       })
 
       // Draw hair dryer cone
@@ -1327,23 +1446,69 @@ const GameScreen = ({
         ctx.restore()
       })
 
+      // Draw electric clipper slash
+      state.attackEffects.filter(e => e.type === 'electric_clipper_slash').forEach(effect => {
+        const elapsed = currentTime - effect.createdAt
+        const progress = elapsed / effect.duration
+
+        if (progress < 1) {
+          const slashImg = loadedImages[SPRITES.subweapons.electric_clipper_slash]
+          if (slashImg) {
+            const sx = effect.x - state.camera.x
+            const sy = effect.y - state.camera.y
+            const slashSize = 80
+            const fadeOut = progress > 0.5 ? (1 - progress) / 0.5 : 1
+
+            ctx.save()
+            ctx.translate(sx, sy)
+            // Flip if facing left
+            if (effect.facing === -1) {
+              ctx.scale(-1, 1)
+            }
+            ctx.globalAlpha = fadeOut
+            ctx.drawImage(
+              slashImg,
+              -slashSize / 2, -slashSize / 2, slashSize, slashSize
+            )
+            ctx.restore()
+          }
+        }
+      })
+
       // Draw sub weapon projectiles
       state.subWeaponProjectiles.forEach(proj => {
         const px = proj.x - state.camera.x
         const py = proj.y - state.camera.y
 
         if (proj.type === 'hair_spray_missile') {
-          ctx.fillStyle = '#00FF00'
-          ctx.beginPath()
-          ctx.arc(px, py, 8, 0, Math.PI * 2)
-          ctx.fill()
+          const missileImg = loadedImages[SPRITES.subweapons.hair_spray_missile]
+          if (missileImg) {
+            const missileSize = 50
+            // Calculate rotation angle based on velocity (sprite faces upper-right by default)
+            const angle = Math.atan2(proj.vy, proj.vx) + Math.PI / 4 // Adjust for sprite orientation
 
-          ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)'
-          ctx.lineWidth = 4
-          ctx.beginPath()
-          ctx.moveTo(px, py)
-          ctx.lineTo(px - proj.vx * 0.05, py - proj.vy * 0.05)
-          ctx.stroke()
+            ctx.save()
+            ctx.translate(px, py)
+            ctx.rotate(angle)
+            ctx.drawImage(
+              missileImg,
+              -missileSize / 2, -missileSize / 2, missileSize, missileSize
+            )
+            ctx.restore()
+          } else {
+            // Fallback
+            ctx.fillStyle = '#00FF00'
+            ctx.beginPath()
+            ctx.arc(px, py, 8, 0, Math.PI * 2)
+            ctx.fill()
+
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)'
+            ctx.lineWidth = 4
+            ctx.beginPath()
+            ctx.moveTo(px, py)
+            ctx.lineTo(px - proj.vx * 0.05, py - proj.vy * 0.05)
+            ctx.stroke()
+          }
         }
       })
 
@@ -1357,16 +1522,30 @@ const GameScreen = ({
           const elapsed = currentTime - bomb.createdAt
           const pulse = 1 + Math.sin(elapsed / 200) * 0.1
 
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
-          ctx.beginPath()
-          ctx.arc(bx, by, 12 * pulse, 0, Math.PI * 2)
-          ctx.fill()
+          // Render bomb sprite instead of white circle
+          const bombImg = loadedImages[SPRITES.subweapons.dandruff_bomb]
+          if (bombImg) {
+            const bombSize = 40 * pulse
+            ctx.save()
+            ctx.translate(bx, by)
+            ctx.drawImage(
+              bombImg,
+              -bombSize / 2, -bombSize / 2, bombSize, bombSize
+            )
+            ctx.restore()
+          } else {
+            // Fallback to white circle
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+            ctx.beginPath()
+            ctx.arc(bx, by, 12 * pulse, 0, Math.PI * 2)
+            ctx.fill()
 
-          ctx.strokeStyle = '#888'
-          ctx.lineWidth = 2
-          ctx.beginPath()
-          ctx.arc(bx, by, 12 * pulse, 0, Math.PI * 2)
-          ctx.stroke()
+            ctx.strokeStyle = '#888'
+            ctx.lineWidth = 2
+            ctx.beginPath()
+            ctx.arc(bx, by, 12 * pulse, 0, Math.PI * 2)
+            ctx.stroke()
+          }
 
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'
           ctx.lineWidth = 1
@@ -1396,15 +1575,6 @@ const GameScreen = ({
 
             ctx.drawImage(img, -enemy.size / 2, -enemy.size / 2, enemy.size, enemy.size)
             ctx.restore()
-
-            if (!enemy.isDead) {
-              const hpPercent = enemy.currentHp / (enemy.maxHp || enemy.hp)
-              const barWidth = enemy.size * 0.8
-              ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-              ctx.fillRect(sx - barWidth / 2, sy + enemy.size / 2 + 5, barWidth, 6)
-              ctx.fillStyle = hpPercent > 0.3 ? '#4CAF50' : '#f44336'
-              ctx.fillRect(sx - barWidth / 2, sy + enemy.size / 2 + 5, barWidth * Math.max(0, hpPercent), 6)
-            }
           }
         }
       })
@@ -1443,20 +1613,63 @@ const GameScreen = ({
       state.enemyProjectiles.forEach((proj) => {
         const px = proj.x - state.camera.x
         const py = proj.y - state.camera.y
-        if (px > -20 && px < canvas.width + 20 && py > -20 && py < canvas.height + 20) {
-          const gradient = ctx.createRadialGradient(px, py, 0, px, py, proj.size + 5)
-          gradient.addColorStop(0, 'rgba(255, 100, 50, 0.9)')
-          gradient.addColorStop(0.5, 'rgba(255, 50, 0, 0.5)')
-          gradient.addColorStop(1, 'rgba(100, 50, 0, 0)')
-          ctx.fillStyle = gradient
-          ctx.beginPath()
-          ctx.arc(px, py, proj.size + 5, 0, Math.PI * 2)
-          ctx.fill()
+        if (px > -50 && px < canvas.width + 50 && py > -50 && py < canvas.height + 50) {
+          if (proj.type === 'cigarette_projectile') {
+            const img = loadedImages[SPRITES.enemies.cigarette_projectile]
+            if (img) {
+              // User preferred the "Previous" direction (which was -Math.PI / 2).
+              // Also fixing the "stretched" look by respecting aspect ratio.
+              const angle = Math.atan2(proj.vy, proj.vx) - Math.PI / 2
+              
+              const aspect = img.width / img.height
+              const baseSize = 80 // Target size
+              let w = baseSize
+              let h = baseSize
+              
+              // Maintain aspect ratio
+              if (aspect > 1) {
+                h = baseSize / aspect
+              } else {
+                w = baseSize * aspect
+              }
 
-          ctx.fillStyle = '#FF6600'
-          ctx.beginPath()
-          ctx.arc(px, py, proj.size, 0, Math.PI * 2)
-          ctx.fill()
+              ctx.save()
+              ctx.translate(px, py)
+              ctx.rotate(angle)
+              ctx.drawImage(img, -w / 2, -h / 2, w, h)
+              ctx.restore()
+            } else {
+               // Fallback
+              const gradient = ctx.createRadialGradient(px, py, 0, px, py, proj.size + 5)
+              gradient.addColorStop(0, 'rgba(255, 100, 50, 0.9)')
+              gradient.addColorStop(0.5, 'rgba(255, 50, 0, 0.5)')
+              gradient.addColorStop(1, 'rgba(100, 50, 0, 0)')
+              ctx.fillStyle = gradient
+              ctx.beginPath()
+              ctx.arc(px, py, proj.size + 5, 0, Math.PI * 2)
+              ctx.fill()
+
+              ctx.fillStyle = '#FF6600'
+              ctx.beginPath()
+              ctx.arc(px, py, proj.size, 0, Math.PI * 2)
+              ctx.fill()
+            }
+          } else {
+            // Default projectile handling
+            const gradient = ctx.createRadialGradient(px, py, 0, px, py, proj.size + 5)
+            gradient.addColorStop(0, 'rgba(255, 100, 50, 0.9)')
+            gradient.addColorStop(0.5, 'rgba(255, 50, 0, 0.5)')
+            gradient.addColorStop(1, 'rgba(100, 50, 0, 0)')
+            ctx.fillStyle = gradient
+            ctx.beginPath()
+            ctx.arc(px, py, proj.size + 5, 0, Math.PI * 2)
+            ctx.fill()
+
+            ctx.fillStyle = '#FF6600'
+            ctx.beginPath()
+            ctx.arc(px, py, proj.size, 0, Math.PI * 2)
+            ctx.fill()
+          }
         }
       })
 
@@ -1465,24 +1678,52 @@ const GameScreen = ({
         const ex = exp.x - state.camera.x
         const ey = exp.y - state.camera.y
         const elapsed = currentTime - exp.createdAt
-        const progress = elapsed / 500
-        const radius = exp.radius * Math.min(1, progress * 2)
-        const alpha = 1 - progress
+        const duration = 1000 // 1 second total animation
+        const progress = elapsed / duration
 
-        ctx.strokeStyle = `rgba(255, 100, 0, ${alpha})`
-        ctx.lineWidth = 8 * (1 - progress)
-        ctx.beginPath()
-        ctx.arc(ex, ey, radius, 0, Math.PI * 2)
-        ctx.stroke()
+        // Sprite-based explosion using bomb225.png (5 frames, 225x225 each)
+        const bombExplosionImg = loadedImages[SPRITES.subweapons.dandruff_bomb_anim]
+        if (bombExplosionImg && progress < 1) {
+          const totalFrames = 5
+          const frameWidth = 225
+          const frameHeight = 225
 
-        const gradient = ctx.createRadialGradient(ex, ey, 0, ex, ey, radius)
-        gradient.addColorStop(0, `rgba(255, 200, 100, ${alpha * 0.5})`)
-        gradient.addColorStop(0.5, `rgba(255, 100, 0, ${alpha * 0.3})`)
-        gradient.addColorStop(1, 'rgba(255, 50, 0, 0)')
-        ctx.fillStyle = gradient
-        ctx.beginPath()
-        ctx.arc(ex, ey, radius, 0, Math.PI * 2)
-        ctx.fill()
+          const frameIndex = Math.min(Math.floor(progress * totalFrames), totalFrames - 1)
+          const srcX = frameIndex * frameWidth
+          const srcY = 0
+
+          // Draw size based on explosion radius
+          const drawSize = exp.radius * 3
+          const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1
+
+          ctx.save()
+          ctx.globalAlpha = fadeOut
+          ctx.drawImage(
+            bombExplosionImg,
+            srcX, srcY, frameWidth, frameHeight,
+            ex - drawSize / 2, ey - drawSize / 2, drawSize, drawSize
+          )
+          ctx.restore()
+        } else if (progress < 1) {
+          // Fallback to original gradient rendering
+          const radius = exp.radius * Math.min(1, progress * 2)
+          const alpha = 1 - progress
+
+          ctx.strokeStyle = `rgba(255, 100, 0, ${alpha})`
+          ctx.lineWidth = 8 * (1 - progress)
+          ctx.beginPath()
+          ctx.arc(ex, ey, radius, 0, Math.PI * 2)
+          ctx.stroke()
+
+          const gradient = ctx.createRadialGradient(ex, ey, 0, ex, ey, radius)
+          gradient.addColorStop(0, `rgba(255, 200, 100, ${alpha * 0.5})`)
+          gradient.addColorStop(0.5, `rgba(255, 100, 0, ${alpha * 0.3})`)
+          gradient.addColorStop(1, 'rgba(255, 50, 0, 0)')
+          ctx.fillStyle = gradient
+          ctx.beginPath()
+          ctx.arc(ex, ey, radius, 0, Math.PI * 2)
+          ctx.fill()
+        }
       })
 
       // Draw damage numbers
@@ -1496,9 +1737,16 @@ const GameScreen = ({
         ctx.save()
         ctx.translate(sx, sy)
         ctx.scale(scale, scale)
-        ctx.font = '20px "Press Start 2P", cursive'
-        ctx.fillStyle = `rgba(255, 235, 59, ${1 - progress})`
-        if (dn.isCrit) ctx.fillStyle = `rgba(255, 82, 82, ${1 - progress})`
+        
+        // 크리티컬 데미지: 크고 빨간색, 일반 데미지: 작고 흰색
+        if (dn.isCritical) {
+          ctx.font = '20px "Press Start 2P", cursive'
+          ctx.fillStyle = `rgba(255, 82, 82, ${1 - progress})`
+        } else {
+          ctx.font = '14px "Press Start 2P", cursive'
+          ctx.fillStyle = `rgba(255, 255, 255, ${1 - progress})`
+        }
+        
         ctx.strokeStyle = `rgba(0, 0, 0, ${1 - progress})`
         ctx.lineWidth = 4
         ctx.lineJoin = 'round'
@@ -1562,91 +1810,133 @@ const GameScreen = ({
         }}
       />
 
-      {/* HUD */}
+      {/* XP Bar - Top Full Width */}
       <div style={{
         position: 'absolute',
-        top: '10px',
-        left: '10px',
-        display: 'flex',
-        gap: '15px',
-        alignItems: 'flex-start',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '12px',
+        background: 'rgba(13, 13, 26, 0.95)',
+        borderBottom: `3px solid ${COLORS.panelBorder}`,
+        boxShadow: '0 3px 0 0 rgba(0,0,0,0.5)',
+        zIndex: 100,
       }}>
-        {/* Character Portrait */}
         <div style={{
-          background: 'rgba(0, 0, 0, 0.8)',
-          borderRadius: '12px',
-          padding: '10px',
-          border: '3px solid #444',
-        }}>
-          <img
-            src={SPRITES.characters[selectedCharacter?.id]}
-            alt=""
-            style={{ width: '60px', height: '60px', borderRadius: '8px' }}
-          />
-          <div style={{
-            marginTop: '8px',
-            background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '4px',
-            height: '8px',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              width: `${(displayStats.xp / displayStats.xpNeeded) * 100}%`,
-              height: '100%',
-              background: 'linear-gradient(90deg, #00BFFF, #00FFFF)',
-            }} />
-          </div>
-        </div>
-
-        {/* HP Bar */}
-        <div style={{
-          background: 'rgba(0, 0, 0, 0.8)',
-          borderRadius: '8px',
-          padding: '8px 15px',
-          border: '2px solid #444',
-        }}>
-          <div style={{ color: '#fff', fontSize: '14px', marginBottom: '4px' }}>
-            ❤️ HP {displayStats.hp} / {displayStats.maxHp}
-            {displayStats.shield > 0 && <span style={{ color: '#00BFFF' }}> 🛡️x{displayStats.shield}</span>}
-          </div>
-          <div style={{
-            width: '200px',
-            height: '16px',
-            background: 'rgba(255, 255, 255, 0.2)',
-            borderRadius: '8px',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              width: `${(displayStats.hp / displayStats.maxHp) * 100}%`,
-              height: '100%',
-              background: displayStats.hp > displayStats.maxHp * 0.3
-                ? 'linear-gradient(90deg, #ff6b6b, #ff4757)'
-                : 'linear-gradient(90deg, #ff0000, #8b0000)',
-              transition: 'width 0.3s',
-            }} />
-          </div>
-        </div>
+          width: `${Math.min(100, (displayStats.xp / displayStats.xpNeeded) * 100)}%`,
+          height: '100%',
+          background: `linear-gradient(90deg, ${COLORS.secondary}, ${COLORS.secondaryDark})`,
+          transition: 'width 0.3s ease',
+          boxShadow: `inset 0 0 10px ${COLORS.secondary}80`,
+        }} />
       </div>
 
-      {/* Top Right HUD */}
+      {/* HUD - Top Bar */}
       <div style={{
         position: 'absolute',
-        top: '10px',
-        right: '10px',
-        background: 'rgba(0, 0, 0, 0.8)',
-        borderRadius: '12px',
-        padding: '15px',
-        border: '3px solid #444',
-        textAlign: 'right',
+        top: '12px',
+        left: 0,
+        right: 0,
+        padding: '10px 15px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        pointerEvents: 'none',
       }}>
-        <div style={{ color: '#FFD700', fontSize: '24px', fontWeight: 'bold' }}>
-          LV. {displayStats.level}
+        {/* Left HUD Group */}
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+          alignItems: 'flex-start',
+          pointerEvents: 'auto',
+        }}>
+          {/* Character Portrait */}
+          <div style={{
+            background: 'rgba(13, 13, 26, 0.9)',
+            border: `3px solid ${COLORS.panelBorder}`,
+            boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
+            padding: '6px',
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: COLORS.bgLight,
+              border: `2px solid ${selectedCharacter?.color || COLORS.panelBorder}`,
+              overflow: 'hidden',
+            }}>
+              <img
+                src={SPRITES.characters[selectedCharacter?.id]}
+                alt=""
+                style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }}
+              />
+            </div>
+          </div>
+
+          {/* HP Bar */}
+          <div style={{
+            background: 'rgba(13, 13, 26, 0.9)',
+            border: `3px solid ${COLORS.panelBorder}`,
+            boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
+            padding: '8px 12px',
+          }}>
+            <div style={{
+              fontFamily: PIXEL_STYLES.fontFamily,
+              color: COLORS.textWhite, 
+              fontSize: '13px', 
+              marginBottom: '4px',
+              textShadow: '1px 1px 0 #000',
+              whiteSpace: 'nowrap',
+            }}>
+              ❤️ {displayStats.hp}/{displayStats.maxHp}
+              {displayStats.shield > 0 && <span style={{ color: COLORS.secondary }}> 🛡️{displayStats.shield}</span>}
+            </div>
+            <div style={{
+              width: 'clamp(100px, 15vw, 180px)',
+              height: '12px',
+              background: COLORS.bgDark,
+              border: `2px solid ${COLORS.panelBorder}`,
+            }}>
+              <div style={{
+                width: `${Math.min(100, (displayStats.hp / displayStats.maxHp) * 100)}%`,
+                height: '100%',
+                background: displayStats.hp > displayStats.maxHp * 0.3 ? COLORS.hp : '#8b0000',
+                transition: 'width 0.2s',
+              }} />
+            </div>
+          </div>
         </div>
-        <div style={{ color: '#87CEEB', fontSize: '18px', marginTop: '5px' }}>
-          ⏱️ {formatTime(displayStats.time)}
-        </div>
-        <div style={{ color: '#FF6B6B', fontSize: '18px', marginTop: '5px' }}>
-          💀 {displayStats.kills}
+
+        {/* Right HUD Group */}
+        <div style={{
+          background: 'rgba(13, 13, 26, 0.9)',
+          border: `3px solid ${COLORS.panelBorder}`,
+          boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
+          padding: '8px 12px',
+          textAlign: 'right',
+          pointerEvents: 'auto',
+        }}>
+          <div style={{
+            fontFamily: PIXEL_STYLES.fontFamily,
+            color: COLORS.primary,
+            fontSize: 'clamp(14px, 2vw, 18px)',
+            fontWeight: 'bold',
+            textShadow: '2px 2px 0 #000',
+          }}>
+            LV.{displayStats.level}
+          </div>
+          <div style={{
+            fontFamily: PIXEL_STYLES.fontFamily,
+            color: COLORS.textGray,
+            fontSize: 'clamp(10px, 1.5vw, 12px)',
+            marginTop: '4px',
+            textShadow: '1px 1px 0 #000',
+            display: 'flex',
+            gap: '10px',
+            justifyContent: 'flex-end',
+          }}>
+            <span style={{ color: COLORS.info }}>⏱️{formatTime(displayStats.time)}</span>
+            <span style={{ color: COLORS.danger }}>💀{displayStats.kills}</span>
+          </div>
         </div>
       </div>
 
@@ -1655,190 +1945,217 @@ const GameScreen = ({
         <div style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
+          background: 'rgba(0, 0, 0, 0.9)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          zIndex: 10,
+          padding: '20px',
         }}>
+          {/* Scanline overlay */}
           <div style={{
-            position: 'relative',
-            width: '800px',
-            height: '450px',
-            backgroundImage: `url(${SPRITES.ui.bg_levelup})`,
-            backgroundSize: '100% 100%',
+            position: 'absolute',
+            inset: 0,
+            background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px)',
+            pointerEvents: 'none',
+          }} />
+
+          {/* Modal Container */}
+          <div style={{
+            width: '100%',
+            maxWidth: '700px',
+            maxHeight: '90vh',
             display: 'flex',
-            padding: '20px 40px',
-            gap: '20px',
-            imageRendering: 'pixelated'
+            flexDirection: 'column',
+            background: 'rgba(13, 13, 26, 0.98)',
+            border: `4px solid ${COLORS.primary}`,
+            boxShadow: `
+              6px 6px 0 0 rgba(0,0,0,0.6),
+              inset 0 0 0 2px rgba(255,215,0,0.2)
+            `,
+            overflow: 'hidden',
           }}>
-            {/* Left Panel - Character & Stats */}
+            {/* Header */}
             <div style={{
-              width: '30%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              paddingTop: '30px'
+              background: `linear-gradient(180deg, ${COLORS.primary} 0%, ${COLORS.primaryDark} 100%)`,
+              padding: '12px 20px',
+              textAlign: 'center',
+              borderBottom: '4px solid #000',
             }}>
-              {/* Portrait */}
-              <div style={{
-                position: 'relative',
-                width: '120px',
-                height: '140px',
-                marginBottom: '10px'
+              <h1 style={{
+                fontFamily: PIXEL_STYLES.fontFamily,
+                fontSize: 'clamp(20px, 4vw, 32px)',
+                color: '#000',
+                margin: 0,
+                letterSpacing: '4px',
+                textShadow: '2px 2px 0 rgba(255,255,255,0.3)',
               }}>
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  backgroundImage: `url(${SPRITES.ui.char_bg})`,
-                  backgroundSize: '100% 100%',
-                  zIndex: 0
-                }} />
+                ⬆️ LEVEL UP!
+              </h1>
+            </div>
+
+            {/* Character Info Bar */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '15px',
+              padding: '12px 20px',
+              background: 'rgba(0,0,0,0.5)',
+              borderBottom: `2px solid ${COLORS.panelBorder}`,
+            }}>
+              <div style={{
+                width: '50px',
+                height: '50px',
+                background: COLORS.bgLight,
+                border: `3px solid ${selectedCharacter?.color || COLORS.secondary}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
                 <img
                   src={SPRITES.characters[selectedCharacter.id]}
                   alt=""
-                  style={{
-                    position: 'absolute',
-                    bottom: '10px', left: '50%', transform: 'translateX(-50%)',
-                    width: '80px', height: '80px', objectFit: 'contain',
-                    imageRendering: 'pixelated', zIndex: 1
-                  }}
+                  style={{ width: '40px', height: '40px', objectFit: 'contain', imageRendering: 'pixelated' }}
                 />
-                <div style={{
-                  position: 'absolute', inset: -5,
-                  backgroundImage: `url(${SPRITES.ui.char_frame})`,
-                  backgroundSize: '100% 100%',
-                  zIndex: 2
-                }} />
               </div>
-
-              <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '15px' }}>{selectedCharacter.name.toUpperCase()}</h2>
-
-              {/* Stats List */}
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                {[
-                  { icon: SPRITES.ui.icon_hp, label: 'HP', value: `${displayStats.hp} / ${displayStats.maxHp}`, color: '#ff6b6b' },
-                  { icon: SPRITES.ui.icon_atk, label: 'ATK', value: `+${Math.floor((gameStateRef.current?.stats?.damage / 30 - 1) * 100)}%`, color: '#ffd700' },
-                  { icon: SPRITES.ui.icon_spd, label: 'SPD', value: `+${Math.floor((gameStateRef.current?.stats?.moveSpeed - 1) * 100)}%`, color: '#87ceeb' },
-                  { icon: SPRITES.ui.icon_crt, label: 'CRT', value: '+5%', color: '#ff69b4' },
-                  { icon: SPRITES.ui.icon_pickup, label: 'Pickup', value: '+0%', color: '#00ffff' },
-                  { icon: SPRITES.ui.icon_haste, label: 'Haste', value: `+${Math.floor((gameStateRef.current?.stats?.attackSpeed / 1.5 - 1) * 100)}%`, color: '#ffff00' },
-                ].map(stat => (
-                  <div key={stat.label} style={{ display: 'flex', alignItems: 'center', color: '#fff', fontSize: '14px', background: 'rgba(0,0,0,0.5)', padding: '2px 5px' }}>
-                    <img src={stat.icon} alt="" style={{ width: '16px', height: '16px', marginRight: '5px' }} />
-                    <span style={{ width: '50px' }}>{stat.label}</span>
-                    <span style={{ marginLeft: 'auto', color: stat.color }}>{stat.value}</span>
-                  </div>
-                ))}
+              <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '8px 20px' }}>
+                <span style={{ fontFamily: PIXEL_STYLES.fontFamily, color: COLORS.textWhite, fontSize: '12px' }}>
+                  ❤️ {displayStats.hp}/{displayStats.maxHp}
+                </span>
+                <span style={{ fontFamily: PIXEL_STYLES.fontFamily, color: COLORS.atk, fontSize: '12px' }}>
+                  ⚔️ +{Math.floor((gameStateRef.current?.stats?.damage / 30 - 1) * 100)}%
+                </span>
+                <span style={{ fontFamily: PIXEL_STYLES.fontFamily, color: COLORS.spd, fontSize: '12px' }}>
+                  🏃 +{Math.floor((gameStateRef.current?.stats?.moveSpeed - 1) * 100)}%
+                </span>
+                <span style={{ fontFamily: PIXEL_STYLES.fontFamily, color: COLORS.crit, fontSize: '12px' }}>
+                  💥 {Math.round((gameStateRef.current?.stats?.crit || 0) * 100)}%
+                </span>
               </div>
             </div>
 
-            {/* Right Panel - Upgrade Options */}
+            {/* Upgrade Options - Scrollable */}
             <div style={{
               flex: 1,
+              overflowY: 'auto',
+              padding: '15px',
               display: 'flex',
               flexDirection: 'column',
               gap: '10px',
-              paddingTop: '20px',
-              overflowY: 'auto'
             }}>
-              <h1 style={{
-                fontFamily: '"Press Start 2P", cursive, sans-serif',
-                color: '#fff',
-                fontSize: '48px',
-                margin: '0 0 20px',
+              <p style={{
+                fontFamily: PIXEL_STYLES.fontFamily,
+                color: COLORS.textGray,
+                fontSize: '11px',
                 textAlign: 'center',
-                textShadow: '4px 4px 0 #000, -2px -2px 0 #000',
-                letterSpacing: '2px'
+                margin: '0 0 5px 0',
               }}>
-                LEVEL UP!
-              </h1>
+                SELECT AN UPGRADE
+              </p>
 
               {levelUpOptions.map((upgrade, index) => (
-                <div
+                <button
                   key={upgrade.id + index}
                   onClick={() => handleUpgrade(upgrade)}
                   style={{
-                    position: 'relative',
-                    height: '80px',
-                    background: upgrade.isSubWeapon
-                      ? 'linear-gradient(90deg, rgba(80,40,0,0.8) 0%, rgba(40,20,0,0.4) 100%)'
-                      : 'linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 100%)',
-                    border: upgrade.isSubWeapon ? '2px solid #FFD700' : '2px solid #00BFFF',
-                    borderRadius: '0 20px 20px 0',
                     display: 'flex',
                     alignItems: 'center',
+                    padding: '12px',
+                    background: upgrade.isSubWeapon
+                      ? `linear-gradient(90deg, rgba(255,215,0,0.15) 0%, ${COLORS.bgLight} 100%)`
+                      : COLORS.bgLight,
+                    border: `3px solid ${upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
+                    boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
                     cursor: 'pointer',
-                    padding: '0 20px',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.1s',
+                    textAlign: 'left',
+                    width: '100%',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = upgrade.isSubWeapon
-                      ? 'linear-gradient(90deg, rgba(255,200,0,0.4) 0%, rgba(40,20,0,0.4) 100%)'
-                      : 'linear-gradient(90deg, rgba(0,191,255,0.4) 0%, rgba(0,0,0,0.4) 100%)'
-                    e.currentTarget.style.transform = 'translateX(10px)'
+                    e.currentTarget.style.transform = 'translateX(5px)'
+                    e.currentTarget.style.borderColor = upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary
+                    e.currentTarget.style.boxShadow = `0 0 15px ${upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary}40, 3px 3px 0 0 rgba(0,0,0,0.5)`
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = upgrade.isSubWeapon
-                      ? 'linear-gradient(90deg, rgba(80,40,0,0.8) 0%, rgba(40,20,0,0.4) 100%)'
-                      : 'linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 100%)'
                     e.currentTarget.style.transform = 'translateX(0)'
+                    e.currentTarget.style.borderColor = upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder
+                    e.currentTarget.style.boxShadow = '3px 3px 0 0 rgba(0,0,0,0.5)'
                   }}
                 >
-                  {/* Icon Box */}
+                  {/* Icon */}
                   <div style={{
-                    width: '60px', height: '60px',
-                    backgroundImage: `url(${SPRITES.ui.box_item})`,
-                    backgroundSize: 'contain',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'center',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    marginRight: '15px',
-                    position: 'relative'
+                    width: '48px',
+                    height: '48px',
+                    background: COLORS.bgDark,
+                    border: `2px solid ${upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: '12px',
+                    flexShrink: 0,
+                    position: 'relative',
                   }}>
                     {upgrade.isSubWeapon ? (
-                      <span style={{ fontSize: '28px' }}>
-                        {upgrade.id === 'black_dye' && '🖤'}
-                        {upgrade.id === 'hair_brush' && '🪥'}
-                        {upgrade.id === 'hair_spray' && '💨'}
-                        {upgrade.id === 'hair_dryer' && '🔥'}
-                        {upgrade.id === 'electric_clipper' && '⚡'}
-                        {upgrade.id === 'dandruff_bomb' && '💣'}
-                      </span>
+                      <img src={SPRITES.subweapons[upgrade.icon]} alt="" style={{ width: '40px', height: '40px', imageRendering: 'pixelated', objectFit: 'contain' }} />
                     ) : (
-                      <img src={SPRITES.items[upgrade.icon]} alt="" style={{ width: '32px', height: '32px', imageRendering: 'pixelated' }} />
+                      <img src={SPRITES.items[upgrade.icon]} alt="" style={{ width: '28px', height: '28px', imageRendering: 'pixelated' }} />
                     )}
                     {upgrade.isSubWeapon && (
                       <div style={{
                         position: 'absolute',
-                        top: '-5px',
-                        right: '-5px',
-                        background: upgrade.grade === 3 ? '#FFD700' : upgrade.grade === 2 ? '#C0C0C0' : '#CD7F32',
+                        top: '-6px',
+                        right: '-6px',
+                        background: upgrade.grade === 3 ? COLORS.primary : upgrade.grade === 2 ? '#C0C0C0' : '#CD7F32',
                         color: '#000',
-                        fontSize: '10px',
+                        fontSize: '9px',
                         fontWeight: 'bold',
-                        padding: '2px 5px',
-                        borderRadius: '4px'
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        padding: '1px 4px',
+                        border: '1px solid #000',
                       }}>
                         ★{upgrade.grade}
                       </div>
                     )}
                   </div>
 
-                  {/* Text Info */}
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                      <span style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{upgrade.name}</span>
-                      <span style={{ color: upgrade.isSubWeapon ? '#FFD700' : '#FFD700', fontSize: '12px' }}>
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap', gap: '4px' }}>
+                      <span style={{
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        color: COLORS.textWhite,
+                        fontSize: 'clamp(12px, 2vw, 14px)',
+                        fontWeight: 'bold',
+                        textShadow: '1px 1px 0 #000',
+                      }}>
+                        {upgrade.name}
+                      </span>
+                      <span style={{
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        color: upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary,
+                        fontSize: '10px',
+                        background: 'rgba(0,0,0,0.5)',
+                        padding: '2px 6px',
+                      }}>
                         {upgrade.isSubWeapon
-                          ? (upgrade.currentLevel > 0 ? `LV ${upgrade.currentLevel} → ${upgrade.nextLevel}` : 'NEW! >> 무기')
-                          : `NEW! >> ${upgrade.type}`
+                          ? (upgrade.currentLevel > 0 ? `LV${upgrade.currentLevel}→${upgrade.nextLevel}` : '🆕무기')
+                          : `🆕${upgrade.type}`
                         }
                       </span>
                     </div>
-                    <div style={{ color: '#ccc', fontSize: '14px', lineHeight: '1.2' }}>
+                    <div style={{
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      color: COLORS.textGray,
+                      fontSize: '10px',
+                      lineHeight: '1.3',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
                       {upgrade.description}
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -1850,159 +2167,374 @@ const GameScreen = ({
         <div style={{
           position: 'absolute',
           inset: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
+          background: 'rgba(0, 0, 0, 0.9)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          zIndex: 10,
+          padding: '20px',
         }}>
+          {/* Scanline overlay */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px)',
+            pointerEvents: 'none',
+          }} />
+
           {/* Main Pause Menu */}
           {pauseTab === 'main' && (
             <div style={{
-              width: '300px',
-              background: 'linear-gradient(180deg, #4AA9FF 0%, #0077EA 100%)',
-              borderRadius: '10px',
-              padding: '20px',
-              border: '4px solid #fff',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '15px',
-              alignItems: 'center',
-              boxShadow: '0 0 20px rgba(0,0,0,0.5)'
+              width: '100%',
+              maxWidth: '280px',
+              background: 'rgba(13, 13, 26, 0.98)',
+              border: `4px solid ${COLORS.panelBorder}`,
+              boxShadow: '6px 6px 0 0 rgba(0,0,0,0.6)',
+              overflow: 'hidden',
             }}>
-              <h2 style={{ color: '#fff', fontSize: '32px', margin: '0 0 10px', textShadow: '2px 2px 0 #000', fontFamily: 'Impact, sans-serif' }}>PAUSED</h2>
+              {/* Header */}
+              <div style={{
+                background: `linear-gradient(180deg, ${COLORS.bgLight} 0%, ${COLORS.bgDark} 100%)`,
+                padding: '15px',
+                textAlign: 'center',
+                borderBottom: `3px solid ${COLORS.panelBorder}`,
+              }}>
+                <h2 style={{
+                  fontFamily: PIXEL_STYLES.fontFamily,
+                  color: COLORS.textWhite,
+                  fontSize: '24px',
+                  margin: 0,
+                  letterSpacing: '4px',
+                  textShadow: '2px 2px 0 #000',
+                }}>
+                  ⏸️ PAUSED
+                </h2>
+              </div>
 
-              {[
-                { label: 'Character', action: () => setPauseTab('character') },
-                { label: 'Settings', disabled: true },
-                { label: 'Resume', action: () => setGamePhase('playing') },
-                { label: 'Quit', action: handleQuit }
-              ].map((btn, i) => (
-                <div
-                  key={btn.label}
-                  onClick={btn.action}
-                  style={{
-                    width: '100%',
-                    height: '50px',
-                    backgroundImage: `url(${SPRITES.ui.button})`,
-                    backgroundSize: '100% 100%',
-                    backgroundRepeat: 'no-repeat',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: btn.disabled ? '#888' : '#333',
-                    fontSize: '20px', fontWeight: 'bold',
-                    cursor: btn.disabled ? 'not-allowed' : 'pointer',
-                    opacity: btn.disabled ? 0.7 : 1,
-                    imageRendering: 'pixelated',
-                    textShadow: '1px 1px 0 #fff'
-                  }}
-                >
-                  {btn.label}
-                </div>
-              ))}
+              {/* Menu Buttons */}
+              <div style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[
+                  { label: '📊 CHARACTER', action: () => setPauseTab('character'), variant: 'dark' },
+                  { label: '⚙️ SETTINGS', disabled: true, variant: 'ghost' },
+                  { label: '▶ RESUME', action: () => setGamePhase('playing'), variant: 'primary' },
+                  { label: '✖ QUIT', action: handleQuit, variant: 'danger' },
+                ].map((btn) => (
+                  <button
+                    key={btn.label}
+                    onClick={btn.disabled ? undefined : btn.action}
+                    disabled={btn.disabled}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      letterSpacing: '1px',
+                      cursor: btn.disabled ? 'not-allowed' : 'pointer',
+                      border: '3px solid',
+                      borderColor: btn.disabled ? '#333'
+                        : btn.variant === 'primary' ? '#000'
+                          : btn.variant === 'danger' ? '#8B0000'
+                            : COLORS.panelBorder,
+                      background: btn.disabled ? '#333'
+                        : btn.variant === 'primary' ? `linear-gradient(180deg, ${COLORS.primary} 0%, ${COLORS.primaryDark} 100%)`
+                          : btn.variant === 'danger' ? `linear-gradient(180deg, ${COLORS.danger} 0%, #CC5555 100%)`
+                            : COLORS.bgLight,
+                      color: btn.disabled ? '#666'
+                        : btn.variant === 'primary' ? '#000'
+                          : btn.variant === 'danger' ? '#fff'
+                            : COLORS.textWhite,
+                      boxShadow: btn.disabled ? 'none' : '3px 3px 0 0 rgba(0,0,0,0.5)',
+                      textShadow: (btn.variant === 'primary') ? 'none' : '1px 1px 0 #000',
+                      transition: 'all 0.1s',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!btn.disabled) {
+                        e.currentTarget.style.transform = 'translate(2px, 2px)'
+                        e.currentTarget.style.boxShadow = '1px 1px 0 0 rgba(0,0,0,0.5)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translate(0, 0)'
+                      e.currentTarget.style.boxShadow = btn.disabled ? 'none' : '3px 3px 0 0 rgba(0,0,0,0.5)'
+                    }}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
           {/* Character Details Screen */}
           {pauseTab === 'character' && (
             <div style={{
-              position: 'relative',
-              width: '900px',
-              height: '550px',
-              background: 'rgba(20, 20, 30, 0.95)',
-              borderRadius: '16px',
-              border: '2px solid #444',
+              width: '100%',
+              maxWidth: '800px',
+              maxHeight: '85vh',
               display: 'flex',
-              padding: '30px',
-              gap: '30px',
-              color: '#fff'
+              flexDirection: 'column',
+              background: 'rgba(13, 13, 26, 0.98)',
+              border: `4px solid ${COLORS.panelBorder}`,
+              boxShadow: '6px 6px 0 0 rgba(0,0,0,0.6)',
+              overflow: 'hidden',
             }}>
-              {/* Close Button */}
-              <button
-                onClick={() => setPauseTab('main')}
-                style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}
-              >
-                ESC / BACK
-              </button>
+              {/* Header with Back Button */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 15px',
+                background: `linear-gradient(180deg, ${COLORS.bgLight} 0%, ${COLORS.bgDark} 100%)`,
+                borderBottom: `3px solid ${COLORS.panelBorder}`,
+              }}>
+                <button
+                  onClick={() => setPauseTab('main')}
+                  style={{
+                    padding: '8px 12px',
+                    fontFamily: PIXEL_STYLES.fontFamily,
+                    fontSize: '12px',
+                    background: 'transparent',
+                    border: `2px solid ${COLORS.panelBorder}`,
+                    color: COLORS.textWhite,
+                    cursor: 'pointer',
+                    boxShadow: '2px 2px 0 0 rgba(0,0,0,0.3)',
+                  }}
+                >
+                  ◀ BACK
+                </button>
+                <h2 style={{
+                  fontFamily: PIXEL_STYLES.fontFamily,
+                  color: COLORS.textWhite,
+                  fontSize: '18px',
+                  margin: 0,
+                  letterSpacing: '2px',
+                  textShadow: '2px 2px 0 #000',
+                }}>
+                  📊 CHARACTER
+                </h2>
+                <div style={{ width: '70px' }} /> {/* Spacer for centering */}
+              </div>
 
-              {/* Left - Character Stats */}
-              <div style={{ width: '300px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-                  <img
-                    src={SPRITES.characters[selectedCharacter.id]}
-                    alt=""
-                    style={{ width: '80px', height: '80px', border: '2px solid #fff', borderRadius: '50%', background: '#334', imageRendering: 'pixelated' }}
-                  />
-                  <div style={{ marginLeft: '15px' }}>
-                    <h2 style={{ margin: 0, fontSize: '24px' }}>{selectedCharacter.name}</h2>
-                    <p style={{ margin: 0, color: selectedCharacter.color }}>Level {displayStats.level}</p>
+              {/* Content Area */}
+              <div style={{
+                display: 'flex',
+                flex: 1,
+                overflow: 'hidden',
+                flexDirection: 'row',
+                '@media (max-width: 600px)': { flexDirection: 'column' },
+              }}>
+                {/* Left - Character Stats */}
+                <div style={{
+                  width: '250px',
+                  minWidth: '200px',
+                  padding: '15px',
+                  background: 'rgba(0,0,0,0.3)',
+                  borderRight: `2px solid ${COLORS.panelBorder}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}>
+                  {/* Character Info */}
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
+                    <div style={{
+                      width: '60px',
+                      height: '60px',
+                      background: COLORS.bgLight,
+                      border: `3px solid ${selectedCharacter?.color || COLORS.secondary}`,
+                      boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <img
+                        src={SPRITES.characters[selectedCharacter.id]}
+                        alt=""
+                        style={{ width: '48px', height: '48px', objectFit: 'contain', imageRendering: 'pixelated' }}
+                      />
+                    </div>
+                    <div style={{ marginLeft: '12px' }}>
+                      <h3 style={{
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        margin: 0,
+                        fontSize: '14px',
+                        color: COLORS.textWhite,
+                        textShadow: '1px 1px 0 #000',
+                      }}>
+                        {selectedCharacter.name}
+                      </h3>
+                      <p style={{
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        margin: '4px 0 0',
+                        color: selectedCharacter.color,
+                        fontSize: '12px',
+                      }}>
+                        Level {displayStats.level}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div style={{
+                    background: 'rgba(0,0,0,0.4)',
+                    border: `2px solid ${COLORS.panelBorder}`,
+                    padding: '10px',
+                  }}>
+                    <h4 style={{
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      color: COLORS.textGray,
+                      fontSize: '10px',
+                      margin: '0 0 8px 0',
+                      letterSpacing: '1px',
+                    }}>
+                      STATS
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {[
+                        { icon: '❤️', label: 'HP', value: `${displayStats.hp}/${displayStats.maxHp}`, color: COLORS.hp },
+                        { icon: '⚔️', label: 'ATK', value: Math.round(gameStateRef.current?.stats?.damage || 0), color: COLORS.atk },
+                        { icon: '🏃', label: 'SPD', value: `${Math.round((gameStateRef.current?.stats?.moveSpeed || 1) * 100)}%`, color: COLORS.spd },
+                        { icon: '💥', label: 'CRT', value: `${Math.round((gameStateRef.current?.stats?.crit || 0) * 100)}%`, color: COLORS.crit },
+                        { icon: '🛡️', label: 'DEF', value: `${Math.round((gameStateRef.current?.stats?.defense || 0) * 100)}%`, color: COLORS.textGray },
+                      ].map(stat => (
+                        <div key={stat.label} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          fontFamily: PIXEL_STYLES.fontFamily,
+                          fontSize: '11px',
+                        }}>
+                          <span style={{ width: '20px' }}>{stat.icon}</span>
+                          <span style={{ color: COLORS.textGray, width: '40px' }}>{stat.label}</span>
+                          <span style={{ color: stat.color, fontWeight: 'bold', marginLeft: 'auto' }}>{stat.value}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(0,0,0,0.5)', padding: '15px', borderRadius: '8px' }}>
-                  {[
-                    { label: 'HP', val: `${displayStats.hp}/${displayStats.maxHp}`, icon: SPRITES.ui.icon_hp, color: '#ff6b6b' },
-                    { label: 'ATK', val: `${Math.round(gameStateRef.current?.stats?.damage || 0)}`, icon: SPRITES.ui.icon_atk, color: '#ffd700' },
-                    { label: 'SPD', val: `${Math.round((gameStateRef.current?.stats?.moveSpeed || 1) * 100)}%`, icon: SPRITES.ui.icon_spd, color: '#87ceeb' },
-                    { label: 'CRT', val: `${Math.round((gameStateRef.current?.stats?.crit || 0) * 100)}%`, icon: SPRITES.ui.icon_crt, color: '#ff69b4' },
-                    { label: 'DEF', val: `${Math.round((gameStateRef.current?.stats?.defense || 0) * 100)}%`, icon: SPRITES.ui.icon_pickup, color: '#aaa' },
-                  ].map(s => (
-                    <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '18px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <img src={s.icon} style={{ width: '20px', marginRight: '10px' }} />
-                        <span>{s.label}</span>
-                      </div>
-                      <span style={{ color: s.color, fontWeight: 'bold' }}>{s.val}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right - Inventory List */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <h3 style={{ borderBottom: '2px solid #fff', paddingBottom: '10px', marginBottom: '15px' }}>Inventory</h3>
-                <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {gameStateRef.current?.inventory?.length === 0 && <p style={{ color: '#888', textAlign: 'center' }}>No items collected yet.</p>}
-
-                  {gameStateRef.current?.inventory?.map((item, idx) => (
-                    <div key={idx} style={{
-                      background: item.isSubWeapon ? 'rgba(80,40,0,0.3)' : 'rgba(255,255,255,0.1)',
-                      padding: '10px',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      border: item.isSubWeapon ? '1px solid #FFD700' : 'none'
+                {/* Right - Inventory */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <div style={{
+                    padding: '10px 15px',
+                    borderBottom: `2px solid ${COLORS.panelBorder}`,
+                    background: 'rgba(0,0,0,0.2)',
+                  }}>
+                    <h3 style={{
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      color: COLORS.textWhite,
+                      fontSize: '12px',
+                      margin: 0,
+                      letterSpacing: '1px',
                     }}>
-                      <div style={{
-                        width: '48px', height: '48px',
-                        backgroundImage: `url(${SPRITES.ui.box_item})`,
-                        backgroundSize: '100% 100%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        marginRight: '15px'
+                      📦 INVENTORY ({gameStateRef.current?.inventory?.length || 0})
+                    </h3>
+                  </div>
+
+                  <div style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    padding: '10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}>
+                    {(!gameStateRef.current?.inventory || gameStateRef.current?.inventory?.length === 0) && (
+                      <p style={{
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        color: COLORS.textDark,
+                        textAlign: 'center',
+                        marginTop: '30px',
+                        fontSize: '12px',
                       }}>
-                        {item.isSubWeapon ? (
-                          <span style={{ fontSize: '24px' }}>
-                            {item.id === 'black_dye' && '🖤'}
-                            {item.id === 'hair_brush' && '🪥'}
-                            {item.id === 'hair_spray' && '💨'}
-                            {item.id === 'hair_dryer' && '🔥'}
-                            {item.id === 'electric_clipper' && '⚡'}
-                            {item.id === 'dandruff_bomb' && '💣'}
-                          </span>
-                        ) : (
-                          <img src={SPRITES.items[item.icon]} style={{ width: '24px', height: '24px', imageRendering: 'pixelated' }} />
-                        )}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 'bold', color: item.isSubWeapon ? '#FFD700' : '#fff' }}>
-                          {item.name}
-                          {item.isSubWeapon && <span style={{ fontSize: '10px', marginLeft: '8px', color: '#888' }}>[무기]</span>}
+                        No items collected yet.
+                      </p>
+                    )}
+
+                    {gameStateRef.current?.inventory?.map((item, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '8px 10px',
+                          background: item.isSubWeapon
+                            ? `linear-gradient(90deg, rgba(255,215,0,0.1) 0%, ${COLORS.bgLight} 100%)`
+                            : COLORS.bgLight,
+                          border: `2px solid ${item.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
+                          boxShadow: '2px 2px 0 0 rgba(0,0,0,0.3)',
+                        }}
+                      >
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          background: COLORS.bgDark,
+                          border: `2px solid ${item.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: '10px',
+                          flexShrink: 0,
+                        }}>
+                          {item.isSubWeapon ? (
+                            <span style={{ fontSize: '18px' }}>
+                              {item.id === 'black_dye' && '🖤'}
+                              {item.id === 'hair_brush' && '🪥'}
+                              {item.id === 'hair_spray' && '💨'}
+                              {item.id === 'hair_dryer' && '🔥'}
+                              {item.id === 'electric_clipper' && '⚡'}
+                              {item.id === 'dandruff_bomb' && '💣'}
+                            </span>
+                          ) : (
+                            <img src={SPRITES.items[item.icon]} style={{ width: '20px', height: '20px', imageRendering: 'pixelated' }} />
+                          )}
                         </div>
-                        <div style={{ fontSize: '12px', color: '#bbb' }}>{item.description}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            fontFamily: PIXEL_STYLES.fontFamily,
+                            fontWeight: 'bold',
+                            color: item.isSubWeapon ? COLORS.primary : COLORS.textWhite,
+                            fontSize: '11px',
+                            textShadow: '1px 1px 0 #000',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}>
+                            {item.name}
+                            {item.isSubWeapon && (
+                              <span style={{
+                                fontSize: '8px',
+                                color: COLORS.bgDark,
+                                background: COLORS.primary,
+                                padding: '1px 4px',
+                              }}>WPN</span>
+                            )}
+                          </div>
+                          <div style={{
+                            fontFamily: PIXEL_STYLES.fontFamily,
+                            fontSize: '9px',
+                            color: COLORS.textGray,
+                            marginTop: '2px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {item.description}
+                          </div>
+                        </div>
+                        <div style={{
+                          fontFamily: PIXEL_STYLES.fontFamily,
+                          fontSize: '10px',
+                          color: COLORS.primary,
+                          fontWeight: 'bold',
+                          background: 'rgba(0,0,0,0.4)',
+                          padding: '2px 6px',
+                          marginLeft: '8px',
+                        }}>
+                          LV{item.level || 1}
+                        </div>
                       </div>
-                      <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#FFD700' }}>
-                        LV {item.level || 1}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

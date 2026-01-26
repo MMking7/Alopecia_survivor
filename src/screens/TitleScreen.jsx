@@ -1,7 +1,14 @@
 import React from 'react'
 import { SPRITES } from '../constants'
+import { 
+  PixelPanel, 
+  PixelButton, 
+  CoinDisplay,
+  COLORS,
+  PIXEL_STYLES 
+} from '../styles/PixelUI'
 
-const TitleScreen = ({ onStart, onShop, coins, activeCharacterName }) => {
+const TitleScreen = ({ onStart, onShop, coins }) => {
   return (
     <div style={{
       width: '100%',
@@ -11,81 +18,75 @@ const TitleScreen = ({ onStart, onShop, coins, activeCharacterName }) => {
       backgroundPosition: 'center',
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'flex-end', // Buttons at bottom
+      justifyContent: 'flex-end',
       alignItems: 'center',
       padding: '40px',
       position: 'relative',
       overflow: 'hidden',
       boxSizing: 'border-box',
     }}>
-      
-      {/* Start Button at Bottom Center */}
-      <div style={{ marginBottom: '50px', display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center' }}>
-        <button
-            onClick={onStart}
-            style={{
-              padding: '20px 60px',
-              fontSize: '32px',
-              fontWeight: 'bold',
-              background: 'linear-gradient(180deg, #FFD700 0%, #FFA500 100%)',
-              color: '#fff',
-              border: '4px solid #fff',
-              borderRadius: '50px',
-              cursor: 'pointer',
-              boxShadow: '0 10px 0 #D35400, 0 10px 20px rgba(0,0,0,0.5)',
-              textShadow: '2px 2px 0 rgba(0,0,0,0.2)',
-              fontFamily: '"NeoDunggeunmo", "Press Start 2P", cursive',
-              transform: 'scale(1)',
-              transition: 'transform 0.1s',
-            }}
-            onMouseDown={(e) => e.target.style.transform = 'scale(0.95)'}
-            onMouseUp={(e) => e.target.style.transform = 'scale(1)'}
-        >
-            GAME START
-        </button>
+      {/* Scanline overlay for retro effect */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 2px, transparent 2px, transparent 4px)',
+        pointerEvents: 'none',
+        zIndex: 1,
+      }} />
 
-        {/* Small Menu Row */}
+      {/* Coins display - top right */}
+      <div style={{ position: 'absolute', top: '30px', right: '30px', zIndex: 2 }}>
+        <CoinDisplay coins={coins} />
+      </div>
+      
+      {/* Main Buttons Container */}
+      <div style={{ 
+        marginBottom: '50px', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '20px', 
+        alignItems: 'center',
+        zIndex: 2,
+      }}>
+        {/* Start Button */}
+        <PixelButton 
+          onClick={onStart} 
+          variant="primary" 
+          size="large"
+          style={{ minWidth: '280px' }}
+        >
+          ▶ GAME START
+        </PixelButton>
+
+        {/* Menu Row */}
         <div style={{ display: 'flex', gap: '15px' }}>
-            <button onClick={onShop} style={smallBtnStyle}>STORE</button>
-            <button style={smallBtnStyle} disabled>SETTING</button>
-            <button style={smallBtnStyle} disabled>CREDIT</button>
+          <PixelButton onClick={onShop} variant="dark" size="medium">
+            🛒 STORE
+          </PixelButton>
+          <PixelButton variant="ghost" size="medium" disabled>
+            ⚙️ SETTING
+          </PixelButton>
+          <PixelButton variant="ghost" size="medium" disabled>
+            📜 CREDIT
+          </PixelButton>
         </div>
       </div>
 
       {/* Version */}
-      <div style={{ position: 'absolute', bottom: '10px', right: '20px', color: '#fff', fontWeight: 'bold', textShadow: '2px 2px 0 #000' }}>
-        Ver 1.0.0
-      </div>
-
-      {/* Coins display */}
-      <div style={{
-        position: 'absolute',
-        top: '30px',
-        right: '30px',
-        background: 'rgba(0,0,0,0.6)',
-        padding: '10px 20px',
-        borderRadius: '30px',
-        color: '#FFD700',
-        fontSize: '24px',
-        fontWeight: 'bold',
-        border: '2px solid #fff'
+      <div style={{ 
+        position: 'absolute', 
+        bottom: '15px', 
+        right: '20px', 
+        fontFamily: PIXEL_STYLES.fontFamily,
+        fontSize: '12px',
+        color: COLORS.textGray,
+        textShadow: '2px 2px 0 #000',
+        zIndex: 2,
       }}>
-        💰 {coins.toLocaleString()}{activeCharacterName ? ` (${activeCharacterName})` : ''}
+        Ver 1.0.0
       </div>
     </div>
   )
-}
-
-const smallBtnStyle = {
-    padding: '10px 20px',
-    fontSize: '16px',
-    background: 'rgba(0,0,0,0.6)',
-    color: '#fff',
-    border: '2px solid #fff',
-    borderRadius: '20px',
-    cursor: 'pointer',
-    fontFamily: '"NeoDunggeunmo", sans-serif',
-    fontWeight: 'bold'
 }
 
 export default TitleScreen
