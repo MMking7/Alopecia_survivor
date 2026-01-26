@@ -6,20 +6,15 @@ export const handleBeamAttack = ({ state, currentTime, character }) => {
   const areataWeapon = getMainWeapon('areata')
   const areataEffect = areataWeapon ? areataWeapon.levelEffects[state.mainWeaponLevel] : { damage: 2.0 }
 
-  let targetX, targetY
-  const explosionRadius = areataEffect.explosionRadius || 50
-
+  // Determine Aim Angle
+  let aimAngle
   if (state.aimMode === 'manual') {
-    // Manual aim: shoot towards mouse cursor
-    const mouseAngle = Math.atan2(
+    aimAngle = Math.atan2(
       state.mouse.worldY - state.player.y,
       state.mouse.worldX - state.player.x
     )
-    const beamRange = state.stats.attackRange * 2
-    targetX = state.player.x + Math.cos(mouseAngle) * beamRange
-    targetY = state.player.y + Math.sin(mouseAngle) * beamRange
   } else {
-    // Auto aim: find nearest enemy
+    // Auto aim: find nearest enemy to set angle
     let nearest = null
     let nearestDist = Infinity
     state.enemies.forEach((enemy) => {
@@ -29,9 +24,63 @@ export const handleBeamAttack = ({ state, currentTime, character }) => {
         nearestDist = d
       }
     })
-    if (!nearest) return // No target in auto mode
-    targetX = nearest.x
-    targetY = nearest.y
+    if (nearest) {
+      aimAngle = Math.atan2(nearest.y - state.player.y, nearest.x - state.player.x)
+    } else {
+      // Default to facing direction if no enemy
+      aimAngle = state.player.facingAngle || 0
+    }
+  }
+
+  // Raycast: Find the closest enemy along the beam path
+  const beamRange = state.stats.attackRange * 1.5 // 빔 사거리
+  const beamWidth = 40 // 빔 판정 너비
+  const explosionRadius = areataEffect.explosionRadius || 50
+  
+  let closestTarget = null
+  let minTargetDist = Infinity
+  let targetX, targetY
+
+  state.enemies.forEach((enemy) => {
+    // 1. Check distance to player
+    const distToPlayer = distance(state.player, enemy)
+    if (distToPlayer > beamRange) return
+
+    // 2. Check angle difference (is enemy in front?)
+    const angleToEnemy = Math.atan2(enemy.y - state.player.y, enemy.x - state.player.x)
+    let angleDiff = angleToEnemy - aimAngle
+    // Normalize to -PI ~ PI
+    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2
+    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2
+    
+    if (Math.abs(angleDiff) > Math.PI / 2) return // Behind the player
+
+    // 3. Distance to line (Perpendicular distance)
+    // P = Player, E = Enemy, A = Angle
+    // Project Vector(PE) onto Direction Vector
+    // But easier: check rotated coordinates
+    const dx = enemy.x - state.player.x
+    const dy = enemy.y - state.player.y
+    
+    // Rotate enemy position by -aimAngle to align beam with X-axis
+    const rotatedY = dx * Math.sin(-aimAngle) + dy * Math.cos(-aimAngle)
+    
+    if (Math.abs(rotatedY) < beamWidth / 2) {
+      // Collides with beam width!
+      if (distToPlayer < minTargetDist) {
+        minTargetDist = distToPlayer
+        closestTarget = enemy
+      }
+    }
+  })
+
+  if (closestTarget) {
+    targetX = closestTarget.x
+    targetY = closestTarget.y
+  } else {
+    // Miss - Max range
+    targetX = state.player.x + Math.cos(aimAngle) * beamRange
+    targetY = state.player.y + Math.sin(aimAngle) * beamRange
   }
 
   // Create beam effect
