@@ -36,6 +36,7 @@ const preloadImages = () => {
     ...Object.values(SPRITES.ui),
     ...Object.values(SPRITES.subweapons),
     ...(SPRITES.attacks ? Object.values(SPRITES.attacks) : []),
+    ...(SPRITES.abilities ? Object.values(SPRITES.abilities) : []),
   ]
 
   const loaded = {}

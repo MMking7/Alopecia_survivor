@@ -125,7 +125,7 @@ const GameScreen = ({
       passiveBonuses: {}, // 패시브 스킬 효과 (매 프레임 계산)
       specialAbility: {
         cooldown: 0,
-        lastUsed: 0,
+        lastUsed: -100000, // Start with ability ready
         active: false,
         activeUntil: 0,
       },
@@ -838,35 +838,52 @@ const GameScreen = ({
           // Ability expired
           state.specialAbility.active = false
           state.specialAbility.hasBonusBuff = false
+          state.specialAbilityZoneCreated = false // Reset so it can be created again next time
         } else {
           // Apply ability effects during duration
           const abilityType = state.specialAbility.type
           const effect = state.specialAbility.effect
 
           switch (abilityType) {
-            case 'screen_wide_line': // Female - screen-wide line zones
-              // Create zones periodically
-              if (!state.specialAbilityZones) state.specialAbilityZones = []
-              if (!state.lastSpecialZoneTime || currentTime - state.lastSpecialZoneTime > 100) {
-                state.lastSpecialZoneTime = currentTime
-                const numLines = 5
-                for (let i = 0; i < numLines; i++) {
-                  const zoneY = state.camera.y + (GAME_CONFIG.CANVAS_HEIGHT / numLines) * (i + 0.5)
-                  state.groundZones.push({
-                    id: generateId(),
-                    type: 'special_line_zone',
-                    x: state.camera.x + GAME_CONFIG.CANVAS_WIDTH / 2,
-                    y: zoneY,
-                    angle: 0,
-                    length: GAME_CONFIG.CANVAS_WIDTH,
-                    width: 40,
-                    damagePerSecond: effect.damagePerSecond,
-                    duration: 200,
-                    createdAt: currentTime,
-                    color: state.player.character.attackColor,
-                    slowAmount: effect.slowAmount,
-                  })
-                }
+            case 'screen_wide_line': // Female - screen-wide VERTICAL damage pool
+              // Create a single massive vertical zone ONCE when ability activates
+              if (!state.specialAbilityZoneCreated) {
+                state.specialAbilityZoneCreated = true
+
+                // Store the initial position where ability was activated
+                const abilityX = state.player.x
+                const abilityY = state.player.y
+
+                // Create one massive vertical zone at the activation position
+                state.groundZones.push({
+                  id: generateId(),
+                  type: 'special_vertical_zone',
+                  x: abilityX,
+                  y: abilityY,
+                  angle: Math.PI / 2, // Rotated 90 degrees for vertical
+                  length: GAME_CONFIG.CANVAS_HEIGHT * 2, // Extra tall to cover screen
+                  width: 300, // Wide damage zone
+                  damagePerSecond: effect.damagePerSecond,
+                  duration: state.specialAbility.activeUntil - currentTime, // Full ability duration
+                  createdAt: currentTime,
+                  color: state.player.character.attackColor,
+                  slowAmount: effect.slowAmount,
+                  useSprite: true,
+                })
+
+                // Visual effect with sprite - stays for full duration
+                state.attackEffects.push({
+                  id: generateId(),
+                  type: 'female_special_zone',
+                  x: abilityX,
+                  y: abilityY,
+                  length: GAME_CONFIG.CANVAS_HEIGHT * 2,
+                  width: 300,
+                  color: state.player.character.attackColor,
+                  createdAt: currentTime,
+                  duration: state.specialAbility.activeUntil - currentTime,
+                  useSprite: true,
+                })
               }
               break
 
@@ -2158,6 +2175,52 @@ const GameScreen = ({
               ctx.lineWidth = 2
               ctx.globalAlpha = 0.8 * (1 - progress * 0.5)
               ctx.strokeRect(-effect.length / 2, -effect.width / 2, effect.length, effect.width)
+            }
+
+            ctx.restore()
+            ctx.globalAlpha = 1
+            break
+
+          case 'female_special_zone':
+            // 여성형 탈모 - 스페셜 어빌리티 (대형 수직 장판)
+            ctx.save()
+            const specialZoneX = effect.x - state.camera.x
+            const specialZoneY = effect.y - state.camera.y
+
+            ctx.translate(specialZoneX, specialZoneY)
+
+            // Try to draw sprite image (femalebaldability.png)
+            // Try multiple lookup methods in case of path issues
+            const abilityPath = SPRITES.abilities?.female_ability || '/sprites/femalebald/femalebaldability.png'
+            const femaleAbilityImg = loadedImages[abilityPath]
+
+            if (femaleAbilityImg && femaleAbilityImg.complete && femaleAbilityImg.naturalWidth > 0) {
+              // Keep visible during the ability
+              ctx.globalAlpha = 0.8
+
+              // Scale sprite to cover full screen height
+              const spriteWidth = effect.width
+              const spriteHeight = effect.length
+              ctx.drawImage(
+                femaleAbilityImg,
+                -spriteWidth / 2,
+                -spriteHeight / 2,
+                spriteWidth,
+                spriteHeight
+              )
+            } else {
+              // Fallback: Draw colored rectangle with glow effect
+              ctx.fillStyle = effect.color
+              ctx.globalAlpha = 0.6
+              ctx.shadowColor = effect.color
+              ctx.shadowBlur = 30
+              ctx.fillRect(-effect.width / 2, -effect.length / 2, effect.width, effect.length)
+
+              ctx.strokeStyle = '#fff'
+              ctx.lineWidth = 4
+              ctx.globalAlpha = 0.9
+              ctx.strokeRect(-effect.width / 2, -effect.length / 2, effect.width, effect.length)
+              ctx.shadowBlur = 0
             }
 
             ctx.restore()
