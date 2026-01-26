@@ -95,6 +95,7 @@ const GameScreen = ({
         y: GAME_CONFIG.CANVAS_HEIGHT / 2,
         character: selectedCharacter,
         facing: 1,
+        lastFacingDirection: 'right',
       },
       stats: {
         hp: startingMaxHp,
@@ -264,6 +265,11 @@ const GameScreen = ({
       const speed = GAME_CONFIG.PLAYER_SPEED * state.stats.moveSpeed * deltaTime
       state.player.x += dx * speed
       state.player.y += dy * speed
+
+      // Track last horizontal facing direction for attack placement
+      if (dx !== 0) {
+        state.player.lastFacingDirection = dx > 0 ? 'right' : 'left'
+      }
 
       // Update camera
       state.camera.x = state.player.x - GAME_CONFIG.CANVAS_WIDTH / 2
@@ -699,7 +705,7 @@ const GameScreen = ({
             const dx = state.player.x - proj.x
             const dy = state.player.y - proj.y
             const distToPlayer = Math.sqrt(dx * dx + dy * dy)
-            
+
             if (distToPlayer < 30) {
               // Reached player
               proj.shouldRemove = true
@@ -1009,13 +1015,26 @@ const GameScreen = ({
       const weaponEffect = mainWeapon ? mainWeapon.levelEffects[state.mainWeaponLevel] : null
       const attackSpeedBonus = weaponEffect?.attackSpeedBonus || 0
       const finalAttackSpeed = state.stats.attackSpeed * (1 + attackSpeedBonus)
-      const attackInterval = 1000 / finalAttackSpeed
+
+      // For female character (aoe), use weapon's attackCooldown directly
+      // For other characters, use attackSpeed-based interval
+      let attackInterval
+      if (character.attackType === 'aoe' && mainWeapon?.attackCooldown) {
+        attackInterval = mainWeapon.attackCooldown // Fixed 5000ms cooldown
+      } else {
+        attackInterval = 1000 / finalAttackSpeed
+      }
 
       if (currentTime - state.lastAttackTime >= attackInterval) {
         state.lastAttackTime = currentTime
 
-        // Remove old effects
-        state.attackEffects = state.attackEffects.filter((e) => currentTime - e.createdAt < 300)
+        // Remove old effects (except for long-duration effects like female_attack_zone)
+        state.attackEffects = state.attackEffects.filter((e) => {
+          if (e.type === 'female_attack_zone') {
+            return currentTime - e.createdAt < e.duration
+          }
+          return currentTime - e.createdAt < 300
+        })
 
         switch (character.attackType) {
           case 'aoe':
@@ -1023,8 +1042,9 @@ const GameScreen = ({
             const femaleWeapon = getMainWeapon('female')
             if (femaleWeapon) {
               const weaponEffect = femaleWeapon.levelEffects[state.mainWeaponLevel]
-              const facing = state.player.facing
-              const baseAngle = facing === 1 ? 0 : Math.PI
+              // Use lastFacingDirection for attack placement
+              const facingDir = state.player.lastFacingDirection || 'right'
+              const baseAngle = facingDir === 'right' ? 0 : Math.PI
 
               // Create line zones based on weapon level
               for (let i = 0; i < (weaponEffect.lines || 1); i++) {
@@ -1035,6 +1055,7 @@ const GameScreen = ({
                 }
 
                 const zoneAngle = baseAngle + offsetAngle
+                // Position zone adjacent to player based on facing direction
                 const zoneX = state.player.x + Math.cos(zoneAngle) * (weaponEffect.length / 2)
                 const zoneY = state.player.y + Math.sin(zoneAngle) * (weaponEffect.length / 2)
 
@@ -1049,9 +1070,10 @@ const GameScreen = ({
                   length: weaponEffect.length,
                   width: weaponEffect.width,
                   damagePerSecond: weaponEffect.damagePerSecond,
-                  duration: (weaponEffect.duration || 3) * 1000,
+                  duration: (weaponEffect.duration || 2) * 1000,
                   createdAt: currentTime,
                   color: character.attackColor,
+                  facingDirection: facingDir,
                   // Awakening: shockwave
                   hasShockwave: weaponEffect.shockwave || false,
                   shockwaveDamage: weaponEffect.shockwaveDamage || 0,
@@ -1060,10 +1082,10 @@ const GameScreen = ({
                   lastShockwave: currentTime,
                 })
 
-                // Visual effect
+                // Visual effect with sprite support
                 state.attackEffects.push({
                   id: generateId(),
-                  type: 'line_zone',
+                  type: 'female_attack_zone',
                   x: zoneX,
                   y: zoneY,
                   angle: zoneAngle,
@@ -1071,7 +1093,9 @@ const GameScreen = ({
                   width: weaponEffect.width,
                   color: character.attackColor,
                   createdAt: currentTime,
-                  duration: 300,
+                  duration: (weaponEffect.duration || 2) * 1000,
+                  useSprite: true,
+                  facingDirection: facingDir,
                 })
               }
             }
@@ -1234,7 +1258,7 @@ const GameScreen = ({
             // Calculate damage with fragment bonus (awakening)
             let baseDamage = state.stats.damage * talmoEffect.damage
             if (talmoEffect.fragmentBonus &&
-                state.fragments >= talmoEffect.fragmentBonusThreshold) {
+              state.fragments >= talmoEffect.fragmentBonusThreshold) {
               baseDamage *= (1 + talmoEffect.fragmentBonusDamage)
             }
 
@@ -1873,7 +1897,7 @@ const GameScreen = ({
             const size = 24
             ctx.drawImage(coinImg, sx - size / 2, sy - size / 2, size, size)
           } else {
-             // Fallback: Yellow circle with border
+            // Fallback: Yellow circle with border
             ctx.fillStyle = '#FFD700'
             ctx.strokeStyle = '#DAA520'
             ctx.lineWidth = 2
@@ -1881,7 +1905,7 @@ const GameScreen = ({
             ctx.arc(sx, sy, 8, 0, Math.PI * 2)
             ctx.fill()
             ctx.stroke()
-            
+
             // Inner detail
             ctx.fillStyle = '#FFA500'
             ctx.beginPath()
@@ -1987,17 +2011,17 @@ const GameScreen = ({
             ctx.rotate(proj.rotation)
             const imgSize = proj.size || 80
             ctx.imageSmoothingEnabled = false
-            
+
             // Returning일 때 약간 크기 감소 효과
             const scale = proj.returning ? 0.85 : 1.0
             const drawSize = imgSize * scale
-            
+
             // Glow effect
             if (proj.returning) {
               ctx.shadowColor = proj.color || '#FF6B35'
               ctx.shadowBlur = 20
             }
-            
+
             ctx.drawImage(boomerangImg, -drawSize / 2, -drawSize / 2, drawSize, drawSize)
             ctx.restore()
           } else {
@@ -2088,6 +2112,53 @@ const GameScreen = ({
             ctx.lineWidth = 2
             ctx.globalAlpha = 0.7 * (1 - progress)
             ctx.strokeRect(-effect.length / 2, -effect.width / 2, effect.length, effect.width)
+
+            ctx.restore()
+            ctx.globalAlpha = 1
+            break
+
+          case 'female_attack_zone':
+            // 여성형 탈모 - 장판 스프라이트 렌더링
+            ctx.save()
+            const femaleZoneX = effect.x - state.camera.x
+            const femaleZoneY = effect.y - state.camera.y
+
+            ctx.translate(femaleZoneX, femaleZoneY)
+
+            // Flip horizontally if facing left
+            if (effect.facingDirection === 'left') {
+              ctx.scale(-1, 1)
+            }
+
+            // Try to draw sprite image
+            const femaleAttackImg = loadedImages[SPRITES.attacks?.femalebald_mainattack]
+            if (femaleAttackImg && femaleAttackImg.complete && femaleAttackImg.naturalWidth > 0) {
+              // Calculate fade based on remaining duration
+              const fadeProgress = progress
+              ctx.globalAlpha = Math.max(0.3, 1 - fadeProgress * 0.7) // Keep visible for the duration
+
+              // Scale sprite to match attack hitbox
+              const spriteWidth = effect.length
+              const spriteHeight = effect.width
+              ctx.drawImage(
+                femaleAttackImg,
+                -spriteWidth / 2,
+                -spriteHeight / 2,
+                spriteWidth,
+                spriteHeight
+              )
+            } else {
+              // Fallback: Draw colored rectangle
+              ctx.rotate(effect.angle)
+              ctx.fillStyle = effect.color
+              ctx.globalAlpha = 0.5 * (1 - progress * 0.5)
+              ctx.fillRect(-effect.length / 2, -effect.width / 2, effect.length, effect.width)
+
+              ctx.strokeStyle = '#fff'
+              ctx.lineWidth = 2
+              ctx.globalAlpha = 0.8 * (1 - progress * 0.5)
+              ctx.strokeRect(-effect.length / 2, -effect.width / 2, effect.length, effect.width)
+            }
 
             ctx.restore()
             ctx.globalAlpha = 1
@@ -2659,12 +2730,12 @@ const GameScreen = ({
               // User preferred the "Previous" direction (which was -Math.PI / 2).
               // Also fixing the "stretched" look by respecting aspect ratio.
               const angle = Math.atan2(proj.vy, proj.vx) - Math.PI / 2
-              
+
               const aspect = img.width / img.height
               const baseSize = 80 // Target size
               let w = baseSize
               let h = baseSize
-              
+
               // Maintain aspect ratio
               if (aspect > 1) {
                 h = baseSize / aspect
@@ -2678,7 +2749,7 @@ const GameScreen = ({
               ctx.drawImage(img, -w / 2, -h / 2, w, h)
               ctx.restore()
             } else {
-               // Fallback
+              // Fallback
               const gradient = ctx.createRadialGradient(px, py, 0, px, py, proj.size + 5)
               gradient.addColorStop(0, 'rgba(255, 100, 50, 0.9)')
               gradient.addColorStop(0.5, 'rgba(255, 50, 0, 0.5)')
@@ -2935,8 +3006,8 @@ const GameScreen = ({
           }}>
             <div style={{
               fontFamily: PIXEL_STYLES.fontFamily,
-              color: COLORS.textWhite, 
-              fontSize: '13px', 
+              color: COLORS.textWhite,
+              fontSize: '13px',
               marginBottom: '4px',
               textShadow: '1px 1px 0 #000',
               whiteSpace: 'nowrap',

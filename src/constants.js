@@ -40,7 +40,7 @@ export const getBaseStatsWithShop = (character, shopLevels = {}, characterRanks 
   const baseAttackRange = baseStats.attackRange || 120
   const baseCrit = baseStats.crit || 0.05
   const shopBonuses = getShopBonuses(shopLevels)
-  
+
   // 캐릭터 랑크 보너스 적용
   const rankMultiplier = getRankMultiplier(character?.id, characterRanks)
 
@@ -73,6 +73,7 @@ export const SPRITES = {
     mzamen_boomerang: '/sprites/mzaman/mzamanmainattack.png',
     wongfeihung_hair: '/sprites/wongfeihung/wongfeihunghair.png',
     wongfeihung_slash: '/sprites/wongfeihung/wongfeihungslash.png',
+    femalebald_mainattack: '/sprites/femalebald/femalebaldmainattack.png',
   },
   enemies: {
     shrimp: '/sprites/holo/enemy_shrimp.webp',

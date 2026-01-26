@@ -27,35 +27,35 @@ export const MAIN_WEAPONS = {
         length: 200,
         width: 60,
         damagePerSecond: 0.80,
-        duration: 3,
+        duration: 2,
       },
       2: {
         lines: 1,
         length: 240, // 20% 증가
         width: 60,
         damagePerSecond: 0.80,
-        duration: 3,
+        duration: 2,
       },
       3: {
         lines: 1,
         length: 240,
         width: 60,
         damagePerSecond: 1.04, // 30% 증가
-        duration: 3,
+        duration: 2,
       },
       4: {
         lines: 1,
         length: 240,
         width: 60,
         damagePerSecond: 1.04,
-        duration: 5, // 2초 증가
+        duration: 2,
       },
       5: {
         lines: 3, // 좌우 두 줄 추가 (총 3줄)
         length: 240,
         width: 60,
         damagePerSecond: 1.04,
-        duration: 5,
+        duration: 2,
         spread: 80, // 좌우 간격
       },
       6: {
@@ -63,7 +63,7 @@ export const MAIN_WEAPONS = {
         length: 240,
         width: 60,
         damagePerSecond: 1.35, // 30% 증가
-        duration: 5,
+        duration: 2,
         spread: 80,
       },
       7: { // 각성
@@ -71,7 +71,7 @@ export const MAIN_WEAPONS = {
         length: 240,
         width: 60,
         damagePerSecond: 1.35,
-        duration: 5,
+        duration: 2,
         spread: 80,
         shockwave: true, // 장판 끝에서 충격파
         shockwaveDamage: 1.50,
@@ -79,7 +79,7 @@ export const MAIN_WEAPONS = {
         shockwaveInterval: 1000, // 1초마다
       },
     },
-    attackCooldown: 4000,
+    attackCooldown: 5000,
   },
 
   // ============================================================
