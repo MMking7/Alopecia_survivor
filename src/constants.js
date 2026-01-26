@@ -100,7 +100,9 @@ export const SPRITES = {
     hair_spray_explosion: '/sprites/subweapon/hairsprayexplosion110x118.png',
     hair_dryer: '/sprites/subweapon/hairdryerthumb.webp',
     electric_clipper: '/sprites/subweapon/buzzerthumb.webp',
+    electric_clipper_slash: '/sprites/subweapon/razorslash.png',
     dandruff_bomb: '/sprites/subweapon/bombthumb.webp',
+    dandruff_bomb_anim: '/sprites/subweapon/bomb225.png',
   }
 }
 
