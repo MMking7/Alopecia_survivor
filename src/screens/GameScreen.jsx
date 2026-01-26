@@ -16,6 +16,51 @@ const generateId = () => Math.random().toString(36).substr(2, 9)
 const distance = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
 const lerp = (a, b, t) => a + (b - a) * t
 
+// M 패턴 내부 체크 함수 (M자 탈모 형태 - 양쪽 후퇴 이마선)
+const isInsideMPattern = (point, center, width, height) => {
+  const relX = point.x - center.x + width / 2 // 0 ~ width 범위로 변환
+  const relY = point.y - center.y + height / 2 // 0 ~ height 범위로 변환
+
+  // 범위 밖이면 false
+  if (relX < 0 || relX > width || relY < 0 || relY > height) return false
+
+  const thickness = 80 // M의 두께 (더 두껍게)
+
+  // M자 탈모 패턴: 양쪽 세로선 + 중앙으로 내려오는 V자
+  // 포인트 정의
+  const leftX = width * 0.1   // 왼쪽 세로선 X
+  const rightX = width * 0.9  // 오른쪽 세로선 X
+  const peakY = height * 0.15 // 상단 꼭지점 Y
+  const valleyY = height * 0.7 // 중앙 V자 바닥 Y
+  const centerX = width * 0.5 // 중앙 X
+
+  // 왼쪽 세로선 (|)
+  if (relX >= leftX - thickness / 2 && relX <= leftX + thickness / 2) {
+    return true
+  }
+
+  // 오른쪽 세로선 (|)
+  if (relX >= rightX - thickness / 2 && relX <= rightX + thickness / 2) {
+    return true
+  }
+
+  // 왼쪽 대각선 (상단에서 중앙 V로)
+  if (relX > leftX && relX < centerX) {
+    const t = (relX - leftX) / (centerX - leftX)
+    const lineY = peakY + t * (valleyY - peakY)
+    if (Math.abs(relY - lineY) < thickness) return true
+  }
+
+  // 오른쪽 대각선 (중앙 V에서 상단으로)
+  if (relX > centerX && relX < rightX) {
+    const t = (relX - centerX) / (rightX - centerX)
+    const lineY = valleyY + t * (peakY - valleyY)
+    if (Math.abs(relY - lineY) < thickness) return true
+  }
+
+  return false
+}
+
 // Difficulty scaling function
 const getDifficultyMultiplier = (gameTime) => {
   const minute = gameTime / 60
@@ -347,7 +392,12 @@ const GameScreen = ({
         const edx = state.player.x - enemy.x
         const edy = state.player.y - enemy.y
         const dist = Math.sqrt(edx * edx + edy * edy)
-        const effectiveSpeed = enemy.scaledSpeed || enemy.speed
+        let effectiveSpeed = enemy.scaledSpeed || enemy.speed
+
+        // M 패턴 슬로우 적용
+        if (enemy.mPatternSlowed && enemy.mPatternSlowAmount) {
+          effectiveSpeed *= (1 - enemy.mPatternSlowAmount)
+        }
 
         // Apply electrify DoT (Heihachi)
         if (enemy.electrified && currentTime < enemy.electrified.until) {
@@ -655,27 +705,60 @@ const GameScreen = ({
       })
       state.enemyProjectiles = state.enemyProjectiles.filter((p) => !p.hit && currentTime - p.createdAt < 3000)
 
-      // Update transplant projectiles (탈모의사 공격)
+      // Update transplant projectiles (탈모의사 공격 - 부메랑 스타일)
       if (state.transplantProjectiles) {
         state.transplantProjectiles.forEach((proj) => {
-          proj.x += proj.vx * deltaTime
-          proj.y += proj.vy * deltaTime
+          // 회전 효과 (시각적)
+          proj.rotation = (proj.rotation || 0) + deltaTime * 12
 
-          // Check distance traveled
-          const distTraveled = distance({ x: proj.startX, y: proj.startY }, proj)
-          if (distTraveled >= proj.range) {
-            proj.shouldRemove = true
-            return
+          if (!proj.returning) {
+            // 날아가는 중
+            proj.x += proj.vx * deltaTime
+            proj.y += proj.vy * deltaTime
+
+            // 이동 거리 체크
+            const distTraveled = distance({ x: proj.startX, y: proj.startY }, proj)
+            if (distTraveled >= proj.range) {
+              if (proj.returnsToPlayer) {
+                // 부메랑처럼 돌아오기 시작
+                proj.returning = true
+              } else {
+                proj.shouldRemove = true
+                return
+              }
+            }
+          } else {
+            // 플레이어에게 돌아오는 중
+            const dx = state.player.x - proj.x
+            const dy = state.player.y - proj.y
+            const distToPlayer = Math.sqrt(dx * dx + dy * dy)
+
+            if (distToPlayer < 30) {
+              // 플레이어에게 도착
+              proj.shouldRemove = true
+              return
+            }
+
+            // 플레이어 방향으로 이동 (돌아올 때 더 빠르게)
+            const returnSpeed = 500
+            proj.vx = (dx / distToPlayer) * returnSpeed
+            proj.vy = (dy / distToPlayer) * returnSpeed
+            proj.x += proj.vx * deltaTime
+            proj.y += proj.vy * deltaTime
           }
 
           // Check collision with enemies (piercing - can hit multiple)
+          // 돌아올 때는 다른 hitEnemies 배열 사용
+          const hitList = proj.returning ? proj.returnHitEnemies : proj.hitEnemies
           state.enemies.forEach((enemy) => {
-            if (enemy.isDead || proj.hitEnemies.includes(enemy.id)) return
+            if (enemy.isDead || hitList.includes(enemy.id)) return
             const d = distance(proj, enemy)
             if (d < 40) {
-              proj.hitEnemies.push(enemy.id)
+              hitList.push(enemy.id)
               const isCrit = Math.random() < (state.stats.crit || 0)
-              const finalDamage = proj.damage * (isCrit ? 1.5 : 1.0)
+              // 돌아올 때는 70% 데미지
+              const returnDamageMultiplier = proj.returning ? 0.7 : 1.0
+              const finalDamage = proj.damage * (isCrit ? 1.5 : 1.0) * returnDamageMultiplier
               enemy.currentHp -= finalDamage
 
               // Lifesteal - heal player for % of damage dealt
@@ -928,6 +1011,51 @@ const GameScreen = ({
               // Extra lightning damage handled in attack logic
               break
 
+            case 'm_pattern_field': // Mzamen - M 모양 장판
+              // M 패턴 내 적에게 초당 데미지와 슬로우 적용
+              const mFieldPos = state.specialAbility.mFieldPosition
+              if (mFieldPos) {
+                const mWidth = effect.width || 400
+                const mHeight = effect.height || 300
+
+                // 초당 데미지 적용 (1초마다)
+                if (currentTime - (state.specialAbility.mFieldLastDamageTime || 0) >= 1000) {
+                  state.specialAbility.mFieldLastDamageTime = currentTime
+
+                  state.enemies.forEach((enemy) => {
+                    if (enemy.isDead) return
+
+                    // M 패턴 내부인지 체크
+                    if (isInsideMPattern(enemy, mFieldPos, mWidth, mHeight)) {
+                      // 데미지 적용
+                      const damage = state.stats.damage * effect.damagePerSecond
+                      enemy.currentHp -= damage
+
+                      state.damageNumbers.push({
+                        id: generateId(),
+                        x: enemy.x,
+                        y: enemy.y,
+                        damage: Math.floor(damage),
+                        createdAt: currentTime,
+                        color: '#FFD700',
+                      })
+                    }
+                  })
+                }
+
+                // 슬로우 효과는 매 프레임 적용
+                state.enemies.forEach((enemy) => {
+                  if (enemy.isDead) return
+                  if (isInsideMPattern(enemy, mFieldPos, mWidth, mHeight)) {
+                    enemy.mPatternSlowed = true
+                    enemy.mPatternSlowAmount = effect.slowAmount
+                  } else {
+                    enemy.mPatternSlowed = false
+                  }
+                })
+              }
+              break
+
             case 'circular_zone': // Areata - following zone with damage amplification
               if (!state.specialAbilityZoneCreated) {
                 state.specialAbilityZoneCreated = true
@@ -1141,12 +1269,17 @@ const GameScreen = ({
         const ability = getSpecialAbility(state.player.character.id)
         console.log('[SPECIAL] Ability found:', ability)
         if (ability) {
+          // 모근 조각 최소 요구량 체크 (탈모의사 전용)
+          const minFragments = ability.minFragments || 0
+          const hasEnoughFragments = state.fragments >= minFragments
+
           // lastUsedGameTime이 0이면 한 번도 안 쓴 것 → 바로 사용 가능
           const neverUsed = state.specialAbility.lastUsedGameTime === 0
           const timeSinceLastUse = (state.gameTime - state.specialAbility.lastUsedGameTime) * 1000 // 초 → 밀리초
           const cooldownReady = neverUsed || timeSinceLastUse >= ability.cooldown
-          console.log('[SPECIAL] Cooldown check:', { neverUsed, timeSinceLastUse, cooldown: ability.cooldown, ready: cooldownReady })
-          if (cooldownReady) {
+          console.log('[SPECIAL] Cooldown check:', { neverUsed, timeSinceLastUse, cooldown: ability.cooldown, ready: cooldownReady, hasEnoughFragments, fragments: state.fragments, minFragments })
+
+          if (cooldownReady && hasEnoughFragments) {
             console.log('[SPECIAL] Activating special ability:', ability.name)
             // Activate ability
             state.specialAbility.active = true
@@ -1193,6 +1326,16 @@ const GameScreen = ({
               // Reset fragments
               state.fragments = 0
               console.log('[SPECIAL] Fragments reset to 0')
+            }
+
+            // Mzamen - M 패턴 장판 생성
+            if (ability.effect.type === 'm_pattern_field') {
+              console.log('[SPECIAL] Creating M Pattern Field')
+              state.specialAbility.mFieldPosition = {
+                x: state.player.x,
+                y: state.player.y,
+              }
+              state.specialAbility.mFieldLastDamageTime = currentTime
             }
           }
         }
@@ -1472,14 +1615,20 @@ const GameScreen = ({
               baseDamage *= (1 + talmoEffect.fragmentBonusDamage)
             }
 
-            // Create piercing projectile(s)
+            // Create piercing projectile(s) - 부메랑처럼 여러 개 발사
             if (!state.transplantProjectiles) state.transplantProjectiles = []
 
-            const swingCount = talmoEffect.multiSwing || 1
-            for (let i = 0; i < swingCount; i++) {
-              // Slight angle offset for multiple swings
-              const swingAngleOffset = (i - (swingCount - 1) / 2) * 0.2
-              const finalAngle = targetAngle + swingAngleOffset
+            const projectileCount = talmoEffect.projectileCount || 1
+            const spreadAngle = talmoEffect.spreadAngle || 0.25
+            const returnsToPlayer = talmoEffect.returnsToPlayer || false
+
+            for (let i = 0; i < projectileCount; i++) {
+              // 부채꼴 형태로 퍼지게 발사
+              let angleOffset = 0
+              if (projectileCount > 1) {
+                angleOffset = (i - (projectileCount - 1) / 2) * spreadAngle
+              }
+              const finalAngle = targetAngle + angleOffset
 
               state.transplantProjectiles.push({
                 id: generateId(),
@@ -1494,12 +1643,17 @@ const GameScreen = ({
                 range: projectileRange,
                 size: character.projectileSize || 100,
                 hitEnemies: [],
+                returnHitEnemies: [], // 돌아올 때 맞은 적
                 createdAt: currentTime,
                 color: character.attackColor,
                 // Talmo Docter specific effects
                 lifeSteal: talmoEffect.lifeSteal,
                 fragmentChance: talmoEffect.fragmentChance || 0,
-                maxFragments: talmoEffect.maxFragments || 15,
+                maxFragments: talmoEffect.maxFragments || 50,
+                // 부메랑 효과 (각성)
+                returnsToPlayer: returnsToPlayer,
+                returning: false, // 돌아오는 중인지
+                maxDistance: projectileRange, // 최대 이동 거리
               })
             }
             break
@@ -1539,11 +1693,11 @@ const GameScreen = ({
             }
 
             // Create multiple boomerangs in a spread pattern
-            const spreadAngle = 0.3 // 30 degree spread between boomerangs
+            const boomerangSpreadAngle = 0.3 // 30 degree spread between boomerangs
             for (let i = 0; i < mzamenEffect.waveCount; i++) {
               let offsetAngle = 0
               if (mzamenEffect.waveCount > 1) {
-                offsetAngle = (i - (mzamenEffect.waveCount - 1) / 2) * spreadAngle
+                offsetAngle = (i - (mzamenEffect.waveCount - 1) / 2) * boomerangSpreadAngle
               }
 
               const finalAngle = boomerangAngle + offsetAngle
@@ -2147,7 +2301,7 @@ const GameScreen = ({
         }
       })
 
-      // Draw transplant projectiles (탈모의사 식모기)
+      // Draw transplant projectiles (탈모의사 식모기 - 부메랑 스타일 회전)
       if (state.transplantProjectiles) {
         state.transplantProjectiles.forEach((proj) => {
           const sx = proj.x - state.camera.x
@@ -2160,8 +2314,14 @@ const GameScreen = ({
           if (transplantImg) {
             ctx.save()
             ctx.translate(sx, sy)
-            // 이미지의 12시 방향이 진행 방향이 되도록 +90도 회전
-            ctx.rotate(proj.angle + Math.PI / 2)
+            // 돌아올 때는 회전 애니메이션 적용, 아닐 때는 진행 방향
+            if (proj.returning || proj.returnsToPlayer) {
+              // 부메랑처럼 회전
+              ctx.rotate(proj.rotation || 0)
+            } else {
+              // 이미지의 12시 방향이 진행 방향이 되도록 +90도 회전
+              ctx.rotate(proj.angle + Math.PI / 2)
+            }
             // 식모기 이미지 크기를 크게 키워서 날아가는 느낌
             const imgSize = proj.size || 100
             ctx.imageSmoothingEnabled = false
@@ -2171,7 +2331,12 @@ const GameScreen = ({
             // Fallback: Draw a stylized syringe/transplant tool
             ctx.save()
             ctx.translate(sx, sy)
-            ctx.rotate(proj.angle)
+            // 부메랑 회전 또는 진행 방향
+            if (proj.returning || proj.returnsToPlayer) {
+              ctx.rotate(proj.rotation || 0)
+            } else {
+              ctx.rotate(proj.angle)
+            }
 
             // Glow effect
             ctx.shadowColor = proj.color || '#00CED1'
@@ -3048,6 +3213,116 @@ const GameScreen = ({
         }
       })
 
+      // Draw M Pattern Field (Mzamen 스페셜 능력)
+      if (state.specialAbility.active && state.specialAbility.type === 'm_pattern_field') {
+        const mFieldPos = state.specialAbility.mFieldPosition
+        if (mFieldPos) {
+          const effect = state.specialAbility.effect
+          const mWidth = effect.width || 600
+          const mHeight = effect.height || 400
+
+          const centerX = mFieldPos.x - state.camera.x
+          const centerY = mFieldPos.y - state.camera.y
+
+          ctx.save()
+
+          // 시간에 따른 펄스 효과
+          const pulseTime = currentTime % 500
+          const pulseAlpha = 0.35 + Math.sin(pulseTime / 500 * Math.PI) * 0.15
+
+          // M 패턴 그리기 (M자 탈모 형태)
+          ctx.translate(centerX - mWidth / 2, centerY - mHeight / 2)
+
+          const thickness = 80
+          const leftX = mWidth * 0.1
+          const rightX = mWidth * 0.9
+          const peakY = mHeight * 0.15
+          const valleyY = mHeight * 0.7
+          const midX = mWidth * 0.5
+
+          // 글로우 효과
+          ctx.shadowColor = '#6BEEED'
+          ctx.shadowBlur = 40
+
+          // M 패턴 그라데이션 채우기
+          const gradient = ctx.createLinearGradient(0, 0, mWidth, mHeight)
+          gradient.addColorStop(0, `rgba(107, 238, 237, ${pulseAlpha + 0.1})`)
+          gradient.addColorStop(0.3, `rgba(107, 238, 237, ${pulseAlpha})`)
+          gradient.addColorStop(0.5, `rgba(80, 200, 220, ${pulseAlpha + 0.15})`)
+          gradient.addColorStop(0.7, `rgba(107, 238, 237, ${pulseAlpha})`)
+          gradient.addColorStop(1, `rgba(150, 255, 255, ${pulseAlpha + 0.1})`)
+
+          ctx.fillStyle = gradient
+          ctx.strokeStyle = `rgba(180, 255, 255, ${pulseAlpha + 0.4})`
+          ctx.lineWidth = 4
+
+          // M 경로 그리기 (M자 탈모 형태: 양쪽 세로 + 중앙 V)
+          ctx.beginPath()
+
+          // 왼쪽 세로선 바깥쪽
+          ctx.moveTo(leftX - thickness / 2, mHeight)
+          ctx.lineTo(leftX - thickness / 2, peakY)
+
+          // 왼쪽 꼭지점에서 중앙 V로
+          ctx.lineTo(leftX + thickness / 2, peakY)
+          ctx.lineTo(midX, valleyY - thickness / 2)
+
+          // 중앙 V에서 오른쪽 꼭지점으로
+          ctx.lineTo(rightX - thickness / 2, peakY)
+          ctx.lineTo(rightX + thickness / 2, peakY)
+
+          // 오른쪽 세로선
+          ctx.lineTo(rightX + thickness / 2, mHeight)
+          ctx.lineTo(rightX - thickness / 2, mHeight)
+          ctx.lineTo(rightX - thickness / 2, peakY + thickness)
+
+          // 오른쪽에서 중앙 V 안쪽으로
+          ctx.lineTo(midX, valleyY + thickness / 2)
+
+          // 중앙 V 안쪽에서 왼쪽으로
+          ctx.lineTo(leftX + thickness / 2, peakY + thickness)
+          ctx.lineTo(leftX + thickness / 2, mHeight)
+
+          ctx.closePath()
+          ctx.fill()
+          ctx.stroke()
+
+          // 에너지 파티클 효과 (M 모양을 따라 이동)
+          for (let i = 0; i < 12; i++) {
+            const t = ((currentTime / 1000 + i * 0.3) % 3) / 3
+            let particleX, particleY
+
+            if (t < 0.33) {
+              // 왼쪽 세로선
+              particleX = leftX
+              particleY = mHeight - (mHeight - peakY) * (t / 0.33)
+            } else if (t < 0.66) {
+              // 왼쪽에서 중앙으로
+              const tt = (t - 0.33) / 0.33
+              particleX = leftX + (midX - leftX) * tt
+              particleY = peakY + (valleyY - peakY) * tt
+            } else {
+              // 중앙에서 오른쪽으로
+              const tt = (t - 0.66) / 0.34
+              particleX = midX + (rightX - midX) * tt
+              particleY = valleyY + (peakY - valleyY) * tt
+            }
+
+            const particleAlpha = 0.6 + Math.sin(currentTime / 150 + i) * 0.3
+            const particleSize = 6 + Math.sin(currentTime / 200 + i * 0.7) * 3
+
+            ctx.fillStyle = `rgba(107, 238, 237, ${particleAlpha})`
+            ctx.shadowColor = '#6BEEED'
+            ctx.shadowBlur = 15
+            ctx.beginPath()
+            ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2)
+            ctx.fill()
+          }
+
+          ctx.restore()
+        }
+      }
+
       // Draw player
       const playerSx = state.player.x - state.camera.x
       const playerSy = state.player.y - state.camera.y
@@ -3424,14 +3699,22 @@ const GameScreen = ({
               const cooldownPercent = isOnCooldown ? (cooldownRemaining / ability.cooldown) * 100 : 0
               const cooldownSeconds = Math.ceil(cooldownRemaining / 1000)
 
+              // 모근 부족 체크 (탈모의사 전용)
+              const minFragments = ability.minFragments || 0
+              const currentFragments = displayStats.fragments || 0
+              const needsMoreFragments = minFragments > 0 && currentFragments < minFragments
+
+              // 사용 불가 상태: 쿨타임 중이거나 모근 부족
+              const isDisabled = isOnCooldown || needsMoreFragments
+
               // Build icon path
               const iconPath = SPRITES.abilities?.[`${selectedCharacter.id}_ability`]
 
               return (
                 <div style={{
                   background: 'rgba(13, 13, 26, 0.9)',
-                  border: `2px solid ${isOnCooldown ? COLORS.panelBorder : COLORS.warning}`,
-                  boxShadow: isOnCooldown ? '2px 2px 0 0 rgba(0,0,0,0.5)' : `0 0 8px ${COLORS.warning}80`,
+                  border: `2px solid ${isDisabled ? COLORS.panelBorder : COLORS.warning}`,
+                  boxShadow: isDisabled ? '2px 2px 0 0 rgba(0,0,0,0.5)' : `0 0 8px ${COLORS.warning}80`,
                   padding: '3px',
                   position: 'relative',
                   width: '36px',
@@ -3445,7 +3728,7 @@ const GameScreen = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    filter: isOnCooldown ? 'brightness(0.3)' : 'none',
+                    filter: isDisabled ? 'brightness(0.3)' : 'none',
                   }}>
                     {iconPath && loadedImages[iconPath] ? (
                       <img
@@ -3492,7 +3775,32 @@ const GameScreen = ({
                     </>
                   )}
 
-                  {/* Shift Key Hint */}
+                  {/* 모근 부족 Overlay */}
+                  {needsMoreFragments && !isOnCooldown && (
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'rgba(139, 0, 0, 0.6)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      pointerEvents: 'none',
+                    }}>
+                      <span style={{
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        fontSize: '8px',
+                        fontWeight: 'bold',
+                        color: COLORS.textWhite,
+                        textShadow: '1px 1px 0 #000',
+                        textAlign: 'center',
+                        lineHeight: '1.1',
+                      }}>
+                        모근<br />부족
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Shift Key Hint or Fragment requirement */}
                   {!isOnCooldown && (
                     <div style={{
                       position: 'absolute',
@@ -3501,11 +3809,11 @@ const GameScreen = ({
                       transform: 'translateX(-50%)',
                       fontFamily: PIXEL_STYLES.fontFamily,
                       fontSize: '8px',
-                      color: COLORS.warning,
+                      color: needsMoreFragments ? COLORS.danger : COLORS.warning,
                       textShadow: '1px 1px 0 #000',
                       whiteSpace: 'nowrap',
                     }}>
-                      Shift
+                      {needsMoreFragments ? `${currentFragments}/${minFragments}` : 'Shift'}
                     </div>
                   )}
                 </div>
@@ -3567,13 +3875,13 @@ const GameScreen = ({
               </div>
               <div style={{
                 fontFamily: PIXEL_STYLES.fontFamily,
-                color: displayStats.fragments >= 5 ? COLORS.primary : COLORS.textGray,
+                color: displayStats.fragments >= 30 ? COLORS.primary : COLORS.textGray,
                 fontSize: '16px',
                 fontWeight: 'bold',
                 textShadow: '1px 1px 0 #000',
               }}>
-                {displayStats.fragments || 0} / 15
-                {displayStats.fragments >= 5 && (
+                {displayStats.fragments || 0} / 50
+                {displayStats.fragments >= 30 && (
                   <span style={{ marginLeft: '5px', fontSize: '12px', color: COLORS.warning }}>
                     ⚡
                   </span>

@@ -233,7 +233,7 @@ export const CHARACTERS = [
     id: 'talmo_docter',
     name: '탈모의사',
     subName: '탈모전문 모발이식 의사',
-    weapon: 'Hair Transplant Gun',
+    weapon: '모근 식모기',
     description: '식모기 발사! 관통 공격 (원거리형)',
     color: '#00CED1',
     attackType: 'transplant',

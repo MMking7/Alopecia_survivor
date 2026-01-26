@@ -343,15 +343,15 @@ export const MAIN_WEAPONS = {
   },
 
   // ============================================================
-  // 탈모 의사 - 모근 절개칼 (중근거리)
+  // 탈모 의사 - 모근 식모기 (중근거리)
   // ============================================================
   talmo_docter: {
     id: 'talmo_docter_weapon',
-    name: '모근 절개칼',
-    nameEn: 'Hair Follicle Scalpel',
+    name: '모근 식모기',
+    nameEn: 'Hair Follicle Transplant Gun',
     characterId: 'talmo_docter',
     type: 'cone_sweep',
-    description: '전방 120도 원뿔형 휘두르기, 흡혈',
+    description: '식모기 날려서 일직선 상의 적을 공격함, 흡혈',
     maxLevel: 7,
     levelEffects: {
       1: {
@@ -359,32 +359,32 @@ export const MAIN_WEAPONS = {
         angle: 120,
         range: 130,
         lifeSteal: 0.15, // 피해의 15% 흡수
-        fragmentChance: 0.50, // 50% 확률로 모근 조각 획득
-        maxFragments: 15,
+        fragmentChance: 0.15, // 15% 확률로 모근 조각 획득
+        maxFragments: 50,
       },
       2: {
         damage: 1.38, // 15% 증가
         angle: 120,
         range: 130,
         lifeSteal: 0.20, // 5% 증가
-        fragmentChance: 0.50,
-        maxFragments: 15,
+        fragmentChance: 0.15,
+        maxFragments: 50,
       },
       3: {
         damage: 1.38,
         angle: 120,
         range: 162.5, // 25% 증가
         lifeSteal: 0.20,
-        fragmentChance: 0.75, // 75%로 증가
-        maxFragments: 15,
+        fragmentChance: 0.20, // 20%로 증가
+        maxFragments: 50,
       },
       4: {
         damage: 1.38,
         angle: 120,
         range: 162.5,
         lifeSteal: 0.20,
-        fragmentChance: 0.75,
-        maxFragments: 15,
+        fragmentChance: 0.20,
+        maxFragments: 50,
         attackSpeedBonus: 0.10,
       },
       5: {
@@ -392,32 +392,35 @@ export const MAIN_WEAPONS = {
         angle: 120,
         range: 162.5,
         lifeSteal: 0.25, // 5% 증가
-        fragmentChance: 0.75,
-        maxFragments: 15,
+        fragmentChance: 0.25, // 25%로 증가
+        maxFragments: 50,
         attackSpeedBonus: 0.10,
-        multiSwing: 2, // 2회 연속 휘두름
+        projectileCount: 2, // 2개 투사체 발사
+        spreadAngle: 0.3, // 투사체 간 각도 간격
       },
       6: {
         damage: 1.72, // 25% 증가
         angle: 120,
         range: 162.5,
         lifeSteal: 0.25,
-        fragmentChance: 0.75,
-        maxFragments: 15,
+        fragmentChance: 0.25,
+        maxFragments: 50,
         attackSpeedBonus: 0.10,
-        multiSwing: 2,
+        projectileCount: 2, // 2개 투사체 발사
+        spreadAngle: 0.3,
       },
       7: { // 각성
         damage: 1.72,
         angle: 120,
-        range: 162.5,
+        range: 200, // 사거리 증가
         lifeSteal: 0.35, // 10% 증가
-        fragmentChance: 0.75,
-        maxFragments: 15,
-        attackSpeedBonus: 0.10,
-        multiSwing: 2,
-        fragmentBonus: true, // 5개 이상 보유 시 50% 피해 증가
-        fragmentBonusThreshold: 5,
+        fragmentChance: 0.30, // 30%로 증가
+        maxFragments: 50,
+        attackSpeedBonus: 0.15,
+        projectileCount: 3, // 최대 3개 투사체 발사
+        spreadAngle: 0.25,
+        fragmentBonus: true, // 30개 이상 보유 시 50% 피해 증가
+        fragmentBonusThreshold: 30,
         fragmentBonusDamage: 0.50,
       },
     },
@@ -499,8 +502,8 @@ export const SPECIAL_ABILITIES = {
       type: 'm_pattern_field',
       damagePerSecond: 2.00,
       slowAmount: 0.40,
-      width: 400,
-      height: 300,
+      width: 600,
+      height: 400,
     },
   },
 
@@ -508,15 +511,16 @@ export const SPECIAL_ABILITIES = {
     id: 'talmo_docter_special',
     name: '긴급 치료',
     nameEn: 'Emergency Treatment',
-    description: '모근 조각 전부 소모, 1개당 3% HP 회복, 주변 80% 피해. 10개 이상 시 6초간 공격력 40% 증가, 흡혈 15% 추가',
+    description: '최소 모근 30개 필요, 개당 3% HP 회복 & 주변 80% 피해. 40+개 6초간 공 +40%,흡혈 +15%',
     cooldown: 80000, // 80초
     duration: 6000, // 버프 지속 시간 6초
+    minFragments: 30, // 최소 30개 필요
     effect: {
       type: 'consume_fragments',
       healPerFragment: 0.03,
       areaDamage: 0.80,
       areaRadius: 150,
-      bonusThreshold: 10,
+      bonusThreshold: 40, // 40개 이상 시 버프
       bonusDuration: 6000,
       bonusAttackPower: 0.40,
       bonusLifeSteal: 0.15,
