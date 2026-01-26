@@ -1232,44 +1232,106 @@ const GameScreen = ({
 
         switch (effect.type) {
           case 'black_dye_zone': {
-            const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1
-            ctx.globalAlpha = 0.6 * fadeOut
+            // Sprite-based animation using blackspray.png (9 frames, 158x158 each)
+            const blackSprayImg = loadedImages[SPRITES.subweapons.black_dye_anim]
+            if (blackSprayImg) {
+              const totalFrames = 9
+              const frameWidth = 158
+              const frameHeight = 158
 
-            const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, effect.radius)
-            gradient.addColorStop(0, 'rgba(20, 20, 20, 0.9)')
-            gradient.addColorStop(0.5, 'rgba(40, 40, 40, 0.7)')
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
+              // Calculate current frame based on progress (0 to 1)
+              // Animation is 1.3x faster, but frame 5 (largest pool) holds for the saved time
+              // Timeline: 0-19% = frames 0-4 (appearing), 19-81% = frame 5 (hold), 81-100% = frames 6-8 (disappearing)
+              let frameIndex
+              if (progress < 0.19) {
+                // Appearing: frames 0 to 4 (1.3x speed)
+                frameIndex = Math.floor(progress / 0.19 * 5)
+              } else if (progress < 0.81) {
+                // Hold at frame 5 (largest pool)
+                frameIndex = 5
+              } else {
+                // Disappearing: frames 6 to 8 (1.3x speed)
+                frameIndex = 6 + Math.floor((progress - 0.81) / 0.19 * 3)
+              }
+              frameIndex = Math.min(frameIndex, totalFrames - 1)
 
-            ctx.fillStyle = gradient
-            ctx.beginPath()
-            ctx.arc(sx, sy, effect.radius, 0, Math.PI * 2)
-            ctx.fill()
+              // Calculate source position in sprite sheet (horizontal strip)
+              const srcX = frameIndex * frameWidth
+              const srcY = 0
 
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)'
-            ctx.lineWidth = 2
-            ctx.beginPath()
-            ctx.arc(sx, sy, effect.radius * 0.9, 0, Math.PI * 2)
-            ctx.stroke()
+              // Draw size based on effect.radius (scale to match game world)
+              const drawSize = effect.radius * 2.5
 
-            ctx.globalAlpha = 1
+              ctx.save()
+              ctx.globalAlpha = progress > 0.85 ? (1 - progress) / 0.15 : 1
+              ctx.drawImage(
+                blackSprayImg,
+                srcX, srcY, frameWidth, frameHeight,
+                sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize
+              )
+              ctx.restore()
+            } else {
+              // Fallback to gradient if image not loaded
+              const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1
+              ctx.globalAlpha = 0.6 * fadeOut
+
+              const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, effect.radius)
+              gradient.addColorStop(0, 'rgba(20, 20, 20, 0.9)')
+              gradient.addColorStop(0.5, 'rgba(40, 40, 40, 0.7)')
+              gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
+
+              ctx.fillStyle = gradient
+              ctx.beginPath()
+              ctx.arc(sx, sy, effect.radius, 0, Math.PI * 2)
+              ctx.fill()
+
+              ctx.globalAlpha = 1
+            }
             break
           }
 
           case 'spray_cloud': {
-            const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1
-            ctx.globalAlpha = 0.4 * fadeOut
+            // Sprite-based explosion animation using hairsprayexplosion110x118.png (5 frames, 110x118 each)
+            const explosionImg = loadedImages[SPRITES.subweapons.hair_spray_explosion]
+            if (explosionImg) {
+              const totalFrames = 5
+              const frameWidth = 110
+              const frameHeight = 118
 
-            const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, effect.radius)
-            gradient.addColorStop(0, 'rgba(150, 255, 150, 0.6)')
-            gradient.addColorStop(0.6, 'rgba(100, 200, 100, 0.4)')
-            gradient.addColorStop(1, 'rgba(50, 150, 50, 0)')
+              // Calculate frame based on progress (0 to 1)
+              const frameIndex = Math.min(Math.floor(progress * totalFrames), totalFrames - 1)
+              const srcX = frameIndex * frameWidth
+              const srcY = 0
 
-            ctx.fillStyle = gradient
-            ctx.beginPath()
-            ctx.arc(sx, sy, effect.radius * (1 + progress * 0.3), 0, Math.PI * 2)
-            ctx.fill()
+              // Draw size based on effect radius
+              const drawSize = effect.radius * 2.5
+              const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1
 
-            ctx.globalAlpha = 1
+              ctx.save()
+              ctx.globalAlpha = fadeOut
+              ctx.drawImage(
+                explosionImg,
+                srcX, srcY, frameWidth, frameHeight,
+                sx - drawSize / 2, sy - drawSize / 2, drawSize, drawSize
+              )
+              ctx.restore()
+            } else {
+              // Fallback to gradient
+              const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1
+              ctx.globalAlpha = 0.4 * fadeOut
+
+              const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, effect.radius)
+              gradient.addColorStop(0, 'rgba(150, 255, 150, 0.6)')
+              gradient.addColorStop(0.6, 'rgba(100, 200, 100, 0.4)')
+              gradient.addColorStop(1, 'rgba(50, 150, 50, 0)')
+
+              ctx.fillStyle = gradient
+              ctx.beginPath()
+              ctx.arc(sx, sy, effect.radius * (1 + progress * 0.3), 0, Math.PI * 2)
+              ctx.fill()
+
+              ctx.globalAlpha = 1
+            }
             break
           }
         }
@@ -1280,27 +1342,64 @@ const GameScreen = ({
         const cx = state.player.x - state.camera.x
         const cy = state.player.y - state.camera.y
 
-        for (let i = 0; i < effect.teethCount; i++) {
-          const angle = effect.rotation + (Math.PI * 2 * i) / effect.teethCount
-          const tx = cx + Math.cos(angle) * effect.range
-          const ty = cy + Math.sin(angle) * effect.range
+        // Sprite-based animation using comb250.png (4 frames, 249x249 each)
+        const combImg = loadedImages[SPRITES.subweapons.hair_brush_anim]
+        if (combImg) {
+          const totalFrames = 4
+          const frameWidth = 249
+          const frameHeight = 249
+          const combSize = 60 // Draw size for each comb
 
-          ctx.fillStyle = '#8B4513'
-          ctx.beginPath()
-          ctx.ellipse(tx, ty, 15, 8, angle, 0, Math.PI * 2)
-          ctx.fill()
+          for (let i = 0; i < effect.teethCount; i++) {
+            const angle = effect.rotation + (Math.PI * 2 * i) / effect.teethCount
+            const tx = cx + Math.cos(angle) * effect.range
+            const ty = cy + Math.sin(angle) * effect.range
 
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'
+            // Select frame based on rotation angle (cycles through all 4 frames)
+            const frameIndex = Math.floor(((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / (Math.PI * 2) * totalFrames) % totalFrames
+            const srcX = frameIndex * frameWidth
+            const srcY = 0
+
+            ctx.save()
+            ctx.translate(tx, ty)
+            ctx.drawImage(
+              combImg,
+              srcX, srcY, frameWidth, frameHeight,
+              -combSize / 2, -combSize / 2, combSize, combSize
+            )
+            ctx.restore()
+          }
+
+          // Draw faint orbit circle
+          ctx.strokeStyle = 'rgba(255, 182, 193, 0.3)'
+          ctx.lineWidth = 3
           ctx.beginPath()
-          ctx.ellipse(tx - 3, ty - 3, 6, 3, angle, 0, Math.PI * 2)
-          ctx.fill()
+          ctx.arc(cx, cy, effect.range, 0, Math.PI * 2)
+          ctx.stroke()
+        } else {
+          // Fallback to original rendering
+          for (let i = 0; i < effect.teethCount; i++) {
+            const angle = effect.rotation + (Math.PI * 2 * i) / effect.teethCount
+            const tx = cx + Math.cos(angle) * effect.range
+            const ty = cy + Math.sin(angle) * effect.range
+
+            ctx.fillStyle = '#8B4513'
+            ctx.beginPath()
+            ctx.ellipse(tx, ty, 15, 8, angle, 0, Math.PI * 2)
+            ctx.fill()
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'
+            ctx.beginPath()
+            ctx.ellipse(tx - 3, ty - 3, 6, 3, angle, 0, Math.PI * 2)
+            ctx.fill()
+          }
+
+          ctx.strokeStyle = 'rgba(139, 69, 19, 0.3)'
+          ctx.lineWidth = 10
+          ctx.beginPath()
+          ctx.arc(cx, cy, effect.range, 0, Math.PI * 2)
+          ctx.stroke()
         }
-
-        ctx.strokeStyle = 'rgba(139, 69, 19, 0.3)'
-        ctx.lineWidth = 10
-        ctx.beginPath()
-        ctx.arc(cx, cy, effect.range, 0, Math.PI * 2)
-        ctx.stroke()
       })
 
       // Draw hair dryer cone
@@ -1333,17 +1432,34 @@ const GameScreen = ({
         const py = proj.y - state.camera.y
 
         if (proj.type === 'hair_spray_missile') {
-          ctx.fillStyle = '#00FF00'
-          ctx.beginPath()
-          ctx.arc(px, py, 8, 0, Math.PI * 2)
-          ctx.fill()
+          const missileImg = loadedImages[SPRITES.subweapons.hair_spray_missile]
+          if (missileImg) {
+            const missileSize = 50
+            // Calculate rotation angle based on velocity (sprite faces upper-right by default)
+            const angle = Math.atan2(proj.vy, proj.vx) + Math.PI / 4 // Adjust for sprite orientation
 
-          ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)'
-          ctx.lineWidth = 4
-          ctx.beginPath()
-          ctx.moveTo(px, py)
-          ctx.lineTo(px - proj.vx * 0.05, py - proj.vy * 0.05)
-          ctx.stroke()
+            ctx.save()
+            ctx.translate(px, py)
+            ctx.rotate(angle)
+            ctx.drawImage(
+              missileImg,
+              -missileSize / 2, -missileSize / 2, missileSize, missileSize
+            )
+            ctx.restore()
+          } else {
+            // Fallback
+            ctx.fillStyle = '#00FF00'
+            ctx.beginPath()
+            ctx.arc(px, py, 8, 0, Math.PI * 2)
+            ctx.fill()
+
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)'
+            ctx.lineWidth = 4
+            ctx.beginPath()
+            ctx.moveTo(px, py)
+            ctx.lineTo(px - proj.vx * 0.05, py - proj.vy * 0.05)
+            ctx.stroke()
+          }
         }
       })
 
@@ -1795,14 +1911,7 @@ const GameScreen = ({
                     position: 'relative'
                   }}>
                     {upgrade.isSubWeapon ? (
-                      <span style={{ fontSize: '28px' }}>
-                        {upgrade.id === 'black_dye' && '🖤'}
-                        {upgrade.id === 'hair_brush' && '🪥'}
-                        {upgrade.id === 'hair_spray' && '💨'}
-                        {upgrade.id === 'hair_dryer' && '🔥'}
-                        {upgrade.id === 'electric_clipper' && '⚡'}
-                        {upgrade.id === 'dandruff_bomb' && '💣'}
-                      </span>
+                      <img src={SPRITES.subweapons[upgrade.icon]} alt="" style={{ width: '40px', height: '40px', imageRendering: 'pixelated', objectFit: 'contain' }} />
                     ) : (
                       <img src={SPRITES.items[upgrade.icon]} alt="" style={{ width: '32px', height: '32px', imageRendering: 'pixelated' }} />
                     )}
@@ -1979,14 +2088,7 @@ const GameScreen = ({
                         marginRight: '15px'
                       }}>
                         {item.isSubWeapon ? (
-                          <span style={{ fontSize: '24px' }}>
-                            {item.id === 'black_dye' && '🖤'}
-                            {item.id === 'hair_brush' && '🪥'}
-                            {item.id === 'hair_spray' && '💨'}
-                            {item.id === 'hair_dryer' && '🔥'}
-                            {item.id === 'electric_clipper' && '⚡'}
-                            {item.id === 'dandruff_bomb' && '💣'}
-                          </span>
+                          <img src={SPRITES.subweapons[item.icon]} style={{ width: '32px', height: '32px', imageRendering: 'pixelated', objectFit: 'contain' }} />
                         ) : (
                           <img src={SPRITES.items[item.icon]} style={{ width: '24px', height: '24px', imageRendering: 'pixelated' }} />
                         )}

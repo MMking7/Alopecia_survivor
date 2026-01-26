@@ -34,8 +34,9 @@ const preloadImages = () => {
     ...Object.values(SPRITES.enemies),
     ...Object.values(SPRITES.items),
     ...Object.values(SPRITES.ui),
+    ...Object.values(SPRITES.subweapons),
   ]
-  
+
   const loaded = {}
   let loadedCount = 0
 
@@ -129,28 +130,28 @@ function App() {
   // ============================================================
   // GLOBAL STATE
   // ============================================================
-  
+
   // Screen navigation
   const [gamePhase, setGamePhase] = useState('menu')
   // Values: 'menu', 'characterSelect', 'shop', 'playing', 'gameover'
-  
+
   // Character selection
   const [selectedCharacter, setSelectedCharacter] = useState(null)
-  
+
   // Persistent data (saved to localStorage)
   const [characterProgress, setCharacterProgress] = useState(() => loadCharacterProgress())
   const [activeCharacterId, setActiveCharacterId] = useState(() => {
     return localStorage.getItem(ACTIVE_CHARACTER_KEY) || CHARACTERS[0]?.id || null
   })
-  
+
   const [highScore, setHighScore] = useState(() => {
     return parseInt(localStorage.getItem('hairSurvivor_highScore')) || 0
   })
-  
+
   // Image loading state
   const [imagesLoaded, setImagesLoaded] = useState(false)
   const [loadedImages, setLoadedImages] = useState({})
-  
+
   // Game over stats (passed from GameScreen)
   const [gameOverStats, setGameOverStats] = useState(null)
 
@@ -233,7 +234,7 @@ function App() {
   const handleGameOver = useCallback((stats) => {
     // Calculate earned coins
     const earnedCoins = stats.kills + Math.floor(stats.time / 5)
-    
+
     // Calculate score
     const score = stats.kills * 50 + Math.floor(stats.time * 10) + stats.level * 500
     if (score > highScore) {
@@ -258,14 +259,14 @@ function App() {
         return { ...prev, [selectedCharacter.id]: nextProfile }
       })
     }
-    
+
     // Store stats for GameOverScreen
     setGameOverStats({
       ...stats,
       earnedCoins,
       score,
     })
-    
+
     setGamePhase('gameover')
   }, [highScore, selectedCharacter])
 
@@ -313,7 +314,7 @@ function App() {
         boxShadow: '0 0 50px rgba(0,0,0,0.5)',
         overflow: 'hidden'
       }}>
-        
+
         {/* MENU SCREEN */}
         {gamePhase === 'menu' && (
           <TitleScreen
