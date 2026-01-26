@@ -202,7 +202,7 @@ export const MAIN_WEAPONS = {
         armorPenetration: 0.20, // 방어 관통 20%
       },
     },
-    attackCooldown: 1300,
+    attackCooldown: 2000,
   },
 
   // ============================================================

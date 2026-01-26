@@ -116,6 +116,7 @@ const GameScreen = ({
       enemyProjectiles: [],
       explosions: [],
       attackEffects: [],
+      groundZones: [],
       damageNumbers: [],
       subWeaponEffects: [],
       subWeaponProjectiles: [],
@@ -356,6 +357,9 @@ const GameScreen = ({
           delete enemy.electrified
         }
 
+        // Reset damage taken multiplier (re-applied every frame if in zone)
+        enemy.damageTakenMultiplier = 1.0
+
         // 몬스터별 행동 패턴
         switch (enemy.attackType) {
           case 'dash': // 바리깡 - 대시 공격
@@ -554,6 +558,33 @@ const GameScreen = ({
                   damage: Math.floor(state.stats.damage * zone.damagePerSecond * (1 + zoneDamageBonus) * 0.2), // Show ~0.2s worth of damage
                   createdAt: currentTime,
                 })
+              }
+            }
+            // Circular zones (Areata Special)
+            else if (zone.radius) {
+              const dist = distance(zone, enemy)
+              if (dist < zone.radius) {
+                // Apply Damage Amplification Debuff
+                if (zone.damageAmplification) {
+                  enemy.damageTakenMultiplier = (enemy.damageTakenMultiplier || 1) * (1 + zone.damageAmplification)
+                }
+
+                const damage = state.stats.damage * zone.damagePerSecond * deltaTime
+                // Apply multiplier for zone damage itself (optional, but consistent)
+                enemy.currentHp -= damage * (enemy.damageTakenMultiplier || 1)
+
+                // Show damage numbers periodically
+                if (!enemy.lastZoneDamageNumber || currentTime - enemy.lastZoneDamageNumber > 200) {
+                  enemy.lastZoneDamageNumber = currentTime
+                  state.damageNumbers.push({
+                    id: generateId(),
+                    x: enemy.x,
+                    y: enemy.y,
+                    damage: Math.floor(state.stats.damage * zone.damagePerSecond * 0.2),
+                    createdAt: currentTime,
+                    color: '#32CD32'
+                  })
+                }
               }
             }
           })
@@ -896,7 +927,128 @@ const GameScreen = ({
               state.stats.attackSpeed *= (1 + effect.attackSpeedBonus)
               // Extra lightning damage handled in attack logic
               break
+
+            case 'circular_zone': // Areata - following zone with damage amplification
+              if (!state.specialAbilityZoneCreated) {
+                state.specialAbilityZoneCreated = true
+
+                // Create following ground zone
+                state.groundZones.push({
+                  id: generateId(),
+                  type: 'areata_special_zone',
+                  x: state.player.x,
+                  y: state.player.y,
+                  radius: effect.radius,
+                  angle: 0, // Initialize angle to prevent NaN in rotation calc
+                  damagePerSecond: effect.damagePerSecond,
+                  damageAmplification: effect.damageAmplification,
+                  duration: state.specialAbility.activeUntil - currentTime,
+                  createdAt: currentTime,
+                  followPlayer: true, // Custom flag to update position
+                  color: state.player.character.attackColor,
+                })
+
+                // Visual effect
+                state.attackEffects.push({
+                  id: generateId(),
+                  type: 'areata_special_zone',
+                  x: state.player.x,
+                  y: state.player.y,
+                  radius: effect.radius,
+                  color: state.player.character.attackColor,
+                  createdAt: currentTime,
+                  duration: state.specialAbility.activeUntil - currentTime,
+                  followPlayer: true,
+                })
+              }
+              break
+
+            case 'rotating_whirlpool': // Wongfeihung - 3 orbiting satellites + pull
+              if (!state.specialAbilityZoneCreated) {
+                state.specialAbilityZoneCreated = true
+
+                // Add visual effect
+                state.attackEffects.push({
+                  id: generateId(),
+                  type: 'rotating_whirlpool',
+                  x: state.player.x,
+                  y: state.player.y,
+                  radius: 180, // Orbit radius
+                  orbits: effect.orbits || 3,
+                  color: state.player.character.attackColor,
+                  createdAt: currentTime,
+                  duration: state.specialAbility.activeUntil - currentTime,
+                  followPlayer: true,
+                })
+              }
+
+              // Apply Pull Physics
+              const pullRadius = 400
+              const pullStrength = effect.pullStrength || 150
+              state.enemies.forEach(enemy => {
+                if (enemy.isDead) return
+                const dist = distance(state.player, enemy)
+                if (dist < pullRadius) {
+                  const angle = Math.atan2(state.player.y - enemy.y, state.player.x - enemy.x)
+                  enemy.vx += Math.cos(angle) * pullStrength * deltaTime
+                  enemy.vy += Math.sin(angle) * pullStrength * deltaTime
+                }
+              })
+
+              // Apply Damage from Satellites
+              const orbitRadius = 180
+              const rotationSpeed = 3 // rad/s
+              const currentAngle = (currentTime / 1000) * rotationSpeed
+              const orbitCount = effect.orbits || 3
+
+              for (let i = 0; i < orbitCount; i++) {
+                const angle = currentAngle + (i * (Math.PI * 2 / orbitCount))
+                const satX = state.player.x + Math.cos(angle) * orbitRadius
+                const satY = state.player.y + Math.sin(angle) * orbitRadius
+
+                // Check collisions with enemies
+                state.enemies.forEach(enemy => {
+                  if (enemy.isDead) return
+                  // Satellite hit radius
+                  // Adjusted by user request (260 - 80 = 180)
+                  if (distance({ x: satX, y: satY }, enemy) < 180) {
+                    // Check damage cooldown per enemy per satellite to avoid instant kill
+                    // Using a composite key for cooldown: enemyId + satIndex
+                    const cooldownKey = `${enemy.id}_whirlpool_${i}`
+                    if (!enemy[cooldownKey] || currentTime - enemy[cooldownKey] > 200) {
+                      enemy[cooldownKey] = currentTime
+                      const damage = state.stats.damage * effect.damagePerSecond * 0.2 // 0.2s worth of Dot
+                      enemy.currentHp -= damage
+                      state.damageNumbers.push({
+                        id: generateId(),
+                        x: enemy.x,
+                        y: enemy.y,
+                        damage: Math.floor(damage),
+                        createdAt: currentTime,
+                        color: '#FFA500'
+                      })
+                    }
+                  }
+                })
+              }
+              break
           }
+        }
+
+        // Update position for following zones/effects
+        if (state.specialAbilityZoneCreated) {
+          state.groundZones.forEach(z => {
+            if (z.followPlayer) {
+              z.x = state.player.x
+              z.y = state.player.y
+            }
+          })
+          state.attackEffects.forEach(e => {
+            if (e.followPlayer) {
+              e.x = state.player.x
+              e.y = state.player.y
+            }
+          })
         }
       }
 
@@ -1056,8 +1208,8 @@ const GameScreen = ({
       // For female character (aoe), use weapon's attackCooldown directly
       // For other characters, use attackSpeed-based interval
       let attackInterval
-      if (character.attackType === 'aoe' && mainWeapon?.attackCooldown) {
-        attackInterval = mainWeapon.attackCooldown // Fixed 5000ms cooldown
+      if ((character.attackType === 'aoe' || character.attackType === 'spin') && mainWeapon?.attackCooldown) {
+        attackInterval = mainWeapon.attackCooldown
       } else {
         attackInterval = 1000 / finalAttackSpeed
       }
@@ -1067,7 +1219,7 @@ const GameScreen = ({
 
         // Remove old effects (except for long-duration effects)
         state.attackEffects = state.attackEffects.filter((e) => {
-          if (e.type === 'female_attack_zone' || e.type === 'female_special_zone') {
+          if (e.type === 'female_attack_zone' || e.type === 'female_special_zone' || e.type === 'areata_special_zone' || e.type === 'rotating_whirlpool') {
             return currentTime - e.createdAt < e.duration
           }
           return currentTime - e.createdAt < 300
@@ -1164,14 +1316,34 @@ const GameScreen = ({
                 createdAt: currentTime,
                 duration: 200,
               })
-              const damage = state.stats.damage * areataEffect.damage
-              nearest.currentHp -= damage
-              state.damageNumbers.push({
+
+              // Explosion Effect
+              const explosionRadius = areataEffect.explosionRadius || 50
+              state.attackEffects.push({
                 id: generateId(),
+                type: 'aoe',
                 x: nearest.x,
                 y: nearest.y,
-                damage: Math.floor(damage),
+                maxRadius: explosionRadius,
+                color: character.attackColor,
                 createdAt: currentTime,
+                duration: 300,
+              })
+
+              // AOE Damage
+              const damage = state.stats.damage * areataEffect.damage
+              state.enemies.forEach((enemy) => {
+                if (enemy.isDead) return
+                if (distance(nearest, enemy) <= explosionRadius) {
+                  enemy.currentHp -= damage
+                  state.damageNumbers.push({
+                    id: generateId(),
+                    x: enemy.x,
+                    y: enemy.y,
+                    damage: Math.floor(damage),
+                    createdAt: currentTime,
+                  })
+                }
               })
             }
             break
@@ -2113,8 +2285,8 @@ const GameScreen = ({
 
         switch (effect.type) {
           case 'aoe':
-            const aoeX = (state.player.x - state.camera.x)
-            const aoeY = (state.player.y - state.camera.y)
+            const aoeX = (effect.x - state.camera.x)
+            const aoeY = (effect.y - state.camera.y)
             const currentRadius = effect.maxRadius * progress
 
             ctx.shadowBlur = 0
@@ -2250,6 +2422,48 @@ const GameScreen = ({
             ctx.globalAlpha = 1
             break
 
+          case 'areata_special_zone':
+            // Areata Special Ability - Following Circular Zone
+            ctx.save()
+            const areataZoneX = effect.x - state.camera.x
+            const areataZoneY = effect.y - state.camera.y
+
+            ctx.translate(areataZoneX, areataZoneY)
+
+            // Try to draw sprite image (areataability.png)
+            const areataAbilityPath = SPRITES.abilities?.areata_ability || '/sprites/areata/areataability.png'
+            const areataAbilityImg = loadedImages[areataAbilityPath]
+
+            if (areataAbilityImg && areataAbilityImg.complete && areataAbilityImg.naturalWidth > 0) {
+              ctx.globalAlpha = 0.6
+              const spriteSize = effect.radius * 2.5 // Slightly larger than hitbox
+              ctx.drawImage(
+                areataAbilityImg,
+                -spriteSize / 2,
+                -spriteSize / 2,
+                spriteSize,
+                spriteSize
+              )
+            } else {
+              // Fallback: Green circle
+              ctx.fillStyle = effect.color
+              ctx.globalAlpha = 0.3
+              ctx.beginPath()
+              ctx.arc(0, 0, effect.radius, 0, Math.PI * 2)
+              ctx.fill()
+
+              ctx.strokeStyle = '#fff'
+              ctx.lineWidth = 2
+              ctx.globalAlpha = 0.6
+              ctx.beginPath()
+              ctx.arc(0, 0, effect.radius, 0, Math.PI * 2)
+              ctx.stroke()
+            }
+
+            ctx.restore()
+            ctx.globalAlpha = 1
+            break
+
           case 'shockwave':
             // 충격파 렌더링
             const swX = effect.x - state.camera.x
@@ -2354,20 +2568,84 @@ const GameScreen = ({
             // Draw hair sprite if loaded
             if (loadedImages[SPRITES.attacks.wongfeihung_hair]) {
               const hairImg = loadedImages[SPRITES.attacks.wongfeihung_hair]
-              const hairSize = effect.radius * 2
-              ctx.drawImage(hairImg, -hairSize / 2, -hairSize / 2, hairSize, hairSize)
+              const hairSize = (effect.radius * 2) / 3
+              ctx.drawImage(hairImg, 0, 0, hairSize, hairSize)
             }
 
             // Draw slash effect trailing behind
             ctx.rotate(Math.PI / 4)
             if (loadedImages[SPRITES.attacks.wongfeihung_slash]) {
               const slashImg = loadedImages[SPRITES.attacks.wongfeihung_slash]
-              const slashSize = effect.radius * 1.5
+              const slashSize = effect.radius * 1.5 + 20
               ctx.drawImage(slashImg, -slashSize / 2, -slashSize / 2, slashSize, slashSize)
             }
 
             ctx.restore()
             ctx.globalAlpha = 1
+            break
+
+          case 'rotating_whirlpool':
+            {
+              const cx = effect.x - state.camera.x
+              const cy = effect.y - state.camera.y
+              const orbitRadius = effect.radius
+              const rotationSpeed = 3 // match logic speed
+              const elapsedS = (currentTime - effect.createdAt) / 1000
+              const currentAngle = elapsedS * rotationSpeed
+              const orbitCount = effect.orbits || 3
+
+              for (let i = 0; i < orbitCount; i++) {
+                const angle = currentAngle + (i * (Math.PI * 2 / orbitCount))
+                const satX = cx + Math.cos(angle) * orbitRadius
+                const satY = cy + Math.sin(angle) * orbitRadius
+
+                ctx.save()
+                ctx.translate(satX, satY)
+
+                // Spin around the satellite's center (axis)
+                const spinAngle = angle + (elapsedS * 10)
+                ctx.rotate(spinAngle)
+
+                const satScale = 0.4 // Scale for satellites relative to main attack
+                const baseSize = 250 // Base size reference
+                const hairSize = baseSize * satScale
+
+                // Draw hair (anchored at top-left = center of rotation)
+                if (loadedImages[SPRITES.attacks.wongfeihung_hair]) {
+                  const hairImg = loadedImages[SPRITES.attacks.wongfeihung_hair]
+                  ctx.drawImage(hairImg, 0, 0, hairSize, hairSize)
+                }
+
+                // Draw slash (rotated 45 degrees relative to hair)
+                ctx.rotate(Math.PI / 4)
+                if (loadedImages[SPRITES.attacks.wongfeihung_slash]) {
+                  const slashImg = loadedImages[SPRITES.attacks.wongfeihung_slash]
+                  const slashSize = hairSize * 3.0
+                  // Draw slash centered
+                  ctx.drawImage(slashImg, -slashSize / 2, -slashSize / 2, slashSize, slashSize)
+                }
+
+                // Fallback if no images
+                if (!loadedImages[SPRITES.attacks.wongfeihung_hair] && !loadedImages[SPRITES.attacks.wongfeihung_slash]) {
+                  ctx.fillStyle = effect.color
+                  ctx.beginPath()
+                  ctx.arc(0, 0, 20, 0, Math.PI * 2)
+                  ctx.fill()
+                }
+
+                ctx.restore()
+
+                // Draw connection line to player (optional visual flair)
+                ctx.strokeStyle = effect.color
+                ctx.globalAlpha = 0.2
+                ctx.lineWidth = 2
+                ctx.beginPath()
+                ctx.moveTo(cx, cy)
+                ctx.lineTo(satX, satY)
+                ctx.stroke()
+                ctx.globalAlpha = 1
+              }
+            }
             break
 
           case 'lightning':

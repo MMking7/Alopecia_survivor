@@ -142,7 +142,7 @@ export const SPRITES = {
     femalebald_skill2: '/sprites/femalebald/femalebaldskill2.png',
     femalebald_skill3: '/sprites/femalebald/femalebaldskill3.png',
     // 원형 탈모 (Areata)
-    areata_ability: '/sprites/areata/areataability.png',
+    areata_ability: '/sprites/areata/areataabilitysprite.png',
     areata_mainattack: '/sprites/areata/areatamainattack.png',
     areata_gaksung: '/sprites/areata/areatagaksung.png',
     areata_skill1: '/sprites/areata/areataskill1.png',
