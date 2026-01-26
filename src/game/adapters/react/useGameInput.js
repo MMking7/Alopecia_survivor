@@ -75,16 +75,27 @@ export const useGameInput = ({
       gameStateRef.current.mouse.worldY = mouseY + gameStateRef.current.camera.y
     }
 
+    const handleMouseClick = (e) => {
+      if (!gameStateRef.current) return
+      // Left click (button 0) toggles aim mode
+      if (e.button === 0 && gamePhase === 'playing') {
+        gameStateRef.current.aimMode = gameStateRef.current.aimMode === 'auto' ? 'manual' : 'auto'
+        console.log('[AIM] Mode changed to:', gameStateRef.current.aimMode)
+      }
+    }
+
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
     window.addEventListener('blur', handleBlur)
     window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mousedown', handleMouseClick)
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
       window.removeEventListener('blur', handleBlur)
       window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mousedown', handleMouseClick)
     }
   }, [gamePhase])
 

@@ -92,5 +92,6 @@ export const createInitialState = ({
     bossSpawned: false, // Legacy/UI flag
     keys: { w: false, a: false, s: false, d: false, shift: false, shiftPressed: false },
     camera: { x: 0, y: 0 },
+    aimMode: 'auto', // 'auto' = nearest enemy, 'manual' = mouse cursor direction
   }
 }

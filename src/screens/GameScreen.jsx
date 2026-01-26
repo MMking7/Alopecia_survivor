@@ -513,6 +513,20 @@ const GameScreen = ({
             <span style={{ color: COLORS.danger }}>💀{displayStats.kills}</span>
             <span style={{ color: '#FFD700' }}>💰{displayStats.coins || 0}</span>
           </div>
+          {/* Aim Mode Indicator */}
+          <div style={{
+            fontFamily: PIXEL_STYLES.fontFamily,
+            fontSize: '10px',
+            marginTop: '6px',
+            padding: '3px 6px',
+            background: displayStats.aimMode === 'manual' ? 'rgba(255, 100, 100, 0.3)' : 'rgba(100, 255, 100, 0.3)',
+            border: `1px solid ${displayStats.aimMode === 'manual' ? '#ff6666' : '#66ff66'}`,
+            color: displayStats.aimMode === 'manual' ? '#ff6666' : '#66ff66',
+            textShadow: '1px 1px 0 #000',
+            cursor: 'pointer',
+          }}>
+            🎯 {displayStats.aimMode === 'manual' ? 'MANUAL' : 'AUTO'} (Click)
+          </div>
         </div>
       </div>
 

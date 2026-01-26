@@ -11,21 +11,31 @@ export const handleTransplantAttack = ({ state, currentTime, character }) => {
   const projectileRange = talmoEffect.range
   const projectileSpeed = character.projectileSpeed || 400
 
-  // Find direction to nearest enemy, or use facing direction
+  // Find direction based on aim mode
   let targetAngle = state.player.facing === 1 ? 0 : Math.PI
-  let nearestEnemy = null
-  let nearestEnemyDist = Infinity
 
-  state.enemies.forEach((enemy) => {
-    const d = distance(state.player, enemy)
-    if (d < nearestEnemyDist && d <= projectileRange * 1.5) {
-      nearestEnemy = enemy
-      nearestEnemyDist = d
+  if (state.aimMode === 'manual') {
+    // Manual aim: shoot towards mouse cursor
+    targetAngle = Math.atan2(
+      state.mouse.worldY - state.player.y,
+      state.mouse.worldX - state.player.x
+    )
+  } else {
+    // Auto aim: find nearest enemy
+    let nearestEnemy = null
+    let nearestEnemyDist = Infinity
+
+    state.enemies.forEach((enemy) => {
+      const d = distance(state.player, enemy)
+      if (d < nearestEnemyDist && d <= projectileRange * 1.5) {
+        nearestEnemy = enemy
+        nearestEnemyDist = d
+      }
+    })
+
+    if (nearestEnemy) {
+      targetAngle = Math.atan2(nearestEnemy.y - state.player.y, nearestEnemy.x - state.player.x)
     }
-  })
-
-  if (nearestEnemy) {
-    targetAngle = Math.atan2(nearestEnemy.y - state.player.y, nearestEnemy.x - state.player.x)
   }
 
   // Calculate damage with fragment bonus (awakening)

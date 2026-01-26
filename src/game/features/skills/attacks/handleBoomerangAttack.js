@@ -18,21 +18,31 @@ export const handleBoomerangAttack = ({ state, currentTime, character }) => {
   const boomerangSpeed = mzamenEffect.speed
   const returnSpeed = character.returnSpeed || 450
 
-  // Find direction to nearest enemy, or use facing direction
+  // Find direction based on aim mode
   let boomerangAngle = state.player.facing === 1 ? 0 : Math.PI
-  let nearestBoomerangEnemy = null
-  let nearestBoomerangDist = Infinity
 
-  state.enemies.forEach((enemy) => {
-    const d = distance(state.player, enemy)
-    if (d < nearestBoomerangDist && d <= boomerangRange * 1.5) {
-      nearestBoomerangEnemy = enemy
-      nearestBoomerangDist = d
+  if (state.aimMode === 'manual') {
+    // Manual aim: throw towards mouse cursor
+    boomerangAngle = Math.atan2(
+      state.mouse.worldY - state.player.y,
+      state.mouse.worldX - state.player.x
+    )
+  } else {
+    // Auto aim: find nearest enemy
+    let nearestBoomerangEnemy = null
+    let nearestBoomerangDist = Infinity
+
+    state.enemies.forEach((enemy) => {
+      const d = distance(state.player, enemy)
+      if (d < nearestBoomerangDist && d <= boomerangRange * 1.5) {
+        nearestBoomerangEnemy = enemy
+        nearestBoomerangDist = d
+      }
+    })
+
+    if (nearestBoomerangEnemy) {
+      boomerangAngle = Math.atan2(nearestBoomerangEnemy.y - state.player.y, nearestBoomerangEnemy.x - state.player.x)
     }
-  })
-
-  if (nearestBoomerangEnemy) {
-    boomerangAngle = Math.atan2(nearestBoomerangEnemy.y - state.player.y, nearestBoomerangEnemy.x - state.player.x)
   }
 
   // Create multiple boomerangs in a spread pattern

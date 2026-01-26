@@ -688,5 +688,6 @@ export const updateCombat = ({
     fragments: state.fragments || 0,
     specialAbilityLastUsed: state.specialAbility?.lastUsedGameTime || 0,
     currentGameTime: state.gameTime,
+    aimMode: state.aimMode || 'auto',
   })
 }

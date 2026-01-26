@@ -6,9 +6,22 @@ export const handleAoeAttack = ({ state, currentTime, character }) => {
   const femaleWeapon = getMainWeapon('female')
   if (femaleWeapon) {
     const weaponEffect = femaleWeapon.levelEffects[state.mainWeaponLevel]
-    // Use lastFacingDirection for attack placement
-    const facingDir = state.player.lastFacingDirection || 'right'
-    const baseAngle = facingDir === 'right' ? 0 : Math.PI
+    
+    // Determine attack angle based on aim mode
+    let baseAngle
+    let facingDir
+    if (state.aimMode === 'manual') {
+      // Manual aim: use mouse cursor direction
+      baseAngle = Math.atan2(
+        state.mouse.worldY - state.player.y,
+        state.mouse.worldX - state.player.x
+      )
+      facingDir = Math.cos(baseAngle) >= 0 ? 'right' : 'left'
+    } else {
+      // Auto aim: use lastFacingDirection
+      facingDir = state.player.lastFacingDirection || 'right'
+      baseAngle = facingDir === 'right' ? 0 : Math.PI
+    }
 
     // Create line zones based on weapon level
     for (let i = 0; i < (weaponEffect.lines || 1); i++) {
