@@ -3501,16 +3501,17 @@ const GameScreen = ({
                         { icon: '⚔️', label: 'ATK', value: Math.round(gameStateRef.current?.stats?.damage || 0), color: COLORS.atk },
                         { icon: '🏃', label: 'SPD', value: `${Math.round((gameStateRef.current?.stats?.moveSpeed || 1) * 100)}%`, color: COLORS.spd },
                         { icon: '💥', label: 'CRT', value: `${Math.round((gameStateRef.current?.stats?.crit || 0) * 100)}%`, color: COLORS.crit },
+                        { icon: '⚡', label: 'AS', value: `${(gameStateRef.current?.stats?.attackSpeed || 1).toFixed(1)}x`, color: COLORS.warning },
                         { icon: '🛡️', label: 'DEF', value: `${Math.round((gameStateRef.current?.stats?.defense || 0) * 100)}%`, color: COLORS.textGray },
                       ].map(stat => (
                         <div key={stat.label} style={{
                           display: 'flex',
                           alignItems: 'center',
                           fontFamily: PIXEL_STYLES.fontFamily,
-                          fontSize: '11px',
+                          fontSize: '14px',
                         }}>
-                          <span style={{ width: '20px' }}>{stat.icon}</span>
-                          <span style={{ color: COLORS.textGray, width: '40px' }}>{stat.label}</span>
+                          <span style={{ width: '24px', fontSize: '16px' }}>{stat.icon}</span>
+                          <span style={{ color: COLORS.textGray, width: '50px' }}>{stat.label}</span>
                           <span style={{ color: stat.color, fontWeight: 'bold', marginLeft: 'auto' }}>{stat.value}</span>
                         </div>
                       ))}
