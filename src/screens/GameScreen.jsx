@@ -1520,15 +1520,6 @@ const GameScreen = ({
 
             ctx.drawImage(img, -enemy.size / 2, -enemy.size / 2, enemy.size, enemy.size)
             ctx.restore()
-
-            if (!enemy.isDead) {
-              const hpPercent = enemy.currentHp / (enemy.maxHp || enemy.hp)
-              const barWidth = enemy.size * 0.8
-              ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-              ctx.fillRect(sx - barWidth / 2, sy + enemy.size / 2 + 5, barWidth, 6)
-              ctx.fillStyle = hpPercent > 0.3 ? '#4CAF50' : '#f44336'
-              ctx.fillRect(sx - barWidth / 2, sy + enemy.size / 2 + 5, barWidth * Math.max(0, hpPercent), 6)
-            }
           }
         }
       })
@@ -1686,10 +1677,31 @@ const GameScreen = ({
         }}
       />
 
-      {/* HUD - Top Bar */}
+      {/* XP Bar - Top Full Width */}
       <div style={{
         position: 'absolute',
         top: 0,
+        left: 0,
+        right: 0,
+        height: '12px',
+        background: 'rgba(13, 13, 26, 0.95)',
+        borderBottom: `3px solid ${COLORS.panelBorder}`,
+        boxShadow: '0 3px 0 0 rgba(0,0,0,0.5)',
+        zIndex: 100,
+      }}>
+        <div style={{
+          width: `${Math.min(100, (displayStats.xp / displayStats.xpNeeded) * 100)}%`,
+          height: '100%',
+          background: `linear-gradient(90deg, ${COLORS.secondary}, ${COLORS.secondaryDark})`,
+          transition: 'width 0.3s ease',
+          boxShadow: `inset 0 0 10px ${COLORS.secondary}80`,
+        }} />
+      </div>
+
+      {/* HUD - Top Bar */}
+      <div style={{
+        position: 'absolute',
+        top: '12px',
         left: 0,
         right: 0,
         padding: '10px 15px',
@@ -1725,20 +1737,6 @@ const GameScreen = ({
                 style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }}
               />
             </div>
-            {/* XP Bar */}
-            <div style={{
-              marginTop: '4px',
-              height: '6px',
-              background: COLORS.bgDark,
-              border: `1px solid ${COLORS.panelBorder}`,
-            }}>
-              <div style={{
-                width: `${Math.min(100, (displayStats.xp / displayStats.xpNeeded) * 100)}%`,
-                height: '100%',
-                background: COLORS.secondary,
-                transition: 'width 0.2s',
-              }} />
-            </div>
           </div>
 
           {/* HP Bar */}
@@ -1751,7 +1749,7 @@ const GameScreen = ({
             <div style={{ 
               fontFamily: PIXEL_STYLES.fontFamily,
               color: COLORS.textWhite, 
-              fontSize: '10px', 
+              fontSize: '13px', 
               marginBottom: '4px',
               textShadow: '1px 1px 0 #000',
               whiteSpace: 'nowrap',

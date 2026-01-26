@@ -148,11 +148,11 @@ export const CHARACTERS = [
 ]
 
 export const ENEMIES = [
-  { type: 'clipper', name: 'Barikan', sprite: SPRITES.enemies.clipper, speed: 100, hp: 20, damage: 5, xp: 10, size: 64, attackType: 'dash' },
-  { type: 'zombie', name: 'Overwork Zombie', sprite: SPRITES.enemies.zombie, speed: 60, hp: 40, damage: 10, xp: 15, size: 80, attackType: 'melee' },
-  { type: 'dna', name: 'Bad Genetics', sprite: SPRITES.enemies.dna, speed: 80, hp: 30, damage: 8, xp: 12, size: 64, attackType: 'spiral' },
-  { type: 'cigarette', name: 'Stress Smoke', sprite: SPRITES.enemies.cigarette, speed: 90, hp: 25, damage: 12, xp: 12, size: 64, attackType: 'ranged' },
-  { type: 'soju', name: 'Alcohol', sprite: SPRITES.enemies.soju, speed: 70, hp: 45, damage: 15, xp: 20, size: 80, attackType: 'dash' },
+  { type: 'clipper', name: 'Barikan', sprite: SPRITES.enemies.clipper, speed: 100, hp: 20, damage: 5, xp: 10, size: 40, attackType: 'dash' },
+  { type: 'zombie', name: 'Overwork Zombie', sprite: SPRITES.enemies.zombie, speed: 60, hp: 40, damage: 10, xp: 15, size: 50, attackType: 'melee' },
+  { type: 'dna', name: 'Bad Genetics', sprite: SPRITES.enemies.dna, speed: 80, hp: 30, damage: 8, xp: 12, size: 40, attackType: 'spiral' },
+  { type: 'cigarette', name: 'Stress Smoke', sprite: SPRITES.enemies.cigarette, speed: 90, hp: 25, damage: 12, xp: 12, size: 40, attackType: 'ranged' },
+  { type: 'soju', name: 'Alcohol', sprite: SPRITES.enemies.soju, speed: 70, hp: 45, damage: 15, xp: 20, size: 50, attackType: 'dash' },
 ]
 
 export const BOSS = {
@@ -162,7 +162,7 @@ export const BOSS = {
   hp: 2000,
   damage: 40,
   xp: 1000,
-  size: 140,
+  size: 90,
   attackType: 'boss',
   attackCooldown: 800,
 }
