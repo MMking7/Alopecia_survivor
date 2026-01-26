@@ -89,6 +89,18 @@ export const SPRITES = {
     piman: '/sprites/holo/item_piman.webp',
     sake: '/sprites/holo/item_sake.webp',
     halu: '/sprites/holo/item_halu.webp',
+  },
+  subweapons: {
+    black_dye: '/sprites/subweapon/blackspraythumb.webp',
+    black_dye_anim: '/sprites/subweapon/blackspray.png',
+    hair_brush: '/sprites/subweapon/combspinthumb.webp',
+    hair_brush_anim: '/sprites/subweapon/comb250.png',
+    hair_spray: '/sprites/subweapon/hairspraybombthumb.webp',
+    hair_spray_missile: '/sprites/subweapon/hairspraymissile.png',
+    hair_spray_explosion: '/sprites/subweapon/hairsprayexplosion110x118.png',
+    hair_dryer: '/sprites/subweapon/hairdryerthumb.webp',
+    electric_clipper: '/sprites/subweapon/buzzerthumb.webp',
+    dandruff_bomb: '/sprites/subweapon/bombthumb.webp',
   }
 }
 
@@ -156,62 +168,62 @@ export const BOSS = {
 }
 
 export const UPGRADES = [
-  { 
-    id: 'glasses', 
-    name: 'Follicle Scanner', 
-    type: 'Item', 
-    description: 'Analyzes scalp health. Increase EXP gain by 15%.', 
-    icon: 'glasses', 
-    effect: (stats) => ({ ...stats, xpMultiplier: (stats.xpMultiplier || 1) + 0.15 }) 
-  }, 
-  { 
-    id: 'ubersheep', 
-    name: 'Biotin Delivery', 
-    type: 'Item', 
-    description: 'Essential nutrients. Heals 20% HP periodically.', 
-    icon: 'ubersheep', 
-    effect: (stats) => ({ ...stats, hp: Math.min(stats.maxHp, stats.hp + stats.maxHp * 0.2) }) 
-  }, 
-  { 
-    id: 'horn', 
-    name: 'Minoxidil', 
-    type: 'Item', 
-    description: 'Promotes regrowth. Chance to heal 3 HP on kill.', 
-    icon: 'horn', 
-    effect: (stats) => ({ ...stats, lifeSteal: (stats.lifeSteal || 0) + 0.05 }) 
-  }, 
-  { 
-    id: 'pillow', 
-    name: 'Silk Cap', 
-    type: 'Item', 
-    description: 'Reduces friction. Grants a Shield (15 HP).', 
-    icon: 'pillow', 
-    effect: (stats) => ({ ...stats, shield: stats.shield + 15 }) 
-  }, 
-  { 
-    id: 'sake', 
-    name: 'Beer Yeast', 
-    type: 'Item', 
-    description: 'Good for hair? Crit +5%, but Aim wavers.', 
-    icon: 'sake', 
-    effect: (stats) => ({ ...stats, crit: (stats.crit || 0) + 0.05 }) 
-  }, 
-  { 
-    id: 'piman', 
-    name: 'Black Bean', 
-    type: 'Item', 
-    description: 'Traditional remedy. Max HP +15.', 
-    icon: 'piman', 
-    effect: (stats) => ({ ...stats, maxHp: stats.maxHp + 15, hp: stats.hp + 15 }) 
-  }, 
-  { 
-    id: 'halu', 
-    name: 'DHT Hormone', 
-    type: 'Item', 
-    description: 'The root cause. Enemy Spawn Rate UP!', 
-    icon: 'halu', 
-    effect: (stats) => ({ ...stats, spawnRateMultiplier: (stats.spawnRateMultiplier || 1) + 0.2 }) 
-  }, 
+  {
+    id: 'glasses',
+    name: 'Follicle Scanner',
+    type: 'Item',
+    description: 'Analyzes scalp health. Increase EXP gain by 15%.',
+    icon: 'glasses',
+    effect: (stats) => ({ ...stats, xpMultiplier: (stats.xpMultiplier || 1) + 0.15 })
+  },
+  {
+    id: 'ubersheep',
+    name: 'Biotin Delivery',
+    type: 'Item',
+    description: 'Essential nutrients. Heals 20% HP periodically.',
+    icon: 'ubersheep',
+    effect: (stats) => ({ ...stats, hp: Math.min(stats.maxHp, stats.hp + stats.maxHp * 0.2) })
+  },
+  {
+    id: 'horn',
+    name: 'Minoxidil',
+    type: 'Item',
+    description: 'Promotes regrowth. Chance to heal 3 HP on kill.',
+    icon: 'horn',
+    effect: (stats) => ({ ...stats, lifeSteal: (stats.lifeSteal || 0) + 0.05 })
+  },
+  {
+    id: 'pillow',
+    name: 'Silk Cap',
+    type: 'Item',
+    description: 'Reduces friction. Grants a Shield (15 HP).',
+    icon: 'pillow',
+    effect: (stats) => ({ ...stats, shield: stats.shield + 15 })
+  },
+  {
+    id: 'sake',
+    name: 'Beer Yeast',
+    type: 'Item',
+    description: 'Good for hair? Crit +5%, but Aim wavers.',
+    icon: 'sake',
+    effect: (stats) => ({ ...stats, crit: (stats.crit || 0) + 0.05 })
+  },
+  {
+    id: 'piman',
+    name: 'Black Bean',
+    type: 'Item',
+    description: 'Traditional remedy. Max HP +15.',
+    icon: 'piman',
+    effect: (stats) => ({ ...stats, maxHp: stats.maxHp + 15, hp: stats.hp + 15 })
+  },
+  {
+    id: 'halu',
+    name: 'DHT Hormone',
+    type: 'Item',
+    description: 'The root cause. Enemy Spawn Rate UP!',
+    icon: 'halu',
+    effect: (stats) => ({ ...stats, spawnRateMultiplier: (stats.spawnRateMultiplier || 1) + 0.2 })
+  },
 ]
 
 export const SHOP_UPGRADES = [
