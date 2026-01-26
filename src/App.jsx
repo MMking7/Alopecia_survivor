@@ -245,8 +245,8 @@ function App() {
   }, [selectedCharacter, imagesLoaded])
 
   const handleGameOver = useCallback((stats) => {
-    // Calculate earned coins
-    const earnedCoins = stats.kills + Math.floor(stats.time / 5)
+    // Collect earned coins from gameplay
+    const earnedCoins = stats.collectedCoins || 0
 
     // Calculate score
     const score = stats.kills * 50 + Math.floor(stats.time * 10) + stats.level * 500

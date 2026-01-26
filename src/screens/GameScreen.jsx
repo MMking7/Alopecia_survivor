@@ -59,6 +59,9 @@ const GameScreen = ({
   onGameOver,
   onQuit,
 }) => {
+  // Debug Trace
+  // console.log('GameScreen Rendered. Config:', GAME_CONFIG)
+
   const canvasRef = useRef(null)
   const gameStateRef = useRef(null)
   const animationFrameRef = useRef(null)
@@ -66,7 +69,7 @@ const GameScreen = ({
   // Local state for UI
   const [gamePhase, setGamePhase] = useState('playing') // 'playing', 'levelup', 'paused'
   const [displayStats, setDisplayStats] = useState({
-    level: 1, xp: 0, xpNeeded: 100, kills: 0, time: 0, hp: 100, maxHp: 100, shield: 0
+    level: 1, xp: 0, xpNeeded: 100, kills: 0, time: 0, hp: 100, maxHp: 100, shield: 0, coins: 0
   })
   const [levelUpOptions, setLevelUpOptions] = useState([])
   const [pauseTab, setPauseTab] = useState('main')
@@ -114,6 +117,8 @@ const GameScreen = ({
       subWeaponEffects: [],
       subWeaponProjectiles: [],
       inventory: [],
+      coins: [],
+      collectedCoins: 0,
       xp: 0,
       xpNeeded: getXpNeededForLevel(startingLevel),
       level: startingLevel,
@@ -192,12 +197,17 @@ const GameScreen = ({
       const state = gameStateRef.current
       if (!state) return
 
+      // Safety Init for Hot Reload / Existing Game States
+      if (!state.coins) state.coins = []
+      if (typeof state.collectedCoins === 'undefined') state.collectedCoins = 0
+
       const buildFinalStats = () => ({
         level: state.level,
         kills: state.kills,
         time: state.gameTime,
         hp: 0,
         maxHp: state.stats.maxHp,
+        collectedCoins: state.collectedCoins,
         statsSnapshot: {
           maxHp: state.stats.maxHp,
           damage: state.stats.damage,
@@ -410,6 +420,34 @@ const GameScreen = ({
             value: enemy.xp,
             createdAt: currentTime
           })
+
+          // Drop Coin (Chance)
+          if (Math.random() < GAME_CONFIG.COIN_DROP_RATE) {
+            const value = Math.floor(Math.random() * (GAME_CONFIG.COIN_VALUE_RANGE.max - GAME_CONFIG.COIN_VALUE_RANGE.min + 1)) + GAME_CONFIG.COIN_VALUE_RANGE.min
+            // console.log('Coin Dropped!', value)
+            state.coins.push({
+              id: generateId(),
+              x: enemy.x,
+              y: enemy.y,
+              value: value,
+              createdAt: currentTime
+            })
+          }
+
+          // Life Steal Check (Moved from duplicate block)
+          if (state.stats.lifeSteal > 0 && Math.random() < 0.2) {
+            if (Math.random() < state.stats.lifeSteal) {
+              state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + 3)
+              state.damageNumbers.push({
+                id: generateId(),
+                x: state.player.x,
+                y: state.player.y - 40,
+                damage: "+3 HP",
+                color: '#00FF00',
+                createdAt: currentTime,
+              })
+            }
+          }
 
           // Increment Kill Count immediately for satisfaction
           state.kills += 1
@@ -1223,33 +1261,8 @@ const GameScreen = ({
         }
       })
 
-      // Handle dead enemies
-      const deadEnemies = state.enemies.filter((e) => e.currentHp <= 0)
-      deadEnemies.forEach((enemy) => {
-        state.kills += 1
-
-        if (state.stats.lifeSteal > 0 && Math.random() < 0.2) {
-          if (Math.random() < state.stats.lifeSteal) {
-            state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + 3)
-            state.damageNumbers.push({
-              id: generateId(),
-              x: state.player.x,
-              y: state.player.y - 40,
-              damage: "+3 HP",
-              color: '#00FF00',
-              createdAt: currentTime,
-            })
-          }
-        }
-
-        state.xpOrbs.push({
-          id: generateId(),
-          x: enemy.x,
-          y: enemy.y,
-          value: enemy.xp,
-        })
-      })
-      state.enemies = state.enemies.filter((e) => e.currentHp > 0)
+      // (Removed Duplicate Death Logic: Handled in main loop)
+      // state.enemies = state.enemies.filter((e) => e.currentHp > 0)
 
       // Collect XP orbs
       const collectedOrbs = state.xpOrbs.filter((orb) => distance(state.player, orb) < 80)
@@ -1267,6 +1280,22 @@ const GameScreen = ({
       })
       state.xpOrbs = state.xpOrbs.filter((orb) => !collectedOrbs.includes(orb))
 
+      // Collect Coins
+      const collectedCoinsList = state.coins.filter((coin) => distance(state.player, coin) < 60)
+      collectedCoinsList.forEach((coin) => {
+        state.collectedCoins += coin.value
+        state.damageNumbers.push({
+          id: generateId(),
+          x: state.player.x,
+          y: state.player.y - 60,
+          damage: `+${coin.value} G`,
+          color: '#FFD700',
+          createdAt: currentTime,
+          isCoin: true
+        })
+      })
+      state.coins = state.coins.filter((coin) => !collectedCoinsList.includes(coin))
+
       // Update damage numbers
       state.damageNumbers = state.damageNumbers.filter((dn) => currentTime - dn.createdAt < 800)
 
@@ -1280,6 +1309,7 @@ const GameScreen = ({
         hp: Math.floor(state.stats.hp),
         maxHp: state.stats.maxHp,
         shield: state.stats.shield,
+        coins: state.collectedCoins,
       })
 
       // ============================================================
@@ -1303,6 +1333,34 @@ const GameScreen = ({
         ctx.fillStyle = '#2d5a27'
         ctx.fillRect(0, 0, canvas.width, canvas.height)
       }
+
+      // Draw Coins (Pixel Art)
+      const coinImg = loadedImages[SPRITES.items?.coin]
+      state.coins.forEach((coin) => {
+        const sx = coin.x - state.camera.x
+        const sy = coin.y - state.camera.y
+        if (sx > -30 && sx < canvas.width + 30 && sy > -30 && sy < canvas.height + 30) {
+          if (coinImg && coinImg.complete && coinImg.naturalWidth > 0) {
+            const size = 24
+            ctx.drawImage(coinImg, sx - size / 2, sy - size / 2, size, size)
+          } else {
+             // Fallback: Yellow circle with border
+            ctx.fillStyle = '#FFD700'
+            ctx.strokeStyle = '#DAA520'
+            ctx.lineWidth = 2
+            ctx.beginPath()
+            ctx.arc(sx, sy, 8, 0, Math.PI * 2)
+            ctx.fill()
+            ctx.stroke()
+            
+            // Inner detail
+            ctx.fillStyle = '#FFA500'
+            ctx.beginPath()
+            ctx.arc(sx, sy, 4, 0, Math.PI * 2)
+            ctx.fill()
+          }
+        }
+      })
 
       // Draw XP orbs
       state.xpOrbs.forEach((orb) => {
@@ -2280,6 +2338,7 @@ const GameScreen = ({
           }}>
             <span style={{ color: COLORS.info }}>⏱️{formatTime(displayStats.time)}</span>
             <span style={{ color: COLORS.danger }}>💀{displayStats.kills}</span>
+            <span style={{ color: '#FFD700' }}>💰{displayStats.coins || 0}</span>
           </div>
         </div>
       </div>

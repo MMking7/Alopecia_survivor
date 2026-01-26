@@ -11,8 +11,10 @@ export const GAME_CONFIG = {
   XP_PER_LEVEL: 50,
   LEVEL_XP_MULTIPLIER: 1.3,
   ENEMY_DESPAWN_DISTANCE: 800,
-  SPAWN_DISTANCE_MIN: 450,
+  SPAWN_DISTANCE_MIN: 300,
   SPAWN_DISTANCE_MAX: 600,
+  COIN_DROP_RATE: 0.05, // 5% chance to drop a coin
+  COIN_VALUE_RANGE: { min: 10, max: 100 },
 }
 
 export const getShopBonuses = (shopLevels = {}) => ({
@@ -89,6 +91,7 @@ export const SPRITES = {
     button: '/sprites/holo/ui_button.webp',
   },
   items: {
+    coin: '/sprites/coin.png',
     glasses: '/sprites/holo/item_glasses.webp',
     ubersheep: '/sprites/holo/item_ubersheep.webp',
     pillow: '/sprites/holo/item_pillow.webp',
