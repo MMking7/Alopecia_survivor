@@ -677,6 +677,7 @@ const GameScreen = ({
               angle: targetAngle,
               damage: state.stats.damage * 1.2,
               range: projectileRange,
+              size: character.projectileSize || 100,
               hitEnemies: [],
               createdAt: currentTime,
               color: character.attackColor,
@@ -1203,8 +1204,11 @@ const GameScreen = ({
           if (transplantImg) {
             ctx.save()
             ctx.translate(sx, sy)
-            ctx.rotate(proj.angle)
-            const imgSize = 60
+            // 이미지의 12시 방향이 진행 방향이 되도록 +90도 회전
+            ctx.rotate(proj.angle + Math.PI / 2)
+            // 식모기 이미지 크기를 크게 키워서 날아가는 느낌
+            const imgSize = proj.size || 100
+            ctx.imageSmoothingEnabled = false
             ctx.drawImage(transplantImg, -imgSize / 2, -imgSize / 2, imgSize, imgSize)
             ctx.restore()
           } else {
@@ -1243,16 +1247,6 @@ const GameScreen = ({
             ctx.shadowBlur = 0
             ctx.restore()
           }
-
-          // Draw trail effect
-          ctx.globalAlpha = 0.4
-          ctx.strokeStyle = proj.color || '#00CED1'
-          ctx.lineWidth = 4
-          ctx.beginPath()
-          ctx.moveTo(proj.startX - state.camera.x, proj.startY - state.camera.y)
-          ctx.lineTo(sx, sy)
-          ctx.stroke()
-          ctx.globalAlpha = 1
         })
       }
 
@@ -1748,7 +1742,12 @@ const GameScreen = ({
           ctx.scale(-1, 1)
         }
 
-        ctx.drawImage(playerImg, -32, -40, 64, 64)
+        // 캐릭터별 스프라이트 크기 조절
+        const spriteScale = state.player.character.spriteScale || 1
+        const spriteW = 64 * spriteScale
+        const spriteH = 64 * spriteScale
+        ctx.imageSmoothingEnabled = false // 픽셀 아트 선명하게
+        ctx.drawImage(playerImg, -spriteW / 2, -spriteH / 2 - 8, spriteW, spriteH)
         ctx.restore()
       }
 

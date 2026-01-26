@@ -161,8 +161,10 @@ export const CHARACTERS = [
     color: '#00CED1',
     attackType: 'transplant',
     attackColor: 'rgba(0, 206, 209, 0.8)',
-    projectileRange: 350,
+    projectileRange: 175,
     projectileSpeed: 400,
+    projectileSize: 80,
+    spriteScale: 1.0,
     baseStats: { hp: 65, maxHp: 65, damage: 38, speed: 1.30, attackSpeed: 1.3, defense: 0, crit: 0.12 }
   },
 ]
