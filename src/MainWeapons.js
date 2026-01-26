@@ -707,7 +707,7 @@ export const CHARACTER_PASSIVE_SKILLS = {
       name: '미들 파트 집중',
       nameEn: 'Middle Part Focus',
       description: '전방 적에게 피해 증가, 후방에서 받는 피해 감소',
-      icon: 'mzaman_skill1',
+      icon: 'mzamen_skill1',
       maxLevel: 3,
       levels: [
         { frontDamageBonus: 0.20, backDamageReduction: 0.10 },
@@ -720,7 +720,7 @@ export const CHARACTER_PASSIVE_SKILLS = {
       name: '점점 넓어지는 이마',
       nameEn: 'Widening Forehead',
       description: '픽업 범위 증가, 경험치 구슬 획득 시 공격속도 증가',
-      icon: 'mzaman_skill2',
+      icon: 'mzamen_skill2',
       maxLevel: 3,
       levels: [
         { pickupRange: 0.20, attackSpeedBonus: 0.05, maxStacks: 6, duration: 5 },
@@ -733,7 +733,7 @@ export const CHARACTER_PASSIVE_SKILLS = {
       name: '파고드는 M자',
       nameEn: 'Receding M-Line',
       description: '모든 무기 사정거리 증가',
-      icon: 'mzaman_skill3',
+      icon: 'mzamen_skill3',
       maxLevel: 3,
       levels: [
         { rangeBonus: 0.20 },

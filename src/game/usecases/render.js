@@ -278,7 +278,7 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
         }
 
         // Try to draw sprite image
-        const femaleAttackImg = loadedImages[SPRITES.attacks?.femalebald_mainattack]
+        const femaleAttackImg = loadedImages[SPRITES.attacks?.female_mainattack]
         if (femaleAttackImg && femaleAttackImg.complete && femaleAttackImg.naturalWidth > 0) {
           // Calculate fade based on remaining duration
           const fadeProgress = progress
@@ -319,9 +319,9 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
 
         ctx.translate(specialZoneX, specialZoneY)
 
-        // Try to draw sprite image (femalebaldability.png)
+        // Try to draw sprite image (female_ability.png)
         // Try multiple lookup methods in case of path issues
-        const abilityPath = SPRITES.abilities?.female_ability || '/sprites/femalebald/femalebaldability.png'
+        const abilityPath = SPRITES.abilities?.female_ability || '/sprites/femalebald/female_ability.png'
         const femaleAbilityImg = loadedImages[abilityPath]
 
         if (femaleAbilityImg && femaleAbilityImg.complete && femaleAbilityImg.naturalWidth > 0) {
@@ -366,7 +366,7 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
         ctx.translate(areataZoneX, areataZoneY)
 
         // Try to draw sprite image (areata ability)
-        const areataAbilityPath = SPRITES.abilities?.areata_ability || '/sprites/areata/areataabilitysprite.png'
+        const areataAbilityPath = SPRITES.abilities?.areata_ability || '/sprites/areata/areata_ability.png'
         const areataAbilityImg = loadedImages[areataAbilityPath]
 
         if (areataAbilityImg && areataAbilityImg.complete && areataAbilityImg.naturalWidth > 0) {

@@ -11,12 +11,12 @@
 
 // 서브 웨폰 스프라이트 경로 (추후 실제 이미지로 교체 필요)
 export const SUB_WEAPON_SPRITES = {
-    black_dye: '/sprites/subweapon/blackspraythumb.webp',
-    hair_brush: '/sprites/subweapon/combspinthumb.webp',
-    hair_spray: '/sprites/subweapon/hairspraybombthumb.webp',
-    hair_dryer: '/sprites/subweapon/hairdryerthumb.webp',
-    electric_clipper: '/sprites/subweapon/buzzerthumb.webp',
-    dandruff_bomb: '/sprites/subweapon/bombthumb.webp',
+    black_dye: '/sprites/subweapon/black_dye.webp',
+    hair_brush: '/sprites/subweapon/hair_brush.webp',
+    hair_spray: '/sprites/subweapon/hair_spray.webp',
+    hair_dryer: '/sprites/subweapon/hair_dryer.webp',
+    electric_clipper: '/sprites/subweapon/electric_clipper.webp',
+    dandruff_bomb: '/sprites/subweapon/dandruff_bomb.webp',
 }
 
 /**
