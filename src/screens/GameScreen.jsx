@@ -1800,7 +1800,7 @@ const GameScreen = ({
                 name: mainWeapon.name,
                 type: nextLevel === 7 ? '무기 (각성)' : '무기',
                 description: mainWeapon.description,
-                icon: nextLevel === 7 ? `${state.player.character.id}_gaksung` : `${state.player.character.id}_ability`,
+                icon: nextLevel === 7 ? `${state.player.character.id}_gaksung` : `${state.player.character.id}_mainattack`,
                 isMainWeapon: true,
                 currentLevel: state.mainWeaponLevel,
                 nextLevel,

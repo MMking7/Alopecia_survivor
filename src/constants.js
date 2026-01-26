@@ -129,42 +129,54 @@ export const SPRITES = {
   abilities: {
     // 여성형 탈모 (Female Bald) - using 'female' as character ID
     female_ability: '/sprites/femalebald/femalebaldability.png',
+    female_mainattack: '/sprites/femalebald/femalebaldmainattack.png',
     female_gaksung: '/sprites/femalebald/femalebaldgaksung.png',
     female_skill1: '/sprites/femalebald/femalebaldskill1.png',
     female_skill2: '/sprites/femalebald/femalebaldskill2.png',
     female_skill3: '/sprites/femalebald/femalebaldskill3.png',
     // Aliases for backward compatibility
     femalebald_ability: '/sprites/femalebald/femalebaldability.png',
+    femalebald_mainattack: '/sprites/femalebald/femalebaldmainattack.png',
     femalebald_gaksung: '/sprites/femalebald/femalebaldgaksung.png',
     femalebald_skill1: '/sprites/femalebald/femalebaldskill1.png',
     femalebald_skill2: '/sprites/femalebald/femalebaldskill2.png',
     femalebald_skill3: '/sprites/femalebald/femalebaldskill3.png',
     // 원형 탈모 (Areata)
     areata_ability: '/sprites/areata/areataability.png',
+    areata_mainattack: '/sprites/areata/areatamainattack.png',
     areata_gaksung: '/sprites/areata/areatagaksung.png',
     areata_skill1: '/sprites/areata/areataskill1.png',
     areata_skill2: '/sprites/areata/areataskill2.png',
     areata_skill3: '/sprites/areata/areataskill3.png',
     // 황비홍 (Wong Fei Hung)
     wongfeihung_ability: '/sprites/wongfeihung/wongfeihungability.png',
+    wongfeihung_mainattack: '/sprites/wongfeihung/wongfeihungmainattack.png',
     wongfeihung_gaksung: '/sprites/wongfeihung/wongfeihunggaksung.png',
     wongfeihung_skill1: '/sprites/wongfeihung/wongfeihungskill1.png',
     wongfeihung_skill2: '/sprites/wongfeihung/wongfeihungskill2.png',
     wongfeihung_skill3: '/sprites/wongfeihung/wongfeihungskill3.png',
     // 헤이하치 (Heihachi)
     heihachi_ability: '/sprites/heihachi/heihachiability.png',
+    heihachi_mainattack: '/sprites/heihachi/heihachimainattack.png',
     heihachi_gaksung: '/sprites/heihachi/heihachigaksung.png',
     heihachi_skill1: '/sprites/heihachi/heihachiskill1.png',
     heihachi_skill2: '/sprites/heihachi/heihachiskill2.png',
     heihachi_skill3: '/sprites/heihachi/heihachiskill3.png',
-    // M자맨 (Mzaman)
+    // M자맨 (Mzaman) - note: character ID is 'mzamen' but folder is 'mzaman'
+    mzamen_ability: '/sprites/mzaman/mzamanability.png',
+    mzamen_mainattack: '/sprites/mzaman/mzamanmainattack.png',
+    mzamen_gaksung: '/sprites/mzaman/mzamangaksung.png',
+    mzamen_skill1: '/sprites/mzaman/mzamanskill1.png',
+    mzamen_skill2: '/sprites/mzaman/mzamanskill2.png',
+    mzamen_skill3: '/sprites/mzaman/mzamanskill3.png',
+    // Aliases with folder name
     mzaman_ability: '/sprites/mzaman/mzamanability.png',
+    mzaman_mainattack: '/sprites/mzaman/mzamanmainattack.png',
     mzaman_gaksung: '/sprites/mzaman/mzamangaksung.png',
-    mzaman_skill1: '/sprites/mzaman/mzamanskill1.png',
-    mzaman_skill2: '/sprites/mzaman/mzamanskill2.png',
     mzaman_skill3: '/sprites/mzaman/mzamanskill3.png',
     // 탈모 의사 (Talmo Docter)
     talmo_docter_ability: '/sprites/talmo_docter/talmo_docterability.png',
+    talmo_docter_mainattack: '/sprites/talmo_docter/talmo_doctermainattack.png',
     talmo_docter_gaksung: '/sprites/talmo_docter/talmo_doctergaksung.png',
     talmo_docter_skill1: '/sprites/talmo_docter/talmo_docterskill1.png',
     talmo_docter_skill2: '/sprites/talmo_docter/talmo_docterskill2.png',
