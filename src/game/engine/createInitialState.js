@@ -18,6 +18,19 @@ export const createInitialState = ({
   const startingXpMultiplier = baseStats.xpMultiplier + (bonusStats.xpMultiplier || 0)
   const startingSpawnRateMultiplier = baseStats.spawnRateMultiplier + (bonusStats.spawnRateMultiplier || 0)
 
+  const baseStatsSnapshot = {
+    maxHp: startingMaxHp,
+    damage: baseStats.damage,
+    attackSpeed: baseStats.attackSpeed,
+    attackRange: baseStats.attackRange,
+    moveSpeed: baseStats.moveSpeed,
+    crit: startingCrit,
+    defense: baseStats.defense,
+    lifeSteal: startingLifeSteal,
+    xpMultiplier: startingXpMultiplier,
+    spawnRateMultiplier: startingSpawnRateMultiplier,
+  }
+
   return {
     player: {
       x: GAME_CONFIG.CANVAS_WIDTH / 2,
@@ -35,17 +48,11 @@ export const createInitialState = ({
     },
     stats: {
       hp: startingMaxHp,
-      maxHp: startingMaxHp,
-      damage: baseStats.damage,
-      attackSpeed: baseStats.attackSpeed,
-      attackRange: baseStats.attackRange,
-      moveSpeed: baseStats.moveSpeed,
-      crit: startingCrit,
-      defense: baseStats.defense,
-      lifeSteal: startingLifeSteal,
       shield: 0,
-      xpMultiplier: startingXpMultiplier,
-      spawnRateMultiplier: startingSpawnRateMultiplier,
+      ...baseStatsSnapshot,
+    },
+    baseStats: {
+      ...baseStatsSnapshot,
     },
     enemies: [],
     xpOrbs: [],

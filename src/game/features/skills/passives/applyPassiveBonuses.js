@@ -1,8 +1,15 @@
 import { CHARACTER_PASSIVE_SKILLS } from '../../../../MainWeapons'
 
 export const applyPassiveBonuses = ({ state }) => {
-  // Apply passive skill bonuses (reset and recalculate each frame)
+  // Calculate multipliers separately, then apply to base stats
+  // This prevents accumulation while allowing conditional bonuses
+  let damageMultiplier = 1
+  let speedMultiplier = 1
+  let critBonus = 0
+  
+  // Reset passive bonuses object
   state.passiveBonuses = {}
+  
   if (state.passiveSkills && state.passiveSkills.length > 0) {
     const passiveSkills = CHARACTER_PASSIVE_SKILLS[state.player.character.id] || []
 
@@ -14,33 +21,33 @@ export const applyPassiveBonuses = ({ state }) => {
       if (!skillEffect) return
 
       const currentHp = state.stats.hp
-      const maxHp = state.stats.maxHp
+      const maxHp = state.baseStats?.maxHp || state.stats.maxHp
       const hpPercent = currentHp / maxHp
 
-      // Apply stat bonuses based on skill type
+      // Accumulate multipliers based on skill type
       switch (skillDef.id) {
         // Female skills
         case 'female_skill1': // Attack + zone damage bonus
-          state.stats.damage *= (1 + skillEffect.attack)
+          damageMultiplier *= (1 + skillEffect.attack)
           state.passiveBonuses.zoneDamageBonus = skillEffect.zoneDamageBonus
           break
 
         case 'female_skill2': // Move speed + regen
-          state.stats.speed *= (1 + skillEffect.moveSpeed)
+          speedMultiplier *= (1 + skillEffect.moveSpeed)
           break
 
         // Areata skills
         case 'areata_skill1': // Attack bonus based on enemy count
           if (state.enemies.length >= skillEffect.enemyThreshold) {
-            state.stats.damage *= (1 + skillEffect.attackBonus)
+            damageMultiplier *= (1 + skillEffect.attackBonus)
           }
           break
 
         // Wong Fei Hung skills
         case 'wongfeihung_skill1': // Low HP attack + crit bonus
           if (hpPercent <= skillEffect.hpThreshold) {
-            state.stats.damage *= (1 + skillEffect.attackBonus)
-            state.stats.crit += skillEffect.critBonus
+            damageMultiplier *= (1 + skillEffect.attackBonus)
+            critBonus += skillEffect.critBonus
           }
           break
 
@@ -55,7 +62,7 @@ export const applyPassiveBonuses = ({ state }) => {
 
         case 'heihachi_skill2': // Low HP attack bonus
           if (hpPercent <= skillEffect.hpThreshold) {
-            state.stats.damage *= (1 + skillEffect.attackBonus)
+            damageMultiplier *= (1 + skillEffect.attackBonus)
           }
           break
 
@@ -76,10 +83,17 @@ export const applyPassiveBonuses = ({ state }) => {
         case 'talmo_docter_skill1': // Lifesteal + low HP attack
           state.passiveBonuses.lifeStealBonus = skillEffect.lifeStealBonus
           if (hpPercent <= skillEffect.hpThreshold) {
-            state.stats.damage *= (1 + skillEffect.attackBonus)
+            damageMultiplier *= (1 + skillEffect.attackBonus)
           }
           break
       }
     })
+  }
+  
+  // Apply calculated multipliers to base stats (not accumulating)
+  if (state.baseStats) {
+    state.stats.damage = state.baseStats.damage * damageMultiplier
+    state.stats.moveSpeed = state.baseStats.moveSpeed * speedMultiplier
+    state.stats.crit = state.baseStats.crit + critBonus
   }
 }

@@ -92,8 +92,10 @@ export const useGameEngine = ({
           )
         }
       } else {
-        // Regular Item
+        // Regular Item - update both stats and baseStats to persist the effect
         gameStateRef.current.stats = upgrade.effect(gameStateRef.current.stats)
+        // Also update baseStats so the effect persists after passive bonus recalculation
+        gameStateRef.current.baseStats = upgrade.effect({ ...gameStateRef.current.baseStats })
         gameStateRef.current.inventory.push(upgrade)
       }
     }
