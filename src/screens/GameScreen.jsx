@@ -71,7 +71,7 @@ const GameScreen = ({
   // Local state for UI
   const [gamePhase, setGamePhase] = useState('playing') // 'playing', 'levelup', 'paused'
   const [displayStats, setDisplayStats] = useState({
-    level: 1, xp: 0, xpNeeded: 100, kills: 0, time: 0, hp: 100, maxHp: 100, shield: 0, fragments: 0, coins: 0
+    level: 1, xp: 0, xpNeeded: 100, kills: 0, time: 0, hp: 100, maxHp: 100, shield: 0, fragments: 0, coins: 0, specialAbilityLastUsed: 0
   })
   const [levelUpOptions, setLevelUpOptions] = useState([])
   const [pauseTab, setPauseTab] = useState('main')
@@ -139,7 +139,7 @@ const GameScreen = ({
       lastAttackTime: 0,
       lastEnemySpawn: 0,
       bossSpawned: false,
-      keys: { w: false, a: false, s: false, d: false, shift: false },
+      keys: { w: false, a: false, s: false, d: false, shift: false, shiftPressed: false },
       camera: { x: 0, y: 0 },
     }
   }, [selectedCharacter, shopLevels, characterProgress])
@@ -161,7 +161,11 @@ const GameScreen = ({
         case 'KeyD': gameStateRef.current.keys.d = true; break
         case 'ShiftLeft':
         case 'ShiftRight':
-          gameStateRef.current.keys.shift = true;
+          if (!gameStateRef.current.keys.shift) {
+            console.log('[SHIFT] Shift key pressed!')
+            gameStateRef.current.keys.shift = true;
+            gameStateRef.current.keys.shiftPressed = true;
+          }
           break
         case 'Escape':
           if (gamePhase === 'playing') {
@@ -955,14 +959,22 @@ const GameScreen = ({
       }
 
       // Special Ability activation (Shift key)
-      if (state.keys.shift && !state.specialAbility.active) {
+      if (state.keys.shiftPressed && !state.specialAbility.active) {
+        console.log('[SPECIAL] Shift pressed, attempting to use special ability')
+        state.keys.shiftPressed = false // 한 번만 발동되도록 플래그 리셋
         const ability = getSpecialAbility(state.player.character.id)
+        console.log('[SPECIAL] Ability found:', ability)
         if (ability) {
+          // lastUsed가 0이면 한 번도 안 쓴 것 → 바로 사용 가능
+          const neverUsed = state.specialAbility.lastUsed === 0
           const timeSinceLastUse = currentTime - state.specialAbility.lastUsed
-          if (timeSinceLastUse >= ability.cooldown) {
+          const cooldownReady = neverUsed || timeSinceLastUse >= ability.cooldown
+          console.log('[SPECIAL] Cooldown check:', { neverUsed, timeSinceLastUse, cooldown: ability.cooldown, ready: cooldownReady })
+          if (cooldownReady) {
+            console.log('[SPECIAL] Activating special ability:', ability.name)
             // Activate ability
             state.specialAbility.active = true
-            state.specialAbility.activeUntil = currentTime + ability.duration
+            state.specialAbility.activeUntil = currentTime + (ability.duration || 0)
             state.specialAbility.lastUsed = currentTime
             state.specialAbility.type = ability.effect.type
             state.specialAbility.effect = ability.effect
@@ -971,9 +983,11 @@ const GameScreen = ({
             if (ability.effect.type === 'consume_fragments') {
               // Talmo Docter - consume fragments immediately
               const fragments = state.fragments
+              console.log('[SPECIAL] Consuming fragments:', fragments, 'threshold:', ability.effect.bonusThreshold)
               const healAmount = fragments * ability.effect.healPerFragment
               const maxHp = state.player.character.baseStats.hp
               state.stats.hp = Math.min(maxHp, state.stats.hp + healAmount * maxHp)
+              console.log('[SPECIAL] Healed:', healAmount * maxHp, 'HP now:', state.stats.hp)
 
               // Deal damage in area
               state.enemies.forEach((enemy) => {
@@ -993,11 +1007,15 @@ const GameScreen = ({
 
               // Apply buffs if threshold met
               if (fragments >= ability.effect.bonusThreshold) {
+                console.log('[SPECIAL] Bonus threshold met! Applying buff')
                 state.specialAbility.hasBonusBuff = true
+              } else {
+                console.log('[SPECIAL] Fragments below threshold, no bonus buff')
               }
 
               // Reset fragments
               state.fragments = 0
+              console.log('[SPECIAL] Fragments reset to 0')
             }
           }
         }
@@ -1839,6 +1857,7 @@ const GameScreen = ({
         shield: state.stats.shield,
         coins: state.collectedCoins,
         fragments: state.fragments || 0,
+        specialAbilityLastUsed: state.specialAbility?.lastUsed || 0,
       })
 
       // ============================================================
@@ -2616,6 +2635,52 @@ const GameScreen = ({
       // Draw player
       const playerSx = state.player.x - state.camera.x
       const playerSy = state.player.y - state.camera.y
+      
+      // Draw aura if buff is active (탈모의사 스페셜 버프)
+      if (state.specialAbility.hasBonusBuff && state.specialAbility.active) {
+        const pulseTime = currentTime % 1000
+        const pulseScale = 1 + Math.sin(pulseTime / 1000 * Math.PI * 2) * 0.1
+        const pulseAlpha = 0.3 + Math.sin(pulseTime / 1000 * Math.PI * 2) * 0.15
+        
+        // Outer aura glow
+        ctx.save()
+        ctx.globalAlpha = pulseAlpha
+        const gradient = ctx.createRadialGradient(playerSx, playerSy, 0, playerSx, playerSy, 80 * pulseScale)
+        gradient.addColorStop(0, 'rgba(0, 255, 255, 0.6)')
+        gradient.addColorStop(0.5, 'rgba(0, 206, 209, 0.3)')
+        gradient.addColorStop(1, 'rgba(0, 206, 209, 0)')
+        ctx.fillStyle = gradient
+        ctx.beginPath()
+        ctx.arc(playerSx, playerSy, 80 * pulseScale, 0, Math.PI * 2)
+        ctx.fill()
+        
+        // Inner bright core
+        ctx.globalAlpha = pulseAlpha * 1.5
+        const coreGradient = ctx.createRadialGradient(playerSx, playerSy, 0, playerSx, playerSy, 40 * pulseScale)
+        coreGradient.addColorStop(0, 'rgba(0, 255, 255, 0.8)')
+        coreGradient.addColorStop(1, 'rgba(0, 206, 209, 0)')
+        ctx.fillStyle = coreGradient
+        ctx.beginPath()
+        ctx.arc(playerSx, playerSy, 40 * pulseScale, 0, Math.PI * 2)
+        ctx.fill()
+        
+        // Rotating particles
+        const particleCount = 8
+        for (let i = 0; i < particleCount; i++) {
+          const angle = (currentTime / 1000) * Math.PI * 2 + (i / particleCount) * Math.PI * 2
+          const radius = 50 + Math.sin(currentTime / 500 + i) * 10
+          const px = playerSx + Math.cos(angle) * radius
+          const py = playerSy + Math.sin(angle) * radius
+          
+          ctx.globalAlpha = pulseAlpha * 0.8
+          ctx.fillStyle = '#00FFFF'
+          ctx.beginPath()
+          ctx.arc(px, py, 4, 0, Math.PI * 2)
+          ctx.fill()
+        }
+        ctx.restore()
+      }
+      
       const playerImg = loadedImages[SPRITES.characters[state.player.character.id]]
       if (playerImg) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
@@ -2904,26 +2969,132 @@ const GameScreen = ({
           alignItems: 'flex-start',
           pointerEvents: 'auto',
         }}>
-          {/* Character Portrait */}
-          <div style={{
-            background: 'rgba(13, 13, 26, 0.9)',
-            border: `3px solid ${COLORS.panelBorder}`,
-            boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
-            padding: '6px',
-          }}>
+          {/* Character Portrait + Skill Icon */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {/* Portrait */}
             <div style={{
-              width: '48px',
-              height: '48px',
-              background: COLORS.bgLight,
-              border: `2px solid ${selectedCharacter?.color || COLORS.panelBorder}`,
-              overflow: 'hidden',
+              background: 'rgba(13, 13, 26, 0.9)',
+              border: `3px solid ${COLORS.panelBorder}`,
+              boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
+              padding: '6px',
             }}>
-              <img
-                src={SPRITES.characters[selectedCharacter?.id]}
-                alt=""
-                style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }}
-              />
+              <div style={{
+                width: '48px',
+                height: '48px',
+                background: COLORS.bgLight,
+                border: `2px solid ${selectedCharacter?.color || COLORS.panelBorder}`,
+                overflow: 'hidden',
+              }}>
+                <img
+                  src={SPRITES.characters[selectedCharacter?.id]}
+                  alt=""
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }}
+                />
+              </div>
             </div>
+            
+            {/* Special Ability Icon (Below Portrait) */}
+            {(() => {
+              const ability = getSpecialAbility(selectedCharacter?.id)
+              if (!ability) return null
+              
+              const currentTime = performance.now()
+              const lastUsed = displayStats.specialAbilityLastUsed
+              // 아직 한 번도 사용 안 했으면 쿨타임 없음 (lastUsed가 0이거나 undefined/null)
+              const hasBeenUsed = lastUsed > 0
+              const timeSinceLastUse = hasBeenUsed ? (currentTime - lastUsed) : Infinity
+              const cooldownRemaining = hasBeenUsed ? Math.max(0, ability.cooldown - timeSinceLastUse) : 0
+              const isOnCooldown = cooldownRemaining > 0
+              const cooldownPercent = isOnCooldown ? (cooldownRemaining / ability.cooldown) * 100 : 0
+              const cooldownSeconds = Math.ceil(cooldownRemaining / 1000)
+              
+              // Build icon path
+              const iconPath = SPRITES.abilities?.[`${selectedCharacter.id}_ability`]
+              
+              return (
+                <div style={{
+                  background: 'rgba(13, 13, 26, 0.9)',
+                  border: `2px solid ${isOnCooldown ? COLORS.panelBorder : COLORS.warning}`,
+                  boxShadow: isOnCooldown ? '2px 2px 0 0 rgba(0,0,0,0.5)' : `0 0 8px ${COLORS.warning}80`,
+                  padding: '3px',
+                  position: 'relative',
+                  width: '36px',
+                  height: '36px',
+                  alignSelf: 'center',
+                }}>
+                  {/* Ability Icon */}
+                  <div style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    filter: isOnCooldown ? 'brightness(0.3)' : 'none',
+                  }}>
+                    {iconPath && loadedImages[iconPath] ? (
+                      <img 
+                        src={iconPath}
+                        alt="Special"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          imageRendering: 'pixelated',
+                        }}
+                      />
+                    ) : (
+                      <span style={{ fontSize: '18px' }}>⚡</span>
+                    )}
+                  </div>
+                  
+                  {/* Cooldown Overlay */}
+                  {isOnCooldown && (
+                    <>
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: `conic-gradient(
+                          transparent ${100 - cooldownPercent}%, 
+                          rgba(0, 0, 0, 0.7) ${100 - cooldownPercent}%
+                        )`,
+                        pointerEvents: 'none',
+                      }} />
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontFamily: PIXEL_STYLES.fontFamily,
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        color: COLORS.textWhite,
+                        textShadow: '1px 1px 0 #000, -1px -1px 0 #000',
+                      }}>
+                        {cooldownSeconds}
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Shift Key Hint */}
+                  {!isOnCooldown && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '-14px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      fontSize: '8px',
+                      color: COLORS.warning,
+                      textShadow: '1px 1px 0 #000',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      Shift
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
 
           {/* HP Bar */}
