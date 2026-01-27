@@ -1,8 +1,8 @@
-import React from 'react'
-import { SPRITES, UPGRADES } from '../constants'
+import { SPRITES, UPGRADES, ENEMIES } from '../constants'
 import { SUB_WEAPONS } from '../SubWeapons'
 import { CHARACTER_PASSIVE_SKILLS } from '../MainWeapons'
 import { COLORS, PIXEL_STYLES } from '../styles/PixelUI'
+import { generateId } from '../game/domain/math'
 
 const DebugMenu = ({
     setGamePhase,
@@ -84,6 +84,47 @@ const DebugMenu = ({
                         <p style={{ fontSize: '10px', color: COLORS.danger, marginTop: '5px' }}>
                             Warning: Skipping time may cause missed boss spawns to trigger simultaneously.
                         </p>
+                    </div>
+
+                    {/* Spawn Enemies */}
+                    <div style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '10px' }}>
+                        <h3 style={{ marginTop: 0, color: COLORS.danger }}>SPAWN ENEMIES</h3>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                                onClick={() => {
+                                    if (gameStateRef.current) {
+                                        const shieldGuy = ENEMIES.find(e => e.type === 'shield_guy')
+                                        if (shieldGuy) {
+                                            gameStateRef.current.enemies.push({
+                                                id: generateId(),
+                                                ...shieldGuy,
+                                                x: gameStateRef.current.player.x + 200,
+                                                y: gameStateRef.current.player.y,
+                                                currentHp: shieldGuy.hp,
+                                                maxHp: shieldGuy.hp,
+                                                scaledDamage: shieldGuy.damage,
+                                                scaledSpeed: shieldGuy.speed,
+                                                rotation: 0,
+                                                lastAttack: 0,
+                                                isAnimated: true // Ensure flag is set
+                                            })
+                                        }
+                                    }
+                                    setGamePhase('playing')
+                                }}
+                                style={{
+                                    background: COLORS.bgLight,
+                                    border: `1px solid ${COLORS.danger}`,
+                                    color: COLORS.danger,
+                                    padding: '8px',
+                                    cursor: 'pointer',
+                                    fontFamily: 'inherit',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                Spawn Shield Guy
+                            </button>
+                        </div>
                     </div>
 
                     {/* Main Weapon */}
@@ -207,7 +248,7 @@ const DebugMenu = ({
 
                 </div>
             </div>
-        </div>
+        </div >
     )
 }
 

@@ -504,6 +504,19 @@ export const updateCombat = ({
         }
         break
 
+      case 'stampede': // Wall enemies - move in locked direction only
+        if (enemy.lockedDirection && dist > 30) {
+          const dirX = enemy.lockedDirection.x
+          const dirY = enemy.lockedDirection.y
+          enemy.x += dirX * effectiveSpeed * deltaTime
+          enemy.y += dirY * effectiveSpeed * deltaTime
+        } else if (dist > 30) {
+          // Fallback to player tracking if no locked direction
+          enemy.x += (edx / dist) * effectiveSpeed * deltaTime
+          enemy.y += (edy / dist) * effectiveSpeed * deltaTime
+        }
+        break
+
       default: // 기본 이동
         if (dist > 30) {
           enemy.x += (edx / dist) * effectiveSpeed * deltaTime
@@ -1167,6 +1180,41 @@ export const updateCombat = ({
         if (distToPlayer < 30) {
           // Reached player
           proj.shouldRemove = true
+
+          // Awakening: Create explosion around player on return
+          if (proj.hasReturnExplosion) {
+            // Create explosion visual
+            state.attackEffects.push({
+              id: generateId(),
+              type: 'mzamen_gaksung_explosion',
+              x: state.player.x,
+              y: state.player.y,
+              radius: 0,
+              maxRadius: proj.returnExplosionRadius, // Should be 100 now
+              color: proj.color,
+              createdAt: currentTime,
+              duration: 500,
+            })
+
+            // Deal explosion damage
+            state.enemies.forEach((enemy) => {
+              if (enemy.isDead) return
+              const distToPlayer = distance(state.player, enemy)
+              if (distToPlayer < proj.returnExplosionRadius) {
+                const explosionDamage = state.stats.damage * proj.returnExplosionDamage
+                enemy.currentHp -= explosionDamage
+
+                state.damageNumbers.push({
+                  id: generateId(),
+                  x: enemy.x,
+                  y: enemy.y,
+                  damage: Math.floor(explosionDamage),
+                  isCritical: true,
+                  createdAt: currentTime,
+                })
+              }
+            })
+          }
           return
         }
 
@@ -1220,62 +1268,8 @@ export const updateCombat = ({
       damageMapObjects(state, { x: proj.x, y: proj.y, radius: 45 }, proj.damage * 0.5, currentTime, true)
     })
 
-    // Awakening: Check for boomerang crossings during return phase
-    if (state.boomerangProjectiles.length > 1) {
-      for (let i = 0; i < state.boomerangProjectiles.length; i++) {
-        const proj1 = state.boomerangProjectiles[i]
-        if (!proj1.hasReturnExplosion || !proj1.returning || proj1.shouldRemove) continue
-
-        for (let j = i + 1; j < state.boomerangProjectiles.length; j++) {
-          const proj2 = state.boomerangProjectiles[j]
-          if (!proj2.hasReturnExplosion || !proj2.returning || proj2.shouldRemove) continue
-
-          // Check if boomerangs are close (crossing paths)
-          const dist = distance(proj1, proj2)
-          if (dist < 60) {
-            // Create explosion at midpoint
-            const explosionX = (proj1.x + proj2.x) / 2
-            const explosionY = (proj1.y + proj2.y) / 2
-
-            // Mark both projectiles for removal
-            proj1.shouldRemove = true
-            proj2.shouldRemove = true
-
-            // Create explosion visual
-            state.attackEffects.push({
-              id: generateId(),
-              type: 'explosion',
-              x: explosionX,
-              y: explosionY,
-              radius: 0,
-              maxRadius: proj1.returnExplosionRadius,
-              color: proj1.color,
-              createdAt: currentTime,
-              duration: 400,
-            })
-
-            // Deal explosion damage to nearby enemies
-            state.enemies.forEach((enemy) => {
-              if (enemy.isDead) return
-              const distToExplosion = distance({ x: explosionX, y: explosionY }, enemy)
-              if (distToExplosion < proj1.returnExplosionRadius) {
-                const explosionDamage = state.stats.damage * proj1.returnExplosionDamage
-                enemy.currentHp -= explosionDamage
-
-                state.damageNumbers.push({
-                  id: generateId(),
-                  x: enemy.x,
-                  y: enemy.y,
-                  damage: Math.floor(explosionDamage),
-                  isCritical: true, // Explosion damage shows as critical
-                  createdAt: currentTime,
-                })
-              }
-            })
-          }
-        }
-      }
-    }
+    // Awakening: Check for boomerang crossings during return phase - MOVED TO CATCH
+    // (Logic removed to prevent premature disappearance)
 
     state.boomerangProjectiles = state.boomerangProjectiles.filter(p => !p.shouldRemove)
   }
@@ -1404,5 +1398,6 @@ export const updateCombat = ({
     specialCooldownReduction: state.stats.specialCooldownReduction || 0,
     currentGameTime: state.gameTime,
     aimMode: state.aimMode || 'auto',
+    specialCooldownReduction: state.stats.specialCooldownReduction || 0,
   })
 }

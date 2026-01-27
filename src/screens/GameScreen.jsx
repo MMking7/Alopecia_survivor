@@ -113,7 +113,7 @@ const GameScreen = ({
   const inventoryEntries = (() => {
     const rawInventory = gameStateRef.current?.inventory || []
     const grouped = {}
-    
+
     rawInventory.forEach(item => {
       // If SubWeapon, it already handles levels internally, so just use it
       if (item.isSubWeapon) {
@@ -121,11 +121,11 @@ const GameScreen = ({
       } else {
         // Regular items: Stack them
         if (!grouped[item.id]) {
-          grouped[item.id] = { 
-            ...item, 
-            category: 'item', 
+          grouped[item.id] = {
+            ...item,
+            category: 'item',
             level: 1, // Start at level 1 (count 1)
-            count: 1, 
+            count: 1,
           }
         } else {
           grouped[item.id].level += 1
@@ -133,7 +133,7 @@ const GameScreen = ({
         }
       }
     })
-    
+
     return Object.values(grouped)
   })()
   const selectionCount = (mainWeaponEntry ? 1 : 0) + passiveSkillEntries.length + inventoryEntries.length
@@ -814,7 +814,7 @@ const GameScreen = ({
                         {upgrade.name}
                       </span>
                       {/* Valid Type Badge (Always show type) */}
-                       <span style={{
+                      <span style={{
                         fontFamily: PIXEL_STYLES.fontFamily,
                         color: upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary,
                         fontSize: '9px',
@@ -849,7 +849,7 @@ const GameScreen = ({
                       width: '24px',
                       height: '24px',
                       zIndex: 10,
-                      pointerEvents: 'none', 
+                      pointerEvents: 'none',
                       animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                     }}>
                       {/* Shadow & Shape same as before */}
@@ -881,23 +881,23 @@ const GameScreen = ({
                       </div>
                     </div>
                   )}
-                  
+
                   {/* INSTANT Badge (Consumable) */}
                   {upgrade.isConsumable && (
                     <div style={{
-                       position: 'absolute',
-                       top: '-6px',
-                       right: '-6px',
-                       background: '#00FF00',
-                       color: '#000',
-                       border: '2px solid #000',
-                       fontSize: '9px',
-                       fontWeight: 'bold',
-                       fontFamily: PIXEL_STYLES.fontFamily,
-                       padding: '2px 4px',
-                       boxShadow: '2px 2px 0 rgba(0,0,0,0.3)',
-                       transform: 'rotate(5deg)',
-                       zIndex: 10,
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      background: '#00FF00',
+                      color: '#000',
+                      border: '2px solid #000',
+                      fontSize: '9px',
+                      fontWeight: 'bold',
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      padding: '2px 4px',
+                      boxShadow: '2px 2px 0 rgba(0,0,0,0.3)',
+                      transform: 'rotate(5deg)',
+                      zIndex: 10,
                     }}>
                       INSTANT
                     </div>
@@ -920,7 +920,7 @@ const GameScreen = ({
                       border: '1px solid rgba(255,255,0,0.3)',
                       zIndex: 5
                     }}>
-                      LV {(upgrade.currentLevel || 0)} <span style={{color:'#FFF'}}>➤</span> {(upgrade.nextLevel || (upgrade.currentLevel + 1))}
+                      LV {(upgrade.currentLevel || 0)} <span style={{ color: '#FFF' }}>➤</span> {(upgrade.nextLevel || (upgrade.currentLevel + 1))}
                     </div>
                   )}
 
@@ -1186,7 +1186,6 @@ const GameScreen = ({
                         { icon: '⚔️', label: 'ATK', value: Math.round(gameStateRef.current?.stats?.damage || 0), color: COLORS.atk },
                         { icon: '🏃', label: 'SPD', value: `${Math.round((gameStateRef.current?.stats?.moveSpeed || 1) * 100)}%`, color: COLORS.spd },
                         { icon: '💥', label: 'CRT', value: `${Math.round((gameStateRef.current?.stats?.crit || 0) * 100)}%`, color: COLORS.crit },
-                        { icon: '⚡', label: 'AS', value: `${(gameStateRef.current?.stats?.attackSpeed || 1).toFixed(1)}x`, color: COLORS.warning },
                         { icon: '🛡️', label: 'DEF', value: `${Math.round((gameStateRef.current?.stats?.defense || 0) * 100)}%`, color: COLORS.textGray },
                       ].map(stat => (
                         <div key={stat.label} style={{

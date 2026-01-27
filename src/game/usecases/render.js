@@ -1310,7 +1310,24 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
         }
         if (enemy.rotation) ctx.rotate(enemy.rotation)
 
-        ctx.drawImage(img, -enemy.size / 2, -enemy.size / 2, enemy.size, enemy.size)
+        if (enemy.isAnimated) {
+          // Shield Guy Animation: 3 frames, 0.5s duration, 32x35 source size
+          const totalFrames = 3
+          const duration = 500 // 0.5 seconds
+          const frameWidth = 32
+          const frameHeight = 35
+
+          const frameIndex = Math.floor((currentTime % duration) / (duration / totalFrames))
+          const srcX = frameIndex * frameWidth
+
+          ctx.drawImage(
+            img,
+            srcX, 0, frameWidth, frameHeight,
+            -enemy.size / 2, -enemy.size / 2, enemy.size, enemy.size
+          )
+        } else {
+          ctx.drawImage(img, -enemy.size / 2, -enemy.size / 2, enemy.size, enemy.size)
+        }
 
         // Draw electrify visual effect
         if (enemy.electrified && currentTime < enemy.electrified.until) {
@@ -1675,6 +1692,41 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
       ctx.fill()
     }
   })
+
+  // Draw attack effects (explosion visuals)
+  state.attackEffects.forEach(effect => {
+    if (effect.type === 'mzamen_gaksung_explosion') {
+      const elapsed = currentTime - effect.createdAt
+      const duration = effect.duration || 500
+      const progress = elapsed / duration
+
+      if (progress < 1) {
+        const img = loadedImages[SPRITES.attacks?.mzamen_gaksung_explosion]
+        if (img) {
+          const totalFrames = 5
+          const frameWidth = 212
+          const frameHeight = 209
+
+          const frameIndex = Math.floor(progress * totalFrames)
+          const sX = frameIndex * frameWidth
+
+          const ex = effect.x - state.camera.x
+          const ey = effect.y - state.camera.y
+          const drawSize = effect.maxRadius * 2.5
+
+          ctx.save()
+          ctx.translate(ex, ey)
+          ctx.drawImage(
+            img,
+            sX, 0, frameWidth, frameHeight,
+            -drawSize / 2, -drawSize / 2, drawSize, drawSize
+          )
+          ctx.restore()
+        }
+      }
+    }
+  })
+
 
   // Draw damage numbers
   state.damageNumbers.forEach((dn) => {
