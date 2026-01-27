@@ -52,9 +52,57 @@ export const updateActiveSpecialAbilities = ({ state, currentTime, deltaTime }) 
             })
           }
           break
-        case 'attack_buff': // Heihachi - attack speed + lightning damage buff
-          state.stats.attackSpeed *= (1 + effect.attackSpeedBonus)
-          // Extra lightning damage handled in attack logic
+        case 'tekken_storm': // Heihachi - Tekken Barrage (Target 30 enemies, 600% dmg, Full Heal)
+          if (!state.specialAbilityZoneCreated) {
+            state.specialAbilityZoneCreated = true
+
+            // Full Heal
+            state.stats.hp = state.stats.maxHp
+            state.damageNumbers.push({
+              id: generateId(),
+              x: state.player.x,
+              y: state.player.y - 60,
+              damage: 'Full Heal!',
+              color: '#00FF00',
+              createdAt: currentTime,
+              isHeal: true,
+            })
+
+            // Find targets
+            const targets = state.enemies.filter(e => !e.isDead)
+            // Sort by distance
+            targets.sort((a, b) => distance(state.player, a) - distance(state.player, b))
+            // Take top N
+            const stormTargets = targets.slice(0, effect.targetCount || 30)
+
+            stormTargets.forEach((enemy) => {
+              const damage = state.stats.damage * (effect.damageMultiplier || 6.0)
+              enemy.currentHp -= damage
+
+              // Visual: Lightning strike on enemy
+              state.attackEffects.push({
+                id: generateId(),
+                type: 'chain_lightning',
+                startX: state.player.x,
+                startY: state.player.y,
+                endX: enemy.x,
+                endY: enemy.y,
+                color: '#FFFF00',
+                createdAt: currentTime,
+                duration: 300
+              })
+
+              state.damageNumbers.push({
+                id: generateId(),
+                x: enemy.x,
+                y: enemy.y,
+                damage: Math.floor(damage),
+                color: '#FFFF00',
+                createdAt: currentTime,
+                isCritical: true,
+              })
+            })
+          }
           break
         case 'circular_zone': // Areata - following zone with damage amplification
           if (!state.specialAbilityZoneCreated) {
@@ -148,20 +196,20 @@ export const updateActiveSpecialAbilities = ({ state, currentTime, deltaTime }) 
           if (mFieldPos) {
             const mWidth = effect.width || 400
             const mHeight = effect.height || 300
-            
+
             // 초당 데미지 적용 (1초마다)
             if (currentTime - (state.specialAbility.mFieldLastDamageTime || 0) >= 1000) {
               state.specialAbility.mFieldLastDamageTime = currentTime
-              
+
               state.enemies.forEach((enemy) => {
                 if (enemy.isDead) return
-                
+
                 // M 패턴 내부인지 체크
                 if (isInsideMPattern(enemy, mFieldPos, mWidth, mHeight)) {
                   // 데미지 적용
                   const damage = state.stats.damage * effect.damagePerSecond
                   enemy.currentHp -= damage
-                  
+
                   state.damageNumbers.push({
                     id: generateId(),
                     x: enemy.x,
@@ -173,7 +221,7 @@ export const updateActiveSpecialAbilities = ({ state, currentTime, deltaTime }) 
                 }
               })
             }
-            
+
             // 슬로우 효과는 매 프레임 적용
             state.enemies.forEach((enemy) => {
               if (enemy.isDead) return
