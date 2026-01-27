@@ -199,19 +199,23 @@ export const updateCombat = ({
         })
       }
 
-      // Life Steal Check (Moved from duplicate block)
-      // Life Steal Check (Fixed: Removed double RNG gate)
+      // Life Steal (Minoxidil / Vampirism Effect)
       if (state.stats.lifeSteal > 0) {
-        // lifeSteal value is chance (e.g. 0.05 = 5%). Cap recovery to prevent infinite sustain.
-        if (Math.random() < state.stats.lifeSteal) {
-          const healAmount = 3
-          if (state.stats.hp < state.stats.maxHp) {
+        // Chance: Cap at 15% (0.15)
+        const chance = Math.min(state.stats.lifeSteal, 0.15)
+        
+        if (Math.random() < chance) {
+          // Heal Amount: 3 HP per 0.05 Life Steal (Factor: 60)
+          // e.g. 0.05 -> 3, 0.10 -> 6, 0.15 -> 9... (Unlimited scaling)
+          const healAmount = Math.floor(state.stats.lifeSteal * 60)
+          
+          if (healAmount > 0 && state.stats.hp < state.stats.maxHp) {
             state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + healAmount)
             state.damageNumbers.push({
               id: generateId(),
               x: state.player.x,
               y: state.player.y - 40,
-              damage: `+${healAmount} HP`,
+              damage: `${healAmount} HP`,
               color: '#00FF00',
               createdAt: currentTime,
               isHeal: true,
@@ -220,7 +224,6 @@ export const updateCombat = ({
         }
       }
 
-      // Increment Kill Count immediately for satisfaction
       state.kills += 1
 
       // Wongfeihung passive skill: increase kill stacks
@@ -676,8 +679,15 @@ export const updateCombat = ({
             proj.hitEnemies.push({ id: enemy.id, time: currentTime })
           }
 
+
           const isCrit = Math.random() < (state.stats.crit || 0)
-          const finalDamage = proj.damage * (isCrit ? 1.5 : 1.0) * (proj.returning ? 0.8 : 1.0)
+          // Mzamen Skill 1: Return Damage Bonus
+          let returnDamageMultiplier = proj.returning ? 0.8 : 1.0
+          if (proj.returning && state.passiveBonuses?.returnDamageBonus) {
+            returnDamageMultiplier += state.passiveBonuses.returnDamageBonus
+          }
+          const finalDamage = proj.damage * (isCrit ? 1.5 : 1.0) * returnDamageMultiplier
+          
           enemy.currentHp -= finalDamage
           state.damageNumbers.push({
             id: generateId(),
@@ -799,18 +809,30 @@ export const updateCombat = ({
   // state.enemies = state.enemies.filter((e) => e.currentHp > 0)
 
   // Collect XP orbs
-  const collectedOrbs = state.xpOrbs.filter((orb) => distance(state.player, orb) < 80)
+  const pickupRadius = 80 * (1 + (state.passiveBonuses.pickupRange || 0))
+  const collectedOrbs = state.xpOrbs.filter((orb) => distance(state.player, orb) < pickupRadius)
+  
   collectedOrbs.forEach((orb) => {
     const xpGain = orb.value * (state.stats.xpMultiplier || 1.0)
     state.xp += xpGain
 
-    // Mzamen passive skill 2: increase XP stacks for attack speed
-    if (state.passiveBonuses?.mzamenAttackSpeedBonus) {
-      state.passiveBonuses.mzamenXpStacks = Math.min(
-        (state.passiveBonuses.mzamenXpStacks || 0) + 1,
-        state.passiveBonuses.mzamenMaxStacks || 6
-      )
-      state.passiveBonuses.mzamenXpStackExpire = currentTime + (state.passiveBonuses.mzamenStackDuration || 5) * 1000
+    // Mzamen Skill 2: XP Heal (Chance based)
+    if (state.passiveBonuses?.xpHealPercent && state.passiveBonuses?.xpHealChance) {
+      if (Math.random() < state.passiveBonuses.xpHealChance) {
+        const healAmount = state.stats.maxHp * state.passiveBonuses.xpHealPercent
+        if (state.stats.hp < state.stats.maxHp) {
+          state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + healAmount)
+          state.damageNumbers.push({
+            id: generateId(),
+            x: state.player.x,
+            y: state.player.y - 30,
+            damage: `+${Math.floor(healAmount)}`,
+            color: '#00FF00',
+            createdAt: currentTime,
+            isHeal: true,
+          })
+        }
+      }
     }
 
     if (state.xp >= state.xpNeeded) {
