@@ -198,29 +198,32 @@ export const SUB_WEAPONS = [
                 missileSpeed: 300,         // 미사일 속도
                 explosionRadius: 50,       // 폭발 범위
                 attackSpeedDebuff: 0,      // 공격속도 감소
+                cooldownReduction: 0,
             },
             2: {
                 missileCount: 1,
                 explosionDamage: 1.20,
                 cloudDuration: 3,
                 cloudDamagePerSecond: 0.30,
-                missileSpeed: 360,         // 20% 증가
-                explosionRadius: 57.5,     // 15% 증가
+                missileSpeed: 360,         // 20% 증가 (300 * 1.2)
+                explosionRadius: 57.5,     // 15% 증가 (50 * 1.15)
                 attackSpeedDebuff: 0,
+                cooldownReduction: 0,
             },
             3: {
                 missileCount: 1,
-                explosionDamage: 1.20,
-                cloudDuration: 5,          // +2초
+                explosionDamage: 1.44,     // 20% 증가 (1.2 * 1.2)
+                cloudDuration: 3,
                 cloudDamagePerSecond: 0.30,
                 missileSpeed: 360,
                 explosionRadius: 57.5,
                 attackSpeedDebuff: 0,
+                cooldownReduction: 0,
             },
             4: {
                 missileCount: 1,
-                explosionDamage: 1.20,
-                cloudDuration: 5,
+                explosionDamage: 1.44,
+                cloudDuration: 3,
                 cloudDamagePerSecond: 0.30,
                 missileSpeed: 360,
                 explosionRadius: 57.5,
@@ -229,33 +232,33 @@ export const SUB_WEAPONS = [
             },
             5: {
                 missileCount: 1,
-                explosionDamage: 1.20,
-                cloudDuration: 5,
+                explosionDamage: 1.728,    // 20% 증가 (1.44 * 1.2)
+                cloudDuration: 3,
                 cloudDamagePerSecond: 0.30,
                 missileSpeed: 360,
                 explosionRadius: 57.5,
-                attackSpeedDebuff: 0.20,   // 적 공격속도 20% 감소
+                attackSpeedDebuff: 0,
                 cooldownReduction: 0.15,
             },
             6: {
                 missileCount: 1,
-                explosionDamage: 1.56,     // 30% 증가
-                cloudDuration: 5,
+                explosionDamage: 1.728,
+                cloudDuration: 3,
                 cloudDamagePerSecond: 0.30,
                 missileSpeed: 360,
-                explosionRadius: 57.5,
-                attackSpeedDebuff: 0.20,
+                explosionRadius: 75,       // ~30% Increase (approx, set to 75)
+                attackSpeedDebuff: 0,
                 cooldownReduction: 0.15,
             },
             7: {
                 missileCount: 2,           // 2연발
                 secondMissileDamage: 0.50, // 두 번째 미사일 50% 피해
-                explosionDamage: 1.56,
-                cloudDuration: 5,
+                explosionDamage: 1.728,
+                cloudDuration: 3,
                 cloudDamagePerSecond: 0.30,
                 missileSpeed: 360,
-                explosionRadius: 57.5,
-                attackSpeedDebuff: 0.20,
+                explosionRadius: 75,
+                attackSpeedDebuff: 0,
                 cooldownReduction: 0.15,
             },
         },
