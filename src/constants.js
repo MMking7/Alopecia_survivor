@@ -107,6 +107,19 @@ export const SPRITES = {
     icon_haste: '/sprites/holo/icon_haste.webp',
     button: '/sprites/holo/button.webp',
   },
+  obstacle: {
+    old_tree: '/sprites/obstacle/old_tree.png',
+    broken_statue: '/sprites/obstacle/broken_statue.png',
+    stone_pillar: '/sprites/obstacle/stone_pillar.png',
+    bush: '/sprites/obstacle/bush.png',
+    big_tree: '/sprites/obstacle/big_tree.png',
+    statue_bust: '/sprites/obstacle/statue_bust.png',
+  },
+  shield: {
+    shield_char_1: '/sprites/shield/shield_char_1.png',
+    shield_char_2: '/sprites/shield/shield_char_2.png',
+    shield_char_3: '/sprites/shield/shield_char_3.png',
+  },
   items: {
     coin: '/sprites/coin.png',
     areata_fallen_hair: '/sprites/areata/areatafallenhair.png',
