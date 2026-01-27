@@ -69,6 +69,19 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
                 enemy.stunned = true
                 enemy.stunUntil = currentTime + (effect.stunDuration || 0.5) * 1000
               }
+
+              // Show Damage Number (Throttled per enemy)
+              if (!enemy.lastHairBrushDamage || currentTime - enemy.lastHairBrushDamage > 200) {
+                enemy.lastHairBrushDamage = currentTime
+                state.damageNumbers.push({
+                  id: generateId(),
+                  x: enemy.x,
+                  y: enemy.y,
+                  damage: Math.floor(damage * 0.6), // Estimate per-hit damage (damage * 3 * 0.2s)
+                  color: '#FFFFFF',
+                  createdAt: currentTime,
+                })
+              }
             }
           })
         }
@@ -129,60 +142,176 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
       case 'hair_dryer': {
         const coneAngle = (effect.coneAngle || 60) * Math.PI / 180
         const range = effect.range || 150
-        const facingAngle = state.player.facing === 1 ? 0 : Math.PI
 
-        state.enemies.forEach(enemy => {
-          if (enemy.isDead) return
-          const dx = enemy.x - state.player.x
-          const dy = enemy.y - state.player.y
-          const d = Math.sqrt(dx * dx + dy * dy)
+        // Determine aim angle based on mode
+        let aimAngle = state.player.facingAngle || (state.player.facing === 1 ? 0 : Math.PI)
 
-          if (d <= range) {
-            const enemyAngle = Math.atan2(dy, dx)
-            let angleDiff = enemyAngle - facingAngle
-            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2
-            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2
-
-            if (Math.abs(angleDiff) <= coneAngle / 2) {
-              const damage = state.stats.damage * (effect.damagePerSecond || 0.6) * deltaTime
-              enemy.currentHp -= damage
-
-              if (!enemy.burning) {
-                enemy.burning = true
-                enemy.burnDamage = state.stats.damage * (effect.burnDamagePerSecond || 0.2)
-                enemy.burnUntil = currentTime + (effect.burnDuration || 2) * 1000
-              }
-
-              state.damageNumbers.push({
-                id: generateId(),
-                x: enemy.x,
-                y: enemy.y,
-                damage: Math.floor(damage),
-                color: '#FF6600',
-                createdAt: currentTime,
-              })
+        if (state.aimMode === 'manual') {
+          // Manual: Follow cursor precisely
+          aimAngle = Math.atan2(
+            state.mouse.worldY - state.player.y,
+            state.mouse.worldX - state.player.x
+          )
+        } else {
+          // Auto: Find nearest enemy
+          let nearestDist = Infinity
+          let nearestEnemy = null
+          state.enemies.forEach(enemy => {
+            if (enemy.isDead) return
+            const d = distance(state.player, enemy)
+            if (d < range * 1.5 && d < nearestDist) {
+              nearestDist = d
+              nearestEnemy = enemy
             }
+          })
+
+          if (nearestEnemy) {
+            aimAngle = Math.atan2(
+              nearestEnemy.y - state.player.y,
+              nearestEnemy.x - state.player.x
+            )
+          } else {
+            // No enemy nearby, default to facing direction
+            aimAngle = state.player.facing === 1 ? 0 : Math.PI
           }
+        }
+
+        // Initialize directions processing list
+        const directions = [{ angle: aimAngle, type: 'hair_dryer_cone' }]
+        if (effect.bidirectional) {
+          directions.push({ angle: aimAngle + Math.PI, type: 'hair_dryer_cone_back' })
+        }
+
+        directions.forEach(dir => {
+          let currentAimAngle = dir.angle
+
+          state.enemies.forEach(enemy => {
+            if (enemy.isDead) return
+            const dx = enemy.x - state.player.x
+            const dy = enemy.y - state.player.y
+            const d = Math.sqrt(dx * dx + dy * dy)
+
+            if (d <= range) {
+              const enemyAngle = Math.atan2(dy, dx)
+              let angleDiff = enemyAngle - currentAimAngle
+              while (angleDiff > Math.PI) angleDiff -= Math.PI * 2
+              while (angleDiff < -Math.PI) angleDiff += Math.PI * 2
+
+              if (Math.abs(angleDiff) <= coneAngle / 2) {
+                const damage = state.stats.damage * (effect.damagePerSecond || 0.6) * deltaTime
+                enemy.currentHp -= damage
+
+                if (!enemy.burning) {
+                  enemy.burning = true
+                  enemy.burnDamage = state.stats.damage * (effect.burnDamagePerSecond || 0.2)
+                  enemy.burnUntil = currentTime + (effect.burnDuration || 2) * 1000
+                }
+
+                // Throttle Damage Numbers
+                // Use distinct key for back attack to avoid throttling conflict? 
+                // Actually sharing throttle is fine/better to avoid spam, but let's key it by weapon generically
+                if (!enemy.lastHairDryerDamage || currentTime - enemy.lastHairDryerDamage > 200) {
+                  enemy.lastHairDryerDamage = currentTime
+
+                  // Calculate ~0.2s of damage for display
+                  const displayDamage = Math.floor(state.stats.damage * (effect.damagePerSecond || 0.6) * 0.2)
+
+                  state.damageNumbers.push({
+                    id: generateId(),
+                    x: enemy.x,
+                    y: enemy.y,
+                    damage: Math.floor(displayDamage),
+                    color: '#FF6600',
+                    createdAt: currentTime,
+                  })
+                }
+              }
+            }
+          })
+
+          // Persistent Visual Effect Handling
+          // We use dir.type to distinguish front vs back effect instances
+          // If I use unique IDs, searching by type finds the first one. THIS IS A BUG in my previous logic (finding by type).
+          // Fix: Find by type AND specific distinction (like custom property 'isBack').
         })
 
-        state.attackEffects.push({
-          id: generateId(),
-          type: 'hair_dryer_cone',
-          angle: facingAngle,
-          coneAngle,
-          range,
-          createdAt: currentTime,
-          duration: 100,
-        })
+        // Revised Logic for Visuals with proper ID tracking
+        // We will maintain two specific IDs for front and back if needed, or search by custom property.
+
+        // Front
+        let frontEffect = state.attackEffects.find(e => e.type === 'hair_dryer_cone' && !e.isBack)
+        if (frontEffect) {
+          frontEffect.angle = aimAngle
+          frontEffect.coneAngle = coneAngle
+          frontEffect.range = range
+          frontEffect.createdAt = currentTime
+          frontEffect.duration = 100
+        } else {
+          state.attackEffects.push({
+            id: generateId(),
+            type: 'hair_dryer_cone',
+            angle: aimAngle,
+            coneAngle,
+            range,
+            createdAt: currentTime,
+            duration: 100,
+            isBack: false
+          })
+        }
+
+        // Back
+        if (effect.bidirectional) {
+          let backEffect = state.attackEffects.find(e => e.type === 'hair_dryer_cone' && e.isBack)
+          if (backEffect) {
+            backEffect.angle = aimAngle + Math.PI
+            backEffect.coneAngle = coneAngle
+            backEffect.range = range
+            backEffect.createdAt = currentTime
+            backEffect.duration = 100
+          } else {
+            state.attackEffects.push({
+              id: generateId(),
+              type: 'hair_dryer_cone',
+              angle: aimAngle + Math.PI,
+              coneAngle,
+              range,
+              createdAt: currentTime,
+              duration: 100,
+              isBack: true
+            })
+          }
+        }
         break
       }
 
       case 'electric_clipper': {
         if (!weapon.state) weapon.state = { comboCount: 0 }
 
+        // Use effect cooldown if defined, otherwise default
+        const currentCooldown = effect.attackCooldown || weapon.attackCooldown || 333
+
+        // Manual Cooldown Check since we might override the default weapon loop check
+        // Ideally the main loop handles this if weapon.attackCooldown is set correctly.
+        // But since we change it per level, we should update the weapon's main property or check here.
+        // For simplicity, we ensure the main loop uses the correct CD by updating the weapon object itself if needed,
+        // OR we just trust the main loop if we updated weapon.attackCooldown in updateSkillSystems (which we didn't).
+        // PROPER FIX: The main loop (lines 13-17) uses `weapon.attackCooldown`. 
+        // We should explicitly update that property based on the current level effect during the skill update phase?
+        // OR we can just ignore the main loop's check if we want custom logic, but the main loop already returns.
+        // HACK: We can't easily change the main loop from inside the switch.
+        // BETTER FIX: We assume the main loop let us through. 
+        // To support dynamic CD, we must update weapon.attackCooldown anytime level changes.
+        // However, for this specific request, we can just hack it:
+        // If we are here, the cooldown PASSSED. 
+        // But wait, if the main loop uses a fixed 200ms and we want 333ms, we might attack too fast.
+        // If the main loop uses 333ms and we want 250ms, we might attack too slow.
+        // Workaround: We will update `weapon.attackCooldown` dynamically here for the *next* frame.
+        if (effect.attackCooldown) {
+          weapon.attackCooldown = effect.attackCooldown
+        }
+
         const range = effect.range || 50
         const facing = state.player.facing
-        const attackAngle = facing === 1 ? 0 : Math.PI
 
         state.enemies.forEach(enemy => {
           if (enemy.isDead) return
@@ -193,13 +322,18 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
           if (d <= range) {
             let damage = state.stats.damage * (effect.damagePercent || 0.5)
 
+            // Combo Logic
             weapon.state.comboCount++
-            const threshold = effect.comboThreshold || 5
-            if (effect.unlimitedCombo || (threshold > 0 && weapon.state.comboCount >= threshold)) {
-              if (effect.comboStrike) {
-                damage = state.stats.damage * effect.comboStrike
-                weapon.state.comboCount = 0
-              }
+            const threshold = effect.comboThreshold || 0
+
+            if (threshold > 0 && weapon.state.comboCount >= threshold) {
+              const multiplier = effect.comboMultiplier || 2.0
+              damage *= multiplier
+              weapon.state.comboCount = 0 // Reset combo
+
+              // Visual cue for big hit? 
+              // Maybe make the damage number larger or different color?
+              // The damage number logic handles criticals, we can fake a crit or add a new type.
             }
 
             const critBonus = effect.critBonus || 0
@@ -257,6 +391,7 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
           }
         }
 
+        const newBombs = []
         weapon.state.bombs = weapon.state.bombs.filter(bomb => {
           let shouldExplode = currentTime - bomb.createdAt > bomb.lifeTime
 
@@ -300,7 +435,7 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
 
             if (bomb.chainChance > 0 && Math.random() < bomb.chainChance) {
               const angle = Math.random() * Math.PI * 2
-              weapon.state.bombs.push({
+              newBombs.push({
                 ...bomb,
                 id: generateId(),
                 x: bomb.x + Math.cos(angle) * 40,
@@ -313,6 +448,11 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
           }
           return true
         })
+
+        // Add new bombs generated from chain reactions
+        if (newBombs.length > 0) {
+          weapon.state.bombs.push(...newBombs)
+        }
         break
       }
     }

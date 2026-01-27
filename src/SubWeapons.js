@@ -39,7 +39,7 @@ export const SUB_WEAPONS = [
         // 레벨별 효과
         levelEffects: {
             1: {
-                zoneCount: 3,              // 장판 수
+                zoneCount: 1,              // 장판 수 (Changed from 3)
                 damagePerSecond: 0.50,     // 초당 50% 피해
                 duration: 3,               // 지속시간 (초)
                 range: 60,                 // 장판 범위
@@ -47,7 +47,7 @@ export const SUB_WEAPONS = [
                 blindChance: 0,            // 암흑 효과 확률
             },
             2: {
-                zoneCount: 3,
+                zoneCount: 1,
                 damagePerSecond: 0.50,
                 duration: 5,               // +2초
                 range: 60,
@@ -55,7 +55,7 @@ export const SUB_WEAPONS = [
                 blindChance: 0,
             },
             3: {
-                zoneCount: 3,
+                zoneCount: 1,
                 damagePerSecond: 0.65,     // 30% 증가
                 duration: 5,
                 range: 60,
@@ -63,7 +63,7 @@ export const SUB_WEAPONS = [
                 blindChance: 0,
             },
             4: {
-                zoneCount: 4,              // +1개
+                zoneCount: 2,              // +1개 (Total 2)
                 damagePerSecond: 0.65,
                 duration: 5,
                 range: 60,
@@ -71,25 +71,25 @@ export const SUB_WEAPONS = [
                 blindChance: 0,
             },
             5: {
-                zoneCount: 4,
+                zoneCount: 2,
                 damagePerSecond: 0.65,
                 duration: 5,
                 range: 60,
-                slowAmount: 0,
+                slowAmount: 0.30,          // 30% 이동속도 감소 added
                 blindChance: 0.20,         // 20% 확률 암흑
                 blindDuration: 1,          // 1초 암흑
             },
             6: {
-                zoneCount: 4,
+                zoneCount: 2,
                 damagePerSecond: 0.65,
                 duration: 5,
                 range: 75,                 // 25% 증가
-                slowAmount: 0,
+                slowAmount: 0.30,
                 blindChance: 0.20,
                 blindDuration: 1,
             },
             7: {
-                zoneCount: 4,
+                zoneCount: 3,              // +1개 (Total 3)
                 damagePerSecond: 0.65,
                 duration: 5,
                 range: 75,
@@ -117,7 +117,7 @@ export const SUB_WEAPONS = [
         maxLevel: 7,
         levelEffects: {
             1: {
-                teethCount: 3,             // 빗니 수
+                teethCount: 2,             // 빗니 수 (Changed from 3)
                 damagePercent: 0.40,       // 40% 피해
                 knockbackForce: 100,       // 넉백 강도
                 rotationSpeed: 1.0,        // 회전 속도 배율
@@ -125,7 +125,7 @@ export const SUB_WEAPONS = [
                 stunChance: 0,             // 기절 확률
             },
             2: {
-                teethCount: 4,             // +1개
+                teethCount: 3,             // +1개 (Total 3)
                 damagePercent: 0.40,
                 knockbackForce: 100,
                 rotationSpeed: 1.0,
@@ -133,15 +133,15 @@ export const SUB_WEAPONS = [
                 stunChance: 0,
             },
             3: {
-                teethCount: 4,
-                damagePercent: 0.50,       // 25% 증가
+                teethCount: 3,
+                damagePercent: 0.50,       // 25% 증가 (Total 50%)
                 knockbackForce: 100,
                 rotationSpeed: 1.2,        // 20% 증가
                 range: 80,
                 stunChance: 0,
             },
             4: {
-                teethCount: 4,
+                teethCount: 3,
                 damagePercent: 0.50,
                 knockbackForce: 130,       // 30% 증가
                 rotationSpeed: 1.2,
@@ -149,7 +149,7 @@ export const SUB_WEAPONS = [
                 stunChance: 0,
             },
             5: {
-                teethCount: 5,             // +1개
+                teethCount: 4,             // +1개 (Total 4)
                 damagePercent: 0.50,
                 knockbackForce: 130,
                 rotationSpeed: 1.2,
@@ -157,7 +157,7 @@ export const SUB_WEAPONS = [
                 stunChance: 0,
             },
             6: {
-                teethCount: 5,
+                teethCount: 4,
                 damagePercent: 0.50,
                 knockbackForce: 130,
                 rotationSpeed: 1.2,
@@ -165,13 +165,12 @@ export const SUB_WEAPONS = [
                 stunChance: 0,
             },
             7: {
-                teethCount: 5,
+                teethCount: 5,             // +1개 (Total 5)
                 damagePercent: 0.50,
                 knockbackForce: 130,
                 rotationSpeed: 1.2,
                 range: 96,
-                stunChance: 0.10,          // 10% 기절 (0.5초)
-                stunDuration: 0.5,
+                stunChance: 0,             // Stun removed
             },
         },
         attackCooldown: 0, // 지속 효과 (회전)
@@ -199,29 +198,32 @@ export const SUB_WEAPONS = [
                 missileSpeed: 300,         // 미사일 속도
                 explosionRadius: 50,       // 폭발 범위
                 attackSpeedDebuff: 0,      // 공격속도 감소
+                cooldownReduction: 0,
             },
             2: {
                 missileCount: 1,
                 explosionDamage: 1.20,
                 cloudDuration: 3,
                 cloudDamagePerSecond: 0.30,
-                missileSpeed: 360,         // 20% 증가
-                explosionRadius: 57.5,     // 15% 증가
+                missileSpeed: 360,         // 20% 증가 (300 * 1.2)
+                explosionRadius: 57.5,     // 15% 증가 (50 * 1.15)
                 attackSpeedDebuff: 0,
+                cooldownReduction: 0,
             },
             3: {
                 missileCount: 1,
-                explosionDamage: 1.20,
-                cloudDuration: 5,          // +2초
+                explosionDamage: 1.44,     // 20% 증가 (1.2 * 1.2)
+                cloudDuration: 3,
                 cloudDamagePerSecond: 0.30,
                 missileSpeed: 360,
                 explosionRadius: 57.5,
                 attackSpeedDebuff: 0,
+                cooldownReduction: 0,
             },
             4: {
                 missileCount: 1,
-                explosionDamage: 1.20,
-                cloudDuration: 5,
+                explosionDamage: 1.44,
+                cloudDuration: 3,
                 cloudDamagePerSecond: 0.30,
                 missileSpeed: 360,
                 explosionRadius: 57.5,
@@ -230,33 +232,33 @@ export const SUB_WEAPONS = [
             },
             5: {
                 missileCount: 1,
-                explosionDamage: 1.20,
-                cloudDuration: 5,
+                explosionDamage: 1.728,    // 20% 증가 (1.44 * 1.2)
+                cloudDuration: 3,
                 cloudDamagePerSecond: 0.30,
                 missileSpeed: 360,
                 explosionRadius: 57.5,
-                attackSpeedDebuff: 0.20,   // 적 공격속도 20% 감소
+                attackSpeedDebuff: 0,
                 cooldownReduction: 0.15,
             },
             6: {
                 missileCount: 1,
-                explosionDamage: 1.56,     // 30% 증가
-                cloudDuration: 5,
+                explosionDamage: 1.728,
+                cloudDuration: 3,
                 cloudDamagePerSecond: 0.30,
                 missileSpeed: 360,
-                explosionRadius: 57.5,
-                attackSpeedDebuff: 0.20,
+                explosionRadius: 75,       // ~30% Increase (approx, set to 75)
+                attackSpeedDebuff: 0,
                 cooldownReduction: 0.15,
             },
             7: {
                 missileCount: 2,           // 2연발
                 secondMissileDamage: 0.50, // 두 번째 미사일 50% 피해
-                explosionDamage: 1.56,
-                cloudDuration: 5,
+                explosionDamage: 1.728,
+                cloudDuration: 3,
                 cloudDamagePerSecond: 0.30,
                 missileSpeed: 360,
-                explosionRadius: 57.5,
-                attackSpeedDebuff: 0.20,
+                explosionRadius: 75,
+                attackSpeedDebuff: 0,
                 cooldownReduction: 0.15,
             },
         },
@@ -278,68 +280,57 @@ export const SUB_WEAPONS = [
         maxLevel: 7,
         levelEffects: {
             1: {
-                coneAngle: 60,             // 부채꼴 각도
-                damagePerSecond: 0.60,     // 초당 60% 피해
-                burnDuration: 2,           // 화상 지속시간
-                burnDamagePerSecond: 0.20, // 화상 초당 20%
-                range: 150,                // 열파 거리
-                rampUpDamage: 0,           // 피해 증가량
+                coneAngle: 60,
+                damagePerSecond: 0.60,     // 60%
+                range: 150,
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
             },
             2: {
-                coneAngle: 80,             // +20도
+                coneAngle: 80,             // +20 (Total 80)
                 damagePerSecond: 0.60,
-                burnDuration: 2,
-                burnDamagePerSecond: 0.20,
                 range: 150,
-                rampUpDamage: 0,
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
             },
             3: {
                 coneAngle: 80,
-                damagePerSecond: 0.60,
-                burnDuration: 3,           // +1초
-                burnDamagePerSecond: 0.26, // 30% 증가
+                damagePerSecond: 0.72,     // 20% Increase (1.2x)
                 range: 150,
-                rampUpDamage: 0,
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
             },
             4: {
                 coneAngle: 80,
-                damagePerSecond: 0.60,
-                burnDuration: 3,
-                burnDamagePerSecond: 0.26,
+                damagePerSecond: 0.864,    // 20% Increase (1.2x)
                 range: 150,
-                rampUpDamage: 0,
-                cooldownReduction: 0.10,   // 공격주기 10% 감소
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
             },
             5: {
                 coneAngle: 80,
-                damagePerSecond: 0.60,
-                burnDuration: 3,
-                burnDamagePerSecond: 0.26,
-                range: 187.5,              // 25% 증가
-                rampUpDamage: 0,
-                cooldownReduction: 0.10,
+                damagePerSecond: 0.864,
+                range: 187.5,              // 25% Increase
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
             },
             6: {
                 coneAngle: 80,
-                damagePerSecond: 0.78,     // 30% 증가
-                burnDuration: 3,
-                burnDamagePerSecond: 0.26,
+                damagePerSecond: 1.037,    // 20% Increase (1.2x)
                 range: 187.5,
-                rampUpDamage: 0,
-                cooldownReduction: 0.10,
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
             },
             7: {
                 coneAngle: 80,
-                damagePerSecond: 0.78,
-                burnDuration: 3,
-                burnDamagePerSecond: 0.26,
+                damagePerSecond: 1.037,
                 range: 187.5,
-                rampUpDamage: 0.50,        // 최대 200%까지 증가
-                maxRampUpMultiplier: 2.0,
-                cooldownReduction: 0.10,
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
+                bidirectional: true,       // Dual Direction
             },
         },
-        attackCooldown: 500, // 지속 공격 (짧은 간격)
+        attackCooldown: 0, // Continuous update for smooth tracking
     },
 
     // ============================================================
@@ -357,60 +348,52 @@ export const SUB_WEAPONS = [
         maxLevel: 7,
         levelEffects: {
             1: {
-                damagePercent: 0.50,       // 50% 피해
-                attacksPerSecond: 5,       // 초당 5회
-                range: 50,                 // 공격 범위
-                comboStrike: 0,            // 강력한 일격 피해
-                critBonus: 0,              // 치명타 보너스
+                damagePercent: 0.50,       // 50% Damage
+                range: 50,
+                attackCooldown: 333,       // 3 attacks per sec
+                comboThreshold: 0,         // No combo
             },
             2: {
                 damagePercent: 0.50,
-                attacksPerSecond: 6,       // 20% 증가
                 range: 50,
-                comboStrike: 0,
-                critBonus: 0,
+                attackCooldown: 250,       // 4 attacks per sec
+                comboThreshold: 0,
             },
             3: {
-                damagePercent: 0.625,      // 25% 증가
-                attacksPerSecond: 6,
+                damagePercent: 0.625,      // 25% Increase (50 * 1.25)
                 range: 50,
-                comboStrike: 0,
-                critBonus: 0,
+                attackCooldown: 250,
+                comboThreshold: 0,
             },
             4: {
                 damagePercent: 0.625,
-                attacksPerSecond: 6,
-                range: 57.5,               // 15% 증가
-                comboStrike: 0,
-                critBonus: 0,
+                range: 57.5,               // 15% Increase
+                attackCooldown: 250,
+                comboThreshold: 0,
             },
             5: {
                 damagePercent: 0.625,
-                attacksPerSecond: 6,
                 range: 57.5,
-                comboStrike: 2.0,          // 5회 연속 공격 시 200% 피해
-                comboThreshold: 5,
-                critBonus: 0,
+                attackCooldown: 250,
+                comboThreshold: 5,         // Every 5th hit
+                comboMultiplier: 2.0,      // 200% Damage
             },
             6: {
-                damagePercent: 0.8125,     // 30% 증가
-                attacksPerSecond: 6,
+                damagePercent: 0.8125,     // 30% Increase (62.5 * 1.3)
                 range: 57.5,
-                comboStrike: 2.0,
+                attackCooldown: 250,
                 comboThreshold: 5,
-                critBonus: 0,
+                comboMultiplier: 2.0,
             },
             7: {
                 damagePercent: 0.8125,
-                attacksPerSecond: 6,
                 range: 57.5,
-                comboStrike: 2.0,
-                comboThreshold: 0,         // 제한 없음
-                unlimitedCombo: true,
-                critBonus: 0.05,           // 치명타 5% 증가
+                attackCooldown: 250,
+                comboThreshold: 5,
+                comboMultiplier: 4.0,      // 400% Damage
             },
         },
-        attackCooldown: 200, // 빠른 연속 공격
+        attackCooldown: 333, // Default (Level 1)
     },
 
     // ============================================================
@@ -428,60 +411,53 @@ export const SUB_WEAPONS = [
         maxLevel: 7,
         levelEffects: {
             1: {
-                maxBombs: 3,               // 최대 폭탄 수
-                explosionDamage: 1.50,     // 150% 폭발 피해
-                explosionRadius: 60,       // 폭발 범위
-                slowAmount: 0,             // 이동속도 감소
-                chainExplosionChance: 0,   // 연쇄 폭발 확률
+                generationInterval: 5000,  // 5 seconds
+                maxBombs: 3,
+                explosionDamage: 1.5,      // 150% Damage
+                explosionRadius: 60,
+                chainExplosionChance: 0,
             },
             2: {
-                maxBombs: 4,               // +1개
-                explosionDamage: 1.50,
+                generationInterval: 5000,
+                maxBombs: 4,               // +1 Limit
+                explosionDamage: 1.5,
                 explosionRadius: 60,
-                slowAmount: 0,
                 chainExplosionChance: 0,
             },
             3: {
+                generationInterval: 5000,
                 maxBombs: 4,
-                explosionDamage: 1.50,
-                explosionRadius: 72,       // 20% 증가
-                slowAmount: 0,
+                explosionDamage: 1.5,
+                explosionRadius: 72,       // 20% Increase (60 -> 72)
                 chainExplosionChance: 0,
             },
             4: {
+                generationInterval: 4000,  // -1s (4s)
                 maxBombs: 4,
-                explosionDamage: 1.50,
+                explosionDamage: 1.5,
                 explosionRadius: 72,
-                slowAmount: 0,
                 chainExplosionChance: 0,
-                generationInterval: 4000,  // 4초마다 생성 (기본 5초)
             },
             5: {
+                generationInterval: 3000,  // -1s (3s)
                 maxBombs: 4,
-                explosionDamage: 1.50,
+                explosionDamage: 1.5,
                 explosionRadius: 72,
-                slowAmount: 0.30,          // 3초간 30% 감소
-                slowDuration: 3,
                 chainExplosionChance: 0,
-                generationInterval: 4000,
             },
             6: {
+                generationInterval: 3000,
                 maxBombs: 4,
-                explosionDamage: 1.95,     // 30% 증가
+                explosionDamage: 1.95,     // 30% Increase (1.5 * 1.3)
                 explosionRadius: 72,
-                slowAmount: 0.30,
-                slowDuration: 3,
                 chainExplosionChance: 0,
-                generationInterval: 4000,
             },
             7: {
-                maxBombs: 5,               // +1개
+                generationInterval: 3000,
+                maxBombs: 4,
                 explosionDamage: 1.95,
                 explosionRadius: 72,
-                slowAmount: 0.30,
-                slowDuration: 3,
-                chainExplosionChance: 0.20, // 20% 확률로 추가 폭탄
-                generationInterval: 4000,
+                chainExplosionChance: 0.2, // 20% Chance
             },
         },
         attackCooldown: 0, // 0 to allow logic to run every frame (internal timer handles generation)
@@ -715,7 +691,7 @@ export const generateMixedLevelUpOptions = (UPGRADES, inventory, totalCount = 3)
             // isConsumable(즉발성)이 아니면 레벨로 표시
             const count = inventory.filter(i => i.id === item.id).length
             const isConsumable = item.isConsumable
-            
+
             return {
                 ...item,
                 grade: 1, // 아이템 등급 기본 1
