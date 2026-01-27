@@ -220,7 +220,7 @@ export const CHARACTERS = [
     color: '#FFD700',
     attackType: 'lightning',
     attackColor: '#FFFF00',
-    baseStats: { hp: 70, maxHp: 70, damage: 40, speed: 1.30, attackSpeed: 1.4, defense: 0.05, crit: 0.15 }
+    baseStats: { hp: 80, maxHp: 80, damage: 36, speed: 1.25, attackSpeed: 1.4, defense: 0.05, crit: 0.05 }
   },
   {
     id: 'talmo_docter',

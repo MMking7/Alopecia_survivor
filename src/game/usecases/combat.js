@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from '../../constants'
+import { MAIN_WEAPONS } from '../../MainWeapons'
 import { generateId, distance } from '../domain/math'
 import { buildLevelUpOptions } from './levelUpOptions'
 import { updateSkillSystems } from '../features/skills/updateSkillSystems'
@@ -56,7 +57,7 @@ export const updateCombat = ({
     const edy = state.player.y - enemy.y
     const dist = Math.sqrt(edx * edx + edy * edy)
     let effectiveSpeed = enemy.scaledSpeed || enemy.speed
-    
+
     // M 패턴 슬로우 적용
     if (enemy.mPatternSlowed && enemy.mPatternSlowAmount) {
       effectiveSpeed *= (1 - enemy.mPatternSlowAmount)
@@ -200,23 +201,23 @@ export const updateCombat = ({
         if (Math.random() < state.stats.lifeSteal) {
           const healAmount = 3
           if (state.stats.hp < state.stats.maxHp) {
-             state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + healAmount)
-             state.damageNumbers.push({
-               id: generateId(),
-               x: state.player.x,
-               y: state.player.y - 40,
-               damage: `+${healAmount} HP`,
-               color: '#00FF00',
-               createdAt: currentTime,
-               isHeal: true,
-             })
+            state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + healAmount)
+            state.damageNumbers.push({
+              id: generateId(),
+              x: state.player.x,
+              y: state.player.y - 40,
+              damage: `+${healAmount} HP`,
+              color: '#00FF00',
+              createdAt: currentTime,
+              isHeal: true,
+            })
           }
         }
       }
 
       // Increment Kill Count immediately for satisfaction
       state.kills += 1
-      
+
       // Wongfeihung passive skill: increase kill stacks
       if (state.passiveBonuses?.wongMoveSpeedBonus) {
         state.passiveBonuses.wongKillStacks = Math.min(
@@ -228,7 +229,70 @@ export const updateCombat = ({
           state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + state.passiveBonuses.wongHpRegen)
         }
       }
-      
+
+      // Heihachi Weapon: Heal on Kill (Level 3+)
+      const heihachiWeapon = state.player.character.id === 'heihachi' ? MAIN_WEAPONS.heihachi.levelEffects[state.mainWeaponLevel] : null
+      if (heihachiWeapon && heihachiWeapon.healOnKill) {
+        let healAmount = heihachiWeapon.healAmountFixed || 0
+        if (heihachiWeapon.healAmountPercent) {
+          healAmount += state.stats.maxHp * heihachiWeapon.healAmountPercent
+        }
+        if (healAmount > 0 && state.stats.hp < state.stats.maxHp) {
+          state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + healAmount)
+          state.damageNumbers.push({
+            id: generateId(),
+            x: state.player.x,
+            y: state.player.y - 45,
+            damage: `+${Math.floor(healAmount)}`,
+            color: '#00FF00',
+            createdAt: currentTime,
+            isHeal: true,
+          })
+        }
+
+        // Awakening: Chain Lightning
+        if (heihachiWeapon.awakeningLightning) {
+          const targets = []
+          state.enemies.forEach(other => {
+            if (other.isDead || other.id === enemy.id) return
+            if (distance(enemy, other) < 250) { // Chain range
+              targets.push(other)
+            }
+          })
+          // Sort by distance to dead enemy
+          targets.sort((a, b) => distance(enemy, a) - distance(enemy, b))
+          // Take top N
+          const chains = targets.slice(0, heihachiWeapon.awakeningTargets || 2)
+
+          chains.forEach(target => {
+            const chainDamage = state.stats.damage * (heihachiWeapon.awakeningDamage || 1.0)
+            target.currentHp -= chainDamage
+
+            // Visual
+            state.attackEffects.push({
+              id: generateId(),
+              type: 'chain_lightning', // We need to render this
+              startX: enemy.x,
+              startY: enemy.y,
+              endX: target.x,
+              endY: target.y,
+              color: '#00FFFF',
+              createdAt: currentTime,
+              duration: 200
+            })
+
+            state.damageNumbers.push({
+              id: generateId(),
+              x: target.x,
+              y: target.y,
+              damage: Math.floor(chainDamage),
+              color: '#00FFFF',
+              createdAt: currentTime
+            })
+          })
+        }
+      }
+
       // Areata passive skill 3: chance to drop hair for attack speed buff
       if (state.passiveBonuses?.hairDropChance && Math.random() < state.passiveBonuses.hairDropChance) {
         state.passiveBonuses.areataHairStacks = Math.min(
@@ -250,8 +314,33 @@ export const updateCombat = ({
         state.stats.shield -= 1
       } else {
         const rawDamage = (enemy.scaledDamage || enemy.damage)
-        const takenDamage = Math.max(1, rawDamage * (1 - (state.stats.defense || 0))) // Defense 적용
+        // Apply Damage Reduction from skills (Iron Skull)
+        const damageReduction = state.passiveBonuses.damageReduction || 0
+        const defenseMult = (1 - (state.stats.defense || 0)) * (1 - damageReduction)
+
+        const takenDamage = Math.max(1, rawDamage * defenseMult)
         state.stats.hp -= takenDamage * deltaTime
+
+        // Heihachi Passive: Electric Scalp (Heal on Hit)
+        // Check cooldown to prevent 60 heals per second if stuck inside enemy
+        if (state.passiveBonuses.electricScalp && (!state.lastHealOnHit || currentTime - state.lastHealOnHit > 500)) {
+          if (Math.random() < state.passiveBonuses.electricScalp.chance) {
+            const healPercent = state.passiveBonuses.electricScalp.percent
+            const healAmount = state.stats.maxHp * healPercent
+            state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + healAmount)
+            state.lastHealOnHit = currentTime
+
+            state.damageNumbers.push({
+              id: generateId(),
+              x: state.player.x,
+              y: state.player.y - 50,
+              damage: `Heal!`,
+              color: '#00FF00',
+              createdAt: currentTime,
+              isHeal: true,
+            })
+          }
+        }
         if (state.stats.hp <= 0) {
           // Game Over
           onGameOver(buildFinalStats())
@@ -382,7 +471,11 @@ export const updateCombat = ({
       if (state.stats.shield > 0) {
         state.stats.shield -= 1
       } else {
-        state.stats.hp -= proj.damage
+        const rawDamage = proj.damage
+        const damageReduction = state.passiveBonuses.damageReduction || 0
+        const defenseMult = (1 - (state.stats.defense || 0)) * (1 - damageReduction)
+
+        state.stats.hp -= Math.max(1, rawDamage * defenseMult)
         if (state.stats.hp <= 0) {
           onGameOver(buildFinalStats())
           return
@@ -420,7 +513,7 @@ export const updateCombat = ({
         const dx = state.player.x - proj.x
         const dy = state.player.y - proj.y
         const distToPlayer = Math.sqrt(dx * dx + dy * dy)
-        
+
         if (distToPlayer < 30) {
           // 플레이어에게 도착
           proj.shouldRemove = true
@@ -628,7 +721,11 @@ export const updateCombat = ({
         if (state.stats.shield > 0) {
           state.stats.shield -= 1
         } else {
-          state.stats.hp -= exp.damage
+          const rawDamage = exp.damage
+          const damageReduction = state.passiveBonuses.damageReduction || 0
+          const defenseMult = (1 - (state.stats.defense || 0)) * (1 - damageReduction)
+
+          state.stats.hp -= Math.max(1, rawDamage * defenseMult)
           if (state.stats.hp <= 0) {
             onGameOver(buildFinalStats())
             return
@@ -667,7 +764,7 @@ export const updateCombat = ({
   collectedOrbs.forEach((orb) => {
     const xpGain = orb.value * (state.stats.xpMultiplier || 1.0)
     state.xp += xpGain
-    
+
     // Mzamen passive skill 2: increase XP stacks for attack speed
     if (state.passiveBonuses?.mzamenAttackSpeedBonus) {
       state.passiveBonuses.mzamenXpStacks = Math.min(
@@ -676,7 +773,7 @@ export const updateCombat = ({
       )
       state.passiveBonuses.mzamenXpStackExpire = currentTime + (state.passiveBonuses.mzamenStackDuration || 5) * 1000
     }
-    
+
     if (state.xp >= state.xpNeeded) {
       state.xp = 0
       state.level += 1

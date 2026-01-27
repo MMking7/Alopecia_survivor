@@ -7,7 +7,7 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
   let speedMultiplier = 1
   let attackSpeedMultiplier = 1
   let critBonus = 0
-  
+
   // Reset passive bonuses object (but preserve stacks)
   const prevBonuses = state.passiveBonuses || {}
   state.passiveBonuses = {
@@ -18,7 +18,7 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
     areataHairStacks: prevBonuses.areataHairStacks || 0,
     areataHairStackExpire: prevBonuses.areataHairStackExpire || 0,
   }
-  
+
   if (state.passiveSkills && state.passiveSkills.length > 0) {
     const passiveSkills = CHARACTER_PASSIVE_SKILLS[state.player.character.id] || []
 
@@ -73,8 +73,8 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
           state.passiveBonuses.hairAttackSpeedBonus = skillEffect.attackSpeedBonus
           state.passiveBonuses.hairBuffDuration = skillEffect.duration
           // Apply attack speed if stacks active
-          if (state.passiveBonuses.areataHairStacks > 0 && 
-              currentTime < state.passiveBonuses.areataHairStackExpire) {
+          if (state.passiveBonuses.areataHairStacks > 0 &&
+            currentTime < state.passiveBonuses.areataHairStackExpire) {
             attackSpeedMultiplier *= (1 + state.passiveBonuses.areataHairStacks * skillEffect.attackSpeedBonus)
           }
           break
@@ -104,22 +104,21 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
           break
 
         // Heihachi skills
-        case 'heihachi_skill1': // Bonus damage to electrified enemies
-          state.passiveBonuses.electrifiedDamageBonus = skillEffect.damageBonus
+        case 'heihachi_skill1': // Electric Scalp: Heal on hit
+          state.passiveBonuses.electricScalp = {
+            chance: skillEffect.healChance,
+            percent: skillEffect.healPercent,
+          }
           break
 
-        case 'heihachi_skill2': // Low HP attack bonus + heal on hit
+        case 'heihachi_skill2': // Devil Gene: Attack bonus on low HP
           if (hpPercent <= skillEffect.hpThreshold) {
             damageMultiplier *= (1 + skillEffect.attackBonus)
           }
-          state.passiveBonuses.devilGeneHealChance = skillEffect.healChance
-          state.passiveBonuses.devilGeneHealAmount = skillEffect.healAmount
-          state.passiveBonuses.devilGeneExplosionDamage = skillEffect.explosionDamage
           break
 
-        case 'heihachi_skill3': // Damage reduction + knockback resist
-          state.passiveBonuses.damageReduction = skillEffect.damageReduction
-          state.passiveBonuses.knockbackResistance = skillEffect.knockbackResistance
+        case 'heihachi_skill3': // Iron Skull: Damage reduction
+          state.passiveBonuses.damageReduction = Math.max(state.passiveBonuses.damageReduction || 0, skillEffect.damageReduction)
           break
 
         // Mzamen skills
@@ -134,8 +133,8 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
           state.passiveBonuses.mzamenMaxStacks = skillEffect.maxStacks
           state.passiveBonuses.mzamenStackDuration = skillEffect.duration
           // Apply attack speed stacks
-          if (state.passiveBonuses.mzamenXpStacks > 0 && 
-              currentTime < state.passiveBonuses.mzamenXpStackExpire) {
+          if (state.passiveBonuses.mzamenXpStacks > 0 &&
+            currentTime < state.passiveBonuses.mzamenXpStackExpire) {
             const xpStacks = Math.min(state.passiveBonuses.mzamenXpStacks, skillEffect.maxStacks)
             attackSpeedMultiplier *= (1 + xpStacks * skillEffect.attackSpeedBonus)
           }
@@ -173,10 +172,10 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
       }
     })
   }
-  
+
   // Apply range bonus to attack range
   const rangeBonus = state.passiveBonuses.rangeBonus || 0
-  
+
   // Apply special ability buffs (Talmo Docter's Emergency Treatment)
   if (state.specialAbility?.active && state.specialAbility?.hasBonusBuff) {
     const effect = state.specialAbility.effect
@@ -187,7 +186,7 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
       state.passiveBonuses.specialLifeStealBonus = effect.bonusLifeSteal
     }
   }
-  
+
   // Apply calculated multipliers to base stats (not accumulating)
   if (state.baseStats) {
     state.stats.damage = state.baseStats.damage * damageMultiplier
@@ -195,7 +194,7 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
     state.stats.attackSpeed = state.baseStats.attackSpeed * attackSpeedMultiplier
     state.stats.crit = state.baseStats.crit + critBonus
     state.stats.attackRange = (state.baseStats.attackRange || 120) * (1 + rangeBonus)
-    
+
     // Apply special lifesteal bonus
     const specialLifeSteal = state.passiveBonuses.specialLifeStealBonus || 0
     state.stats.lifeSteal = (state.baseStats.lifeSteal || 0) + (state.passiveBonuses.lifeStealBonus || 0) + specialLifeSteal
