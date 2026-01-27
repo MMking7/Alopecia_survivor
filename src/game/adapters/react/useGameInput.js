@@ -29,8 +29,17 @@ export const useGameInput = ({
           if (gamePhase === 'playing') {
             setGamePhase('paused')
             setPauseTab('main') // ESC를 누르면 항상 메인 메뉴로
+          } else if (gamePhase === 'debug') {
+            setGamePhase('playing')
           }
           else if (gamePhase === 'paused') setGamePhase('playing')
+          break
+        case 'Backquote': // ` Key
+          if (gamePhase === 'playing') {
+            setGamePhase('debug')
+          } else if (gamePhase === 'debug') {
+            setGamePhase('playing')
+          }
           break
       }
     }
@@ -62,14 +71,14 @@ export const useGameInput = ({
       const rect = canvas.getBoundingClientRect()
       const scaleX = canvas.width / rect.width
       const scaleY = canvas.height / rect.height
-      
+
       // 캔버스 내 마우스 위치
       const mouseX = (e.clientX - rect.left) * scaleX
       const mouseY = (e.clientY - rect.top) * scaleY
-      
+
       gameStateRef.current.mouse.x = mouseX
       gameStateRef.current.mouse.y = mouseY
-      
+
       // 월드 좌표로 변환
       gameStateRef.current.mouse.worldX = mouseX + gameStateRef.current.camera.x
       gameStateRef.current.mouse.worldY = mouseY + gameStateRef.current.camera.y
