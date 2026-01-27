@@ -1,6 +1,7 @@
 import React from 'react'
 import { GAME_CONFIG, SPRITES } from '../constants'
 import { getMainWeapon, getPassiveSkills, getSpecialAbility } from '../MainWeapons'
+import DebugMenu from './DebugMenu'
 import { useGameEngine } from '../game/adapters/react/useGameEngine'
 import { formatTime } from '../game/domain/xp'
 import { COLORS, PIXEL_STYLES } from '../styles/PixelUI'
@@ -295,15 +296,15 @@ const GameScreen = ({
               const isOnCooldown = cooldownRemaining > 0
               const cooldownPercent = isOnCooldown ? (cooldownRemaining / ability.cooldown) * 100 : 0
               const cooldownSeconds = Math.ceil(cooldownRemaining / 1000)
-              
+
               // 모근 부족 체크 (탈모의사 전용)
               const minFragments = ability.minFragments || 0
               const currentFragments = displayStats.fragments || 0
               const needsMoreFragments = minFragments > 0 && currentFragments < minFragments
-              
+
               // 사용 불가 상태: 쿨타임 중이거나 모근 부족
               const isDisabled = isOnCooldown || needsMoreFragments
-              
+
               // Build icon path
               const iconPath = SPRITES.abilities?.[`${selectedCharacter.id}_ability`]
 
@@ -371,7 +372,7 @@ const GameScreen = ({
                       </div>
                     </>
                   )}
-                  
+
                   {/* 모근 부족 Overlay */}
                   {needsMoreFragments && !isOnCooldown && (
                     <div style={{
@@ -392,11 +393,11 @@ const GameScreen = ({
                         textAlign: 'center',
                         lineHeight: '1.1',
                       }}>
-                        모근<br/>부족
+                        모근<br />부족
                       </span>
                     </div>
                   )}
-                  
+
                   {/* Shift Key Hint or Fragment requirement */}
                   {!isOnCooldown && (
                     <div style={{
@@ -1152,8 +1153,21 @@ const GameScreen = ({
           )}
         </div>
       )}
+      {/* DEBUG MENU */}
+      {gamePhase === 'debug' && (
+        <DebugMenu
+          setGamePhase={setGamePhase}
+          gameStateRef={gameStateRef}
+          handleUpgrade={handleUpgrade}
+          mainWeapon={mainWeapon}
+          mainWeaponIconKey={mainWeaponIconKey}
+          selectedCharacter={selectedCharacter}
+        />
+      )}
     </div>
   )
 }
 
 export default GameScreen
+
+
