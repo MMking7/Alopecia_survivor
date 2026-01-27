@@ -58,7 +58,12 @@ export const updateCombat = ({
     const dist = Math.sqrt(edx * edx + edy * edy)
     let effectiveSpeed = enemy.scaledSpeed || enemy.speed
 
-    // M 패턴 슬로우 적용
+    // Generic Slow Application
+    if (enemy.slowed && enemy.slowAmount) {
+      effectiveSpeed *= (1 - enemy.slowAmount)
+    }
+
+    // M 패턴 슬로우 적용 (Stacking or independent?)
     if (enemy.mPatternSlowed && enemy.mPatternSlowAmount) {
       effectiveSpeed *= (1 - enemy.mPatternSlowAmount)
     }
@@ -310,10 +315,30 @@ export const updateCombat = ({
 
     // Damage player on collision (Alive enemies only)
     if (!enemy.isDead && dist < 40 && enemy.attackType !== 'ranged') {
-      if (state.stats.shield > 0) {
+      if (state.player.invulnerableUntil && currentTime < state.player.invulnerableUntil) {
+        // Invulnerable
+      } else if (state.stats.shield > 0) {
         state.stats.shield -= 1
       } else {
-        const rawDamage = (enemy.scaledDamage || enemy.damage)
+        let rawDamage = (enemy.scaledDamage || enemy.damage)
+
+        // Check for Shield Skill Stacks
+        if (state.passiveBonuses.shieldSkill && (state.passiveBonuses.shieldStacks || 0) > 0) {
+          state.passiveBonuses.shieldStacks--
+          rawDamage *= (1 - state.passiveBonuses.shieldSkill.damageReduction)
+          state.player.invulnerableUntil = currentTime + (state.passiveBonuses.shieldSkill.invulnerabilityDuration * 1000)
+
+          // Visual feedback?
+          state.damageNumbers.push({
+            id: generateId(),
+            x: state.player.x,
+            y: state.player.y - 50,
+            damage: 'Blocked!',
+            color: '#8A2BE2',
+            createdAt: currentTime,
+          })
+        }
+
         // Apply Damage Reduction from skills (Iron Skull)
         const damageReduction = state.passiveBonuses.damageReduction || 0
         const defenseMult = (1 - (state.stats.defense || 0)) * (1 - damageReduction)
@@ -372,6 +397,13 @@ export const updateCombat = ({
               enemy.damageTakenMultiplier = (enemy.damageTakenMultiplier || 1) * (1 + zone.damageAmplification)
             }
 
+            // Apply Slow from Zone
+            if (zone.slowAmount) {
+              enemy.slowed = true
+              enemy.slowAmount = zone.slowAmount
+              enemy.slowUntil = currentTime + 200 // Refresh for short duration while in zone
+            }
+
             const damage = state.stats.damage * zone.damagePerSecond * deltaTime
             enemy.currentHp -= damage * (enemy.damageTakenMultiplier || 1)
 
@@ -401,6 +433,13 @@ export const updateCombat = ({
           const zoneDamageBonus = state.passiveBonuses.zoneDamageBonus || 0
           const damage = state.stats.damage * zone.damagePerSecond * (1 + zoneDamageBonus) * deltaTime
           enemy.currentHp -= damage
+
+          // Apply Slow from Rectangular Zone
+          if (zone.slowAmount) {
+            enemy.slowed = true
+            enemy.slowAmount = zone.slowAmount
+            enemy.slowUntil = currentTime + 200
+          }
 
           // Show damage numbers periodically (not every frame to avoid spam)
           if (!enemy.lastZoneDamageNumber || currentTime - enemy.lastZoneDamageNumber > 200) {

@@ -17,6 +17,10 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
     mzamenXpStackExpire: prevBonuses.mzamenXpStackExpire || 0,
     areataHairStacks: prevBonuses.areataHairStacks || 0,
     areataHairStackExpire: prevBonuses.areataHairStackExpire || 0,
+    // New persistent states
+    shieldStacks: prevBonuses.shieldStacks || 0,
+    shieldLastRegen: prevBonuses.shieldLastRegen || 0,
+    highwayLastRegen: prevBonuses.highwayLastRegen || 0,
   }
 
   if (state.passiveSkills && state.passiveSkills.length > 0) {

@@ -484,7 +484,7 @@ export const SUB_WEAPONS = [
                 generationInterval: 4000,
             },
         },
-        attackCooldown: 5000, // 5초마다 폭탄 생성
+        attackCooldown: 0, // 0 to allow logic to run every frame (internal timer handles generation)
     },
 ]
 

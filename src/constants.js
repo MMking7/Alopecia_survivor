@@ -187,7 +187,7 @@ export const CHARACTERS = [
     color: '#FF69B4',
     attackType: 'aoe',
     attackColor: 'rgba(255, 105, 180, 0.4)',
-    baseStats: { hp: 75, maxHp: 75, damage: 35, speed: 1.35, attackSpeed: 1.5, defense: 0, crit: 0.1 }
+    baseStats: { hp: 70, maxHp: 70, damage: 35, speed: 1.30, attackSpeed: 1.5, defense: 0, crit: 0.05 }
   },
   {
     id: 'areata',

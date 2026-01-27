@@ -48,14 +48,14 @@ export const MAIN_WEAPONS = {
         length: 240,
         width: 60,
         damagePerSecond: 1.04,
-        duration: 2,
+        duration: 4,
       },
       5: {
         lines: 3, // 좌우 두 줄 추가 (총 3줄)
         length: 240,
         width: 60,
         damagePerSecond: 1.04,
-        duration: 2,
+        duration: 4,
         spread: 80, // 좌우 간격
       },
       6: {
@@ -63,7 +63,7 @@ export const MAIN_WEAPONS = {
         length: 240,
         width: 60,
         damagePerSecond: 1.35, // 30% 증가
-        duration: 2,
+        duration: 4,
         spread: 80,
       },
       7: { // 각성
@@ -71,7 +71,7 @@ export const MAIN_WEAPONS = {
         length: 240,
         width: 60,
         damagePerSecond: 1.35,
-        duration: 2,
+        duration: 4,
         spread: 80,
         shockwave: true, // 장판 끝에서 충격파
         shockwaveDamage: 1.50,

@@ -141,6 +141,27 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
     })
   }
 
+  // Render Shield Skill Visuals (Barrier)
+  if (state.passiveBonuses.shieldStacks && state.passiveBonuses.shieldStacks > 0) {
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(state.player.x - state.camera.x, state.player.y - state.camera.y, 40, 0, Math.PI * 2)
+
+    // Color based on character
+    if (state.player.character.id === 'talmo_docter') {
+      ctx.strokeStyle = `rgba(255, 0, 0, ${0.3 + state.passiveBonuses.shieldStacks * 0.2})` // Red
+      ctx.shadowColor = 'red'
+    } else {
+      ctx.strokeStyle = `rgba(138, 43, 226, ${0.3 + state.passiveBonuses.shieldStacks * 0.2})` // Purple (Female Bald)
+      ctx.shadowColor = 'purple'
+    }
+
+    ctx.lineWidth = 3 + state.passiveBonuses.shieldStacks
+    ctx.shadowBlur = 10
+    ctx.stroke()
+    ctx.restore()
+  }
+
   // Draw boomerang projectiles (Mzamen 부메랑)
   if (state.boomerangProjectiles) {
     state.boomerangProjectiles.forEach((proj) => {
