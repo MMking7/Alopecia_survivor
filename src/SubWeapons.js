@@ -280,68 +280,57 @@ export const SUB_WEAPONS = [
         maxLevel: 7,
         levelEffects: {
             1: {
-                coneAngle: 60,             // 부채꼴 각도
-                damagePerSecond: 0.60,     // 초당 60% 피해
-                burnDuration: 2,           // 화상 지속시간
-                burnDamagePerSecond: 0.20, // 화상 초당 20%
-                range: 150,                // 열파 거리
-                rampUpDamage: 0,           // 피해 증가량
+                coneAngle: 60,
+                damagePerSecond: 0.60,     // 60%
+                range: 150,
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
             },
             2: {
-                coneAngle: 80,             // +20도
+                coneAngle: 80,             // +20 (Total 80)
                 damagePerSecond: 0.60,
-                burnDuration: 2,
-                burnDamagePerSecond: 0.20,
                 range: 150,
-                rampUpDamage: 0,
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
             },
             3: {
                 coneAngle: 80,
-                damagePerSecond: 0.60,
-                burnDuration: 3,           // +1초
-                burnDamagePerSecond: 0.26, // 30% 증가
+                damagePerSecond: 0.72,     // 20% Increase (1.2x)
                 range: 150,
-                rampUpDamage: 0,
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
             },
             4: {
                 coneAngle: 80,
-                damagePerSecond: 0.60,
-                burnDuration: 3,
-                burnDamagePerSecond: 0.26,
+                damagePerSecond: 0.864,    // 20% Increase (1.2x)
                 range: 150,
-                rampUpDamage: 0,
-                cooldownReduction: 0.10,   // 공격주기 10% 감소
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
             },
             5: {
                 coneAngle: 80,
-                damagePerSecond: 0.60,
-                burnDuration: 3,
-                burnDamagePerSecond: 0.26,
-                range: 187.5,              // 25% 증가
-                rampUpDamage: 0,
-                cooldownReduction: 0.10,
+                damagePerSecond: 0.864,
+                range: 187.5,              // 25% Increase
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
             },
             6: {
                 coneAngle: 80,
-                damagePerSecond: 0.78,     // 30% 증가
-                burnDuration: 3,
-                burnDamagePerSecond: 0.26,
+                damagePerSecond: 1.037,    // 20% Increase (1.2x)
                 range: 187.5,
-                rampUpDamage: 0,
-                cooldownReduction: 0.10,
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
             },
             7: {
                 coneAngle: 80,
-                damagePerSecond: 0.78,
-                burnDuration: 3,
-                burnDamagePerSecond: 0.26,
+                damagePerSecond: 1.037,
                 range: 187.5,
-                rampUpDamage: 0.50,        // 최대 200%까지 증가
-                maxRampUpMultiplier: 2.0,
-                cooldownReduction: 0.10,
+                burnDamagePerSecond: 0.2,
+                burnDuration: 2,
+                bidirectional: true,       // Dual Direction
             },
         },
-        attackCooldown: 500, // 지속 공격 (짧은 간격)
+        attackCooldown: 0, // Continuous update for smooth tracking
     },
 
     // ============================================================
