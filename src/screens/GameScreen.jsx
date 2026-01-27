@@ -736,7 +736,7 @@ const GameScreen = ({
                     ) : upgrade.isSubWeapon ? (
                       <img src={SPRITES.subweapons[upgrade.icon]} alt="" style={{ width: '40px', height: '40px', imageRendering: 'pixelated', objectFit: 'contain' }} />
                     ) : (
-                      <img src={SPRITES.items[upgrade.icon]} alt="" style={{ width: '28px', height: '28px', imageRendering: 'pixelated' }} />
+                      <img src={SPRITES.items[upgrade.icon]} alt="" style={{ width: '40px', height: '40px', imageRendering: 'pixelated', objectFit: 'contain' }} />
                     )}
                     {upgrade.isSubWeapon && (
                       <div style={{

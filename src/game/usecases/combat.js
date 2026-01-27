@@ -15,25 +15,11 @@ import { getMapObjectDef, getInteractionBox, createMapObject, getCollisionBox, g
  */
 export const damageMapObjects = (state, attackArea, damage, currentTime, isCircular = true) => {
   if (!state.mapObjects || state.mapObjects.length === 0) {
-    console.log('damageMapObjects: No mapObjects')
     return
   }
 
-  console.log('damageMapObjects called:', { 
-    objectCount: state.mapObjects.length, 
-    attackArea, 
-    damage 
-  })
-
   state.mapObjects.forEach((obj, index) => {
     const def = getMapObjectDef(obj.type)
-    
-    console.log('Checking object:', { 
-      type: obj.type, 
-      hp: obj.hp, 
-      defExists: !!def, 
-      destructible: def?.destructible 
-    })
     
     if (!def || !def.destructible) return
     if (obj.isDestroyed) return
@@ -48,10 +34,7 @@ export const damageMapObjects = (state, attackArea, damage, currentTime, isCircu
     if (obj.hp <= 0) return
 
     const interactionBox = getInteractionBox(obj)
-    if (!interactionBox) {
-      console.log('No interaction box for', obj.type)
-      return
-    }
+    if (!interactionBox) return
 
     let hit = false
 
@@ -557,7 +540,7 @@ export const updateCombat = ({
       // Drop Coin (Chance)
       if (Math.random() < GAME_CONFIG.COIN_DROP_RATE) {
         const value = Math.floor(Math.random() * (GAME_CONFIG.COIN_VALUE_RANGE.max - GAME_CONFIG.COIN_VALUE_RANGE.min + 1)) + GAME_CONFIG.COIN_VALUE_RANGE.min
-        // console.log('Coin Dropped!', value)
+
         state.coins.push({
           id: generateId(),
           x: enemy.x,

@@ -19,7 +19,7 @@ export const useGameEngine = ({
   onQuit,
 }) => {
   // Debug Trace
-  // console.log('GameScreen Rendered. Config:', GAME_CONFIG)
+
 
   const canvasRef = useRef(null)
   const gameStateRef = useRef(null)

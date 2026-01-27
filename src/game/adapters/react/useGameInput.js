@@ -20,7 +20,7 @@ export const useGameInput = ({
         case 'ShiftLeft':
         case 'ShiftRight':
           if (!gameStateRef.current.keys.shift) {
-            console.log('[SHIFT] Shift key pressed!')
+
             gameStateRef.current.keys.shift = true;
             gameStateRef.current.keys.shiftPressed = true;
           }
@@ -89,7 +89,7 @@ export const useGameInput = ({
       // Left click (button 0) toggles aim mode
       if (e.button === 0 && gamePhase === 'playing') {
         gameStateRef.current.aimMode = gameStateRef.current.aimMode === 'auto' ? 'manual' : 'auto'
-        console.log('[AIM] Mode changed to:', gameStateRef.current.aimMode)
+
       }
     }
 
