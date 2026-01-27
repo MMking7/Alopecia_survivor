@@ -15,6 +15,37 @@ export const GAME_CONFIG = {
   SPAWN_DISTANCE_MAX: 600,
   COIN_DROP_RATE: 0.05, // 5% chance to drop a coin
   COIN_VALUE_RANGE: { min: 10, max: 100 },
+  MAP_STATIC_OBSTACLES: {
+    enabled: true,
+    densityMultiplier: 1.6, // overall density scale
+    baseMapSize: { width: 2048, height: 2048 },
+    baseCounts: {
+      tree: 10,
+      bush: 15,
+      statue: 5,
+      bust: 3,
+    },
+    minSpacing: 110,
+    safeZoneRadius: 150,
+    includeExisting: true,
+    attemptsMultiplier: 12,
+  },
+  MAP_DYNAMIC_OBSTACLES: {
+    enabled: true,
+    spawnDistance: 220, // spawn after moving this far
+    spawnRadiusMin: 240,
+    spawnRadiusMax: 520,
+    spawnCountMin: 1,
+    spawnCountMax: 2,
+    spawnAttempts: 10,
+    playerSafeRadius: 140,
+    despawnDistance: 900,
+    maxSpawned: 80,
+    forwardConeAngle: 1.4, // radians (~80deg) in front of movement
+    forwardDeadZoneAngle: 0.35, // keep center path clear (~20deg)
+    offscreenMargin: 40, // keep new obstacles off-screen
+    allowOutsideMap: true,
+  },
 }
 
 export const getShopBonuses = (shopLevels = {}) => ({
@@ -123,14 +154,14 @@ export const SPRITES = {
   items: {
     coin: '/sprites/coin.png',
     areata_fallen_hair: '/sprites/areata/areatafallenhair.png',
-    glasses: '/sprites/holo/glasses.webp',
-    ubersheep: '/sprites/holo/ubersheep.webp',
-    pillow: '/sprites/holo/pillow.webp',
-    horn: '/sprites/holo/horn.webp',
-    piman: '/sprites/holo/piman.webp',
-    sake: '/sprites/holo/sake.webp',
-    halu: '/sprites/holo/halu.webp',
-    magical_wig: '/sprites/holo/magical_wig.png',
+    scanner: '/sprites/items/scanner.png',
+    biotin: '/sprites/items/biotin.png',
+    silk_cap: '/sprites/items/silk_cap.png',
+    minoxidil: '/sprites/items/minoxidil.png',
+    black_beans: '/sprites/items/black_beans.png',
+    beer: '/sprites/items/beer.png',
+    DHT: '/sprites/items/DHT.png',
+    magical_wig: '/sprites/items/magical_wig.png',
   },
   subweapons: {
     black_dye: '/sprites/subweapon/black_dye.webp',
@@ -330,61 +361,61 @@ export const BOSS = BOSSES[0]
 
 export const UPGRADES = [
   {
-    id: 'glasses',
+    id: 'scanner',
     name: '모낭 스캐너',
     type: '아이템',
     description: '두피 상태를 분석합니다. 경험치 획득량이 15% 증가합니다.',
-    icon: 'glasses',
+    icon: 'scanner',
     effect: (stats) => ({ ...stats, xpMultiplier: (stats.xpMultiplier || 1) + 0.15 })
   },
   {
-    id: 'ubersheep',
-    name: '비오틴 보급',
+    id: 'biotin',
+    name: '비오틴',
     type: '아이템',
     description: '필수 영양소. 즉시 HP를 20% 회복합니다.',
-    icon: 'ubersheep',
+    icon: 'biotin',
     isConsumable: true,
     effect: (stats) => ({ ...stats, hp: Math.min(stats.maxHp, stats.hp + stats.maxHp * 0.2) })
   },
   {
-    id: 'horn',
+    id: 'minoxidil',
     name: '미녹시딜',
     type: '아이템',
     description: '발모 촉진. 처치 시 +3HP를 회복할 확률이 있습니다.',
-    icon: 'horn',
+    icon: 'minoxidil',
     effect: (stats) => ({ ...stats, lifeSteal: (stats.lifeSteal || 0) + 0.05 })
   },
   {
-    id: 'pillow',
+    id: 'silk_cap',
     name: '실크 캡',
     type: '아이템',
     description: '마찰을 줄입니다. 15 보호막을 부여합니다.',
-    icon: 'pillow',
+    icon: 'silk_cap',
     isConsumable: true,
     effect: (stats) => ({ ...stats, shield: stats.shield + 15 })
   },
   {
-    id: 'sake',
-    name: '맥주 효모',
+    id: 'beer',
+    name: '맥주',
     type: '아이템',
     description: '머리에 좋을지도? 치명타 +5%, 하지만 많이 먹으면 어지럽습니다.',
-    icon: 'sake',
+    icon: 'beer',
     effect: (stats) => ({ ...stats, crit: (stats.crit || 0) + 0.05 })
   },
   {
-    id: 'piman',
+    id: 'black_beans',
     name: '검은콩',
     type: '아이템',
     description: '전통 요법. 최대 HP +15.',
-    icon: 'piman',
+    icon: 'black_beans',
     effect: (stats) => ({ ...stats, maxHp: stats.maxHp + 15, hp: stats.hp + 15 })
   },
   {
-    id: 'halu',
+    id: 'DHT',
     name: 'DHT 호르몬',
     type: '아이템',
     description: '탈모 원인 그 잡채. 적 생성 속도 증가!',
-    icon: 'halu',
+    icon: 'DHT',
     effect: (stats) => ({ ...stats, spawnRateMultiplier: (stats.spawnRateMultiplier || 1) + 0.2 })
   },
   {
