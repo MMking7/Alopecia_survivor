@@ -668,14 +668,14 @@ const GameScreen = ({
                     transition: 'all 0.1s',
                     textAlign: 'left',
                     width: '100%',
+                    position: 'relative', // Ensure absolute children are relative to button
+                    overflow: 'visible', // Allow badge to pop out
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateX(5px)'
                     e.currentTarget.style.borderColor = upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary
                     e.currentTarget.style.boxShadow = `0 0 15px ${upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary}40, 3px 3px 0 0 rgba(0,0,0,0.5)`
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateX(0)'
                     e.currentTarget.style.borderColor = upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder
                     e.currentTarget.style.boxShadow = '3px 3px 0 0 rgba(0,0,0,0.5)'
                   }}
@@ -743,17 +743,17 @@ const GameScreen = ({
                       }}>
                         {upgrade.name}
                       </span>
-                      <span style={{
+                      {/* Valid Type Badge (Always show type) */}
+                       <span style={{
                         fontFamily: PIXEL_STYLES.fontFamily,
                         color: upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary,
-                        fontSize: '10px',
+                        fontSize: '9px',
                         background: 'rgba(0,0,0,0.5)',
-                        padding: '2px 6px',
+                        padding: '2px 4px',
+                        borderRadius: '3px',
+                        marginRight: '20px' // Space for New Badge
                       }}>
-                        {upgrade.isSubWeapon
-                          ? (upgrade.currentLevel > 0 ? `LV${upgrade.currentLevel}→${upgrade.nextLevel}` : '🆕무기')
-                          : `🆕${upgrade.type}`
-                        }
+                        {upgrade.isMainWeapon ? 'MAIN' : upgrade.isPassiveSkill ? 'SKILL' : upgrade.isSubWeapon ? 'SUB' : 'ITEM'}
                       </span>
                     </div>
                     <div style={{
@@ -763,10 +763,75 @@ const GameScreen = ({
                       lineHeight: '1.3',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
+                      paddingBottom: '16px' // Space for bottom right text
                     }}>
                       {upgrade.description}
                     </div>
                   </div>
+
+                  {/* NEW! Badge (Comic Burst Style) */}
+                  {(!upgrade.currentLevel || upgrade.currentLevel === 0) && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '-8px',
+                      right: '-8px',
+                      width: '24px',
+                      height: '24px',
+                      zIndex: 10,
+                      pointerEvents: 'none', // Allow clicks through to button
+                      animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                    }}>
+                      {/* Shadow Layer */}
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        clipPath: 'polygon(20% 0%, 35% 15%, 50% 0%, 65% 15%, 80% 0%, 85% 25%, 100% 20%, 90% 40%, 100% 60%, 85% 75%, 100% 100%, 70% 90%, 50% 100%, 30% 90%, 0% 100%, 15% 75%, 0% 60%, 10% 40%, 0% 20%)',
+                        transform: 'translate(1px, 1px)'
+                      }} />
+                      {/* Main Shape */}
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: '#FFF',
+                        clipPath: 'polygon(20% 0%, 35% 15%, 50% 0%, 65% 15%, 80% 0%, 85% 25%, 100% 20%, 90% 40%, 100% 60%, 85% 75%, 100% 100%, 70% 90%, 50% 100%, 30% 90%, 0% 100%, 15% 75%, 0% 60%, 10% 40%, 0% 20%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <span style={{
+                          color: '#FF0000',
+                          fontFamily: 'Impact, sans-serif',
+                          fontSize: '8px',
+                          fontWeight: '900',
+                          transform: 'rotate(-10deg)',
+                          textShadow: '0.5px 0.5px 0 #000',
+                          letterSpacing: '0px'
+                        }}>NEW!</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Level Upgrade Text (Bottom Right) */}
+                  {(upgrade.currentLevel > 0) && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '8px',
+                      right: '10px',
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      fontSize: '11px',
+                      color: '#FFFF00', // Yellow
+                      fontWeight: 'bold',
+                      textShadow: '1px 1px 0 #000',
+                      background: 'rgba(0,0,0,0.7)',
+                      padding: '3px 8px',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(255,255,0,0.3)',
+                      zIndex: 5
+                    }}>
+                      LV {(upgrade.currentLevel || 0)} <span style={{color:'#FFF'}}>➤</span> {(upgrade.nextLevel || (upgrade.currentLevel + 1))}
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
