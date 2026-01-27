@@ -391,6 +391,7 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
           }
         }
 
+        const newBombs = []
         weapon.state.bombs = weapon.state.bombs.filter(bomb => {
           let shouldExplode = currentTime - bomb.createdAt > bomb.lifeTime
 
@@ -434,7 +435,7 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
 
             if (bomb.chainChance > 0 && Math.random() < bomb.chainChance) {
               const angle = Math.random() * Math.PI * 2
-              weapon.state.bombs.push({
+              newBombs.push({
                 ...bomb,
                 id: generateId(),
                 x: bomb.x + Math.cos(angle) * 40,
@@ -447,6 +448,11 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
           }
           return true
         })
+
+        // Add new bombs generated from chain reactions
+        if (newBombs.length > 0) {
+          weapon.state.bombs.push(...newBombs)
+        }
         break
       }
     }

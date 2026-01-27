@@ -411,60 +411,53 @@ export const SUB_WEAPONS = [
         maxLevel: 7,
         levelEffects: {
             1: {
-                maxBombs: 3,               // 최대 폭탄 수
-                explosionDamage: 1.50,     // 150% 폭발 피해
-                explosionRadius: 60,       // 폭발 범위
-                slowAmount: 0,             // 이동속도 감소
-                chainExplosionChance: 0,   // 연쇄 폭발 확률
+                generationInterval: 5000,  // 5 seconds
+                maxBombs: 3,
+                explosionDamage: 1.5,      // 150% Damage
+                explosionRadius: 60,
+                chainExplosionChance: 0,
             },
             2: {
-                maxBombs: 4,               // +1개
-                explosionDamage: 1.50,
+                generationInterval: 5000,
+                maxBombs: 4,               // +1 Limit
+                explosionDamage: 1.5,
                 explosionRadius: 60,
-                slowAmount: 0,
                 chainExplosionChance: 0,
             },
             3: {
+                generationInterval: 5000,
                 maxBombs: 4,
-                explosionDamage: 1.50,
-                explosionRadius: 72,       // 20% 증가
-                slowAmount: 0,
+                explosionDamage: 1.5,
+                explosionRadius: 72,       // 20% Increase (60 -> 72)
                 chainExplosionChance: 0,
             },
             4: {
+                generationInterval: 4000,  // -1s (4s)
                 maxBombs: 4,
-                explosionDamage: 1.50,
+                explosionDamage: 1.5,
                 explosionRadius: 72,
-                slowAmount: 0,
                 chainExplosionChance: 0,
-                generationInterval: 4000,  // 4초마다 생성 (기본 5초)
             },
             5: {
+                generationInterval: 3000,  // -1s (3s)
                 maxBombs: 4,
-                explosionDamage: 1.50,
+                explosionDamage: 1.5,
                 explosionRadius: 72,
-                slowAmount: 0.30,          // 3초간 30% 감소
-                slowDuration: 3,
                 chainExplosionChance: 0,
-                generationInterval: 4000,
             },
             6: {
+                generationInterval: 3000,
                 maxBombs: 4,
-                explosionDamage: 1.95,     // 30% 증가
+                explosionDamage: 1.95,     // 30% Increase (1.5 * 1.3)
                 explosionRadius: 72,
-                slowAmount: 0.30,
-                slowDuration: 3,
                 chainExplosionChance: 0,
-                generationInterval: 4000,
             },
             7: {
-                maxBombs: 5,               // +1개
+                generationInterval: 3000,
+                maxBombs: 4,
                 explosionDamage: 1.95,
                 explosionRadius: 72,
-                slowAmount: 0.30,
-                slowDuration: 3,
-                chainExplosionChance: 0.20, // 20% 확률로 추가 폭탄
-                generationInterval: 4000,
+                chainExplosionChance: 0.2, // 20% Chance
             },
         },
         attackCooldown: 0, // 0 to allow logic to run every frame (internal timer handles generation)
