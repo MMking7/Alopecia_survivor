@@ -200,5 +200,9 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
     // Apply special lifesteal bonus
     const specialLifeSteal = state.passiveBonuses.specialLifeStealBonus || 0
     state.stats.lifeSteal = (state.baseStats.lifeSteal || 0) + (state.passiveBonuses.lifeStealBonus || 0) + specialLifeSteal
+    
+    // Preserve item-based stats (from baseStats)
+    state.stats.specialCooldownReduction = state.baseStats.specialCooldownReduction || 0
+    state.stats.spawnRateMultiplier = state.baseStats.spawnRateMultiplier || 1
   }
 }

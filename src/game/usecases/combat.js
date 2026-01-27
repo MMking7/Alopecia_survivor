@@ -1401,6 +1401,7 @@ export const updateCombat = ({
     coins: state.collectedCoins,
     fragments: state.fragments || 0,
     specialAbilityLastUsed: state.specialAbility?.lastUsedGameTime || 0,
+    specialCooldownReduction: state.stats.specialCooldownReduction || 0,
     currentGameTime: state.gameTime,
     aimMode: state.aimMode || 'auto',
   })

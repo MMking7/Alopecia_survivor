@@ -97,6 +97,8 @@ export const useGameEngine = ({
         // Also update baseStats so the effect persists after passive bonus recalculation
         gameStateRef.current.baseStats = upgrade.effect({ ...gameStateRef.current.baseStats })
         gameStateRef.current.inventory.push(upgrade)
+        
+        // Magical Wig cooldown reduction is handled via specialCooldownReduction in stats/UI
       }
     }
     setLevelUpOptions([])

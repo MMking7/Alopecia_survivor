@@ -19,7 +19,16 @@ export const activateSpecialAbility = ({ state, currentTime }) => {
       
       // Apply Cooldown Reduction (Magical Wig item)
       let cooldownDuration = ability.cooldown
-      const reduction = state.stats.specialCooldownReduction || 0
+      const reduction = Math.min(0.5, state.stats.specialCooldownReduction || 0) // 최대 50%로 제한
+      
+      console.log('🎀 Magical Wig Check:', {
+        baseStats_specialCooldownReduction: state.baseStats?.specialCooldownReduction,
+        stats_specialCooldownReduction: state.stats?.specialCooldownReduction,
+        reduction: reduction,
+        originalCooldown: ability.cooldown,
+        reducedCooldown: cooldownDuration * (1 - reduction)
+      })
+      
       if (reduction > 0) {
         cooldownDuration *= (1 - reduction)
       }

@@ -315,10 +315,12 @@ const GameScreen = ({
               const currentGameTime = displayStats.currentGameTime || 0
               // 아직 한 번도 사용 안 했으면 쿨타임 없음 (lastUsedGameTime이 0)
               const hasBeenUsed = lastUsedGameTime > 0
+              const reduction = Math.min(0.5, displayStats.specialCooldownReduction || 0)
+              const effectiveCooldown = ability.cooldown * (1 - reduction)
               const timeSinceLastUse = hasBeenUsed ? (currentGameTime - lastUsedGameTime) * 1000 : Infinity // 초 → 밀리초
-              const cooldownRemaining = hasBeenUsed ? Math.max(0, ability.cooldown - timeSinceLastUse) : 0
+              const cooldownRemaining = hasBeenUsed ? Math.max(0, effectiveCooldown - timeSinceLastUse) : 0
               const isOnCooldown = cooldownRemaining > 0
-              const cooldownPercent = isOnCooldown ? (cooldownRemaining / ability.cooldown) * 100 : 0
+              const cooldownPercent = isOnCooldown ? (cooldownRemaining / effectiveCooldown) * 100 : 0
               const cooldownSeconds = Math.ceil(cooldownRemaining / 1000)
 
               // 모근 부족 체크 (탈모의사 전용)

@@ -82,6 +82,7 @@ export const createInitialState = ({
     lifeSteal: startingLifeSteal,
     xpMultiplier: startingXpMultiplier,
     spawnRateMultiplier: startingSpawnRateMultiplier,
+    specialCooldownReduction: 0, // 마법소녀 가발 아이템용
   }
 
   return {
