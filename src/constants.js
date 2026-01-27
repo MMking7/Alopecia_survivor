@@ -327,7 +327,7 @@ export const UPGRADES = [
     id: 'ubersheep',
     name: '비오틴 보급',
     type: '아이템',
-    description: '필수 영양소. 주기적으로 HP를 20% 회복합니다.',
+    description: '필수 영양소. 즉시 HP를 20% 회복합니다.',
     icon: 'ubersheep',
     effect: (stats) => ({ ...stats, hp: Math.min(stats.maxHp, stats.hp + stats.maxHp * 0.2) })
   },
@@ -335,7 +335,7 @@ export const UPGRADES = [
     id: 'horn',
     name: '미녹시딜',
     type: '아이템',
-    description: '발모 촉진. 처치 시 3 HP를 회복할 확률이 있습니다.',
+    description: '발모 촉진. 처치 시 +3HP를 회복할 확률이 있습니다.',
     icon: 'horn',
     effect: (stats) => ({ ...stats, lifeSteal: (stats.lifeSteal || 0) + 0.05 })
   },
@@ -343,7 +343,7 @@ export const UPGRADES = [
     id: 'pillow',
     name: '실크 캡',
     type: '아이템',
-    description: '마찰을 줄입니다. 15 HP 보호막을 부여합니다.',
+    description: '마찰을 줄입니다. 15 보호막을 부여합니다.',
     icon: 'pillow',
     effect: (stats) => ({ ...stats, shield: stats.shield + 15 })
   },
@@ -351,7 +351,7 @@ export const UPGRADES = [
     id: 'sake',
     name: '맥주 효모',
     type: '아이템',
-    description: '머리에 좋을지도? 치명타 +5%, 하지만 조준이 흔들립니다.',
+    description: '머리에 좋을지도? 치명타 +5%, 하지만 많이 먹으면 어지럽습니다.',
     icon: 'sake',
     effect: (stats) => ({ ...stats, crit: (stats.crit || 0) + 0.05 })
   },
@@ -367,7 +367,7 @@ export const UPGRADES = [
     id: 'halu',
     name: 'DHT 호르몬',
     type: '아이템',
-    description: '원인 그 자체. 적 생성 속도 증가!',
+    description: '탈모 원인 그 잡채. 적 생성 속도 증가!',
     icon: 'halu',
     effect: (stats) => ({ ...stats, spawnRateMultiplier: (stats.spawnRateMultiplier || 1) + 0.2 })
   },
