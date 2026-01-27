@@ -24,14 +24,14 @@ export const getDifficultyMultiplier = (gameTime) => {
     }
   }
   // Phase 3: 9분 이후 (극후반 - 지옥)
-  // 엄청 어렵게
+  // 8분대의 값으로 고정
   else {
     return {
-      hpMultiplier: 1 + minute * 1.0, // 체력 폭증
-      damageMultiplier: 1 + minute * 0.5, // 데미지 폭증
-      speedMultiplier: 1.5 + (minute - 9) * 0.1, // 속도 빠름
-      spawnRate: 400, // 0.4초 (광속 스폰)
-      enemyCount: 60, // 60마리 (화면 가득)
+      hpMultiplier: 1 + 8 * 0.4, // 4.2배 (8분 시점)
+      damageMultiplier: 1 + 8 * 0.2, // 2.6배 (8분 시점)
+      speedMultiplier: 1 + 8 * 0.1, // 1.8배 (8분 시점)
+      spawnRate: 1050, // 8분 시점: 1500 - (8-7) * 450 = 1050ms
+      enemyCount: 25, // 8분 시점: 20 + (8-7) * 5 = 25마리
     }
   }
 }
