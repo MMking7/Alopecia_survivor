@@ -69,6 +69,19 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
                 enemy.stunned = true
                 enemy.stunUntil = currentTime + (effect.stunDuration || 0.5) * 1000
               }
+
+              // Show Damage Number (Throttled per enemy)
+              if (!enemy.lastHairBrushDamage || currentTime - enemy.lastHairBrushDamage > 200) {
+                enemy.lastHairBrushDamage = currentTime
+                state.damageNumbers.push({
+                  id: generateId(),
+                  x: enemy.x,
+                  y: enemy.y,
+                  damage: Math.floor(damage * 0.6), // Estimate per-hit damage (damage * 3 * 0.2s)
+                  color: '#FFFFFF',
+                  createdAt: currentTime,
+                })
+              }
             }
           })
         }

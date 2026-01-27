@@ -595,6 +595,55 @@ export const updateCombat = ({
     state.groundZones = state.groundZones.filter(z => !z.shouldRemove)
   }
 
+  // Update sub-weapon effects (Black Dye)
+  if (state.subWeaponEffects) {
+    state.subWeaponEffects.forEach(effect => {
+      // Check duration
+      if (currentTime - effect.createdAt >= effect.duration) {
+        effect.shouldRemove = true
+        return
+      }
+
+      if (effect.type === 'black_dye_zone') {
+        // Damage enemies in zone
+        state.enemies.forEach(enemy => {
+          if (enemy.isDead) return
+
+          if (distance(effect, enemy) < effect.radius) {
+            // Apply Damage
+            const damage = state.stats.damage * effect.damagePerSecond * deltaTime
+            enemy.currentHp -= damage
+
+            // Apply Debuffs
+            if (effect.slowAmount > 0) {
+              enemy.slowed = true
+              enemy.slowAmount = effect.slowAmount
+              enemy.slowUntil = currentTime + 200
+            }
+
+            // Visual Feedback (Throttled)
+            if (!enemy.lastBlackDyeDamage || currentTime - enemy.lastBlackDyeDamage > 200) {
+              enemy.lastBlackDyeDamage = currentTime
+
+              // Calculate ~0.2s of damage for display
+              const displayDamage = Math.floor(state.stats.damage * effect.damagePerSecond * 0.2)
+
+              state.damageNumbers.push({
+                id: generateId(),
+                x: enemy.x,
+                y: enemy.y,
+                damage: displayDamage,
+                color: '#555555', // Dark Grey for Black Dye
+                createdAt: currentTime,
+              })
+            }
+          }
+        })
+      }
+    })
+    state.subWeaponEffects = state.subWeaponEffects.filter(e => !e.shouldRemove)
+  }
+
   // Update enemy projectiles
   state.enemyProjectiles.forEach((proj) => {
     proj.x += proj.vx * deltaTime

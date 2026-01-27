@@ -117,7 +117,7 @@ export const SUB_WEAPONS = [
         maxLevel: 7,
         levelEffects: {
             1: {
-                teethCount: 3,             // 빗니 수
+                teethCount: 2,             // 빗니 수 (Changed from 3)
                 damagePercent: 0.40,       // 40% 피해
                 knockbackForce: 100,       // 넉백 강도
                 rotationSpeed: 1.0,        // 회전 속도 배율
@@ -125,7 +125,7 @@ export const SUB_WEAPONS = [
                 stunChance: 0,             // 기절 확률
             },
             2: {
-                teethCount: 4,             // +1개
+                teethCount: 3,             // +1개 (Total 3)
                 damagePercent: 0.40,
                 knockbackForce: 100,
                 rotationSpeed: 1.0,
@@ -133,15 +133,15 @@ export const SUB_WEAPONS = [
                 stunChance: 0,
             },
             3: {
-                teethCount: 4,
-                damagePercent: 0.50,       // 25% 증가
+                teethCount: 3,
+                damagePercent: 0.50,       // 25% 증가 (Total 50%)
                 knockbackForce: 100,
                 rotationSpeed: 1.2,        // 20% 증가
                 range: 80,
                 stunChance: 0,
             },
             4: {
-                teethCount: 4,
+                teethCount: 3,
                 damagePercent: 0.50,
                 knockbackForce: 130,       // 30% 증가
                 rotationSpeed: 1.2,
@@ -149,7 +149,7 @@ export const SUB_WEAPONS = [
                 stunChance: 0,
             },
             5: {
-                teethCount: 5,             // +1개
+                teethCount: 4,             // +1개 (Total 4)
                 damagePercent: 0.50,
                 knockbackForce: 130,
                 rotationSpeed: 1.2,
@@ -157,7 +157,7 @@ export const SUB_WEAPONS = [
                 stunChance: 0,
             },
             6: {
-                teethCount: 5,
+                teethCount: 4,
                 damagePercent: 0.50,
                 knockbackForce: 130,
                 rotationSpeed: 1.2,
@@ -165,13 +165,12 @@ export const SUB_WEAPONS = [
                 stunChance: 0,
             },
             7: {
-                teethCount: 5,
+                teethCount: 5,             // +1개 (Total 5)
                 damagePercent: 0.50,
                 knockbackForce: 130,
                 rotationSpeed: 1.2,
                 range: 96,
-                stunChance: 0.10,          // 10% 기절 (0.5초)
-                stunDuration: 0.5,
+                stunChance: 0,             // Stun removed
             },
         },
         attackCooldown: 0, // 지속 효과 (회전)
