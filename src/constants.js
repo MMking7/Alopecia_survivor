@@ -381,7 +381,7 @@ export const UPGRADES = [
     id: 'minoxidil',
     name: '미녹시딜',
     type: '아이템',
-    description: '발모 촉진. 처치 시 +3HP를 회복할 확률이 있습니다.',
+    description: '발모 촉진. 처치 시 +3HP를 5% 확률로 회복할 수 있습니다.',
     icon: 'minoxidil',
     effect: (stats) => ({ ...stats, lifeSteal: (stats.lifeSteal || 0) + 0.05 })
   },

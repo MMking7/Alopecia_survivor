@@ -8,6 +8,46 @@ import { COLORS, PIXEL_STYLES } from '../styles/PixelUI'
 import autoAimCursor from '../assets/cursors/auto_aim.png'
 import manualAimCursor from '../assets/cursors/manual_aim.png'
 
+const getItemDescription = (entry) => {
+  if (!entry) return ''
+  const level = entry.count || entry.level || 1
+
+  switch (entry.id) {
+    case 'scanner': {
+      const bonus = Math.round(level * 15)
+      return `경험치 획득량 ${bonus}% 증가`
+    }
+    case 'biotin': {
+      return `즉시 HP 20% 회복 (x${level})`
+    }
+    case 'minoxidil': {
+      const bonus = Math.round(level * 5)
+      return `처치 시 +3HP를 ${bonus}% 확률로 회복할 수 있습니다.`
+    }
+    case 'silk_cap': {
+      return `보호막 +15 (x${level})`
+    }
+    case 'beer': {
+      const bonus = Math.round(level * 5)
+      return `치명타 확률 ${bonus}% 증가`
+    }
+    case 'black_beans': {
+      const bonus = level * 15
+      return `최대 HP +${bonus}`
+    }
+    case 'DHT': {
+      const bonus = Math.round(level * 20)
+      return `적 생성 속도 ${bonus}% 증가`
+    }
+    case 'magical_wig': {
+      const reduction = Math.min(0.5, level * 0.1)
+      return `궁극기 쿨타임 ${Math.round(reduction * 100)}% 감소`
+    }
+    default:
+      return entry.description || ''
+  }
+}
+
 const GameScreen = ({
   selectedCharacter,
   shopLevels,
@@ -136,6 +176,9 @@ const GameScreen = ({
       ? SPRITES.items?.[entry.icon]
       : null
     const fallbackLetter = isMainWeapon ? 'W' : isPassiveSkill ? 'S' : isSubWeapon ? 'W' : 'I'
+    const description = (!isMainWeapon && !isPassiveSkill && !isSubWeapon)
+      ? getItemDescription(entry)
+      : entry.description
 
     return (
       <div
@@ -206,7 +249,7 @@ const GameScreen = ({
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
           }}>
-            {entry.description}
+            {description}
           </div>
         </div>
         <div style={{
