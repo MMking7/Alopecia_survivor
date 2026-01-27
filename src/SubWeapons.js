@@ -39,7 +39,7 @@ export const SUB_WEAPONS = [
         // 레벨별 효과
         levelEffects: {
             1: {
-                zoneCount: 3,              // 장판 수
+                zoneCount: 1,              // 장판 수 (Changed from 3)
                 damagePerSecond: 0.50,     // 초당 50% 피해
                 duration: 3,               // 지속시간 (초)
                 range: 60,                 // 장판 범위
@@ -47,7 +47,7 @@ export const SUB_WEAPONS = [
                 blindChance: 0,            // 암흑 효과 확률
             },
             2: {
-                zoneCount: 3,
+                zoneCount: 1,
                 damagePerSecond: 0.50,
                 duration: 5,               // +2초
                 range: 60,
@@ -55,7 +55,7 @@ export const SUB_WEAPONS = [
                 blindChance: 0,
             },
             3: {
-                zoneCount: 3,
+                zoneCount: 1,
                 damagePerSecond: 0.65,     // 30% 증가
                 duration: 5,
                 range: 60,
@@ -63,7 +63,7 @@ export const SUB_WEAPONS = [
                 blindChance: 0,
             },
             4: {
-                zoneCount: 4,              // +1개
+                zoneCount: 2,              // +1개 (Total 2)
                 damagePerSecond: 0.65,
                 duration: 5,
                 range: 60,
@@ -71,25 +71,25 @@ export const SUB_WEAPONS = [
                 blindChance: 0,
             },
             5: {
-                zoneCount: 4,
+                zoneCount: 2,
                 damagePerSecond: 0.65,
                 duration: 5,
                 range: 60,
-                slowAmount: 0,
+                slowAmount: 0.30,          // 30% 이동속도 감소 added
                 blindChance: 0.20,         // 20% 확률 암흑
                 blindDuration: 1,          // 1초 암흑
             },
             6: {
-                zoneCount: 4,
+                zoneCount: 2,
                 damagePerSecond: 0.65,
                 duration: 5,
                 range: 75,                 // 25% 증가
-                slowAmount: 0,
+                slowAmount: 0.30,
                 blindChance: 0.20,
                 blindDuration: 1,
             },
             7: {
-                zoneCount: 4,
+                zoneCount: 3,              // +1개 (Total 3)
                 damagePerSecond: 0.65,
                 duration: 5,
                 range: 75,
@@ -715,7 +715,7 @@ export const generateMixedLevelUpOptions = (UPGRADES, inventory, totalCount = 3)
             // isConsumable(즉발성)이 아니면 레벨로 표시
             const count = inventory.filter(i => i.id === item.id).length
             const isConsumable = item.isConsumable
-            
+
             return {
                 ...item,
                 grade: 1, // 아이템 등급 기본 1
