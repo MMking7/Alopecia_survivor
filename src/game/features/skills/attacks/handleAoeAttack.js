@@ -6,7 +6,7 @@ export const handleAoeAttack = ({ state, currentTime, character }) => {
   const femaleWeapon = getMainWeapon('female')
   if (femaleWeapon) {
     const weaponEffect = femaleWeapon.levelEffects[state.mainWeaponLevel]
-    
+
     // Determine attack angle based on aim mode
     let baseAngle
     let facingDir
@@ -36,6 +36,12 @@ export const handleAoeAttack = ({ state, currentTime, character }) => {
       const zoneX = state.player.x + Math.cos(zoneAngle) * (weaponEffect.length / 2)
       const zoneY = state.player.y + Math.sin(zoneAngle) * (weaponEffect.length / 2)
 
+      // Calculate Crit Snapshot
+      const isCrit = Math.random() < (state.stats.crit || 0)
+      const critMultiplier = isCrit ? 1.5 : 1.0
+      const finalDamage = weaponEffect.damagePerSecond * critMultiplier
+      const finalShockwaveDamage = (weaponEffect.shockwaveDamage || 0) * critMultiplier
+
       // Create ground zone effect
       if (!state.groundZones) state.groundZones = []
       state.groundZones.push({
@@ -46,17 +52,18 @@ export const handleAoeAttack = ({ state, currentTime, character }) => {
         angle: zoneAngle,
         length: weaponEffect.length,
         width: weaponEffect.width,
-        damagePerSecond: weaponEffect.damagePerSecond,
+        damagePerSecond: finalDamage,
         duration: (weaponEffect.duration || 2) * 1000,
         createdAt: currentTime,
         color: character.attackColor,
         facingDirection: facingDir,
         // Awakening: shockwave
         hasShockwave: weaponEffect.shockwave || false,
-        shockwaveDamage: weaponEffect.shockwaveDamage || 0,
+        shockwaveDamage: finalShockwaveDamage,
         shockwaveKnockback: weaponEffect.shockwaveKnockback || 0,
         shockwaveInterval: weaponEffect.shockwaveInterval || 1000,
         lastShockwave: currentTime,
+        isCrit: isCrit,
       })
 
       // Visual effect with sprite support

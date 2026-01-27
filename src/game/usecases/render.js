@@ -1051,7 +1051,7 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
           const srcY = 0
 
           // Draw size based on effect radius
-          const drawSize = effect.radius * 2.5
+          const drawSize = effect.radius * 2.0
           const fadeOut = progress > 0.7 ? (1 - progress) / 0.3 : 1
 
           ctx.save()
@@ -1707,7 +1707,7 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
     // Check if damage string already has '+' to avoid '++3'
     let text = dn.damage.toString()
     if (dn.isHeal && !text.startsWith('+')) {
-       text = `+${text}`
+      text = `+${text}`
     }
     const displayText = text
     ctx.strokeText(displayText, 0, 0)

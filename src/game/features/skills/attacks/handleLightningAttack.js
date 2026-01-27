@@ -73,7 +73,12 @@ export const handleLightningAttack = ({ state, currentTime, character }) => {
     if (hitByDash || hitByPunch) {
       // 돌진 경로 피해는 50%, 펀치 피해는 100%
       const damageMultiplier = hitByPunch ? 1 : 0.5
-      const damage = state.stats.damage * heihachiEffect.damage * damageMultiplier
+
+      // Calculate Crit
+      const isCrit = Math.random() < (state.stats.crit || 0)
+      const critMultiplier = isCrit ? 1.5 : 1.0
+
+      const damage = state.stats.damage * heihachiEffect.damage * damageMultiplier * critMultiplier
       enemy.currentHp -= damage
 
       state.damageNumbers.push({
@@ -81,6 +86,7 @@ export const handleLightningAttack = ({ state, currentTime, character }) => {
         x: enemy.x,
         y: enemy.y,
         damage: Math.floor(damage),
+        isCritical: isCrit,
         createdAt: currentTime,
       })
     }
