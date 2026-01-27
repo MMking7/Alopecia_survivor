@@ -66,11 +66,35 @@ const GameScreen = ({
       category: 'passive',
     }
   })
-  const inventoryEntries = (gameStateRef.current?.inventory || []).map((item) => ({
-    ...item,
-    level: item.level || 1,
-    category: item.isSubWeapon ? 'subweapon' : 'item',
-  }))
+  // Group inventory items by ID to handle duplicates
+  // Group inventory items by ID to handle duplicates
+  // Note: Removed useMemo because inventory mutation doesn't trigger ref dependency check reliably
+  const inventoryEntries = (() => {
+    const rawInventory = gameStateRef.current?.inventory || []
+    const grouped = {}
+    
+    rawInventory.forEach(item => {
+      // If SubWeapon, it already handles levels internally, so just use it
+      if (item.isSubWeapon) {
+        grouped[item.id] = { ...item, category: 'subweapon', level: item.level || 1 }
+      } else {
+        // Regular items: Stack them
+        if (!grouped[item.id]) {
+          grouped[item.id] = { 
+            ...item, 
+            category: 'item', 
+            level: 1, // Start at level 1 (count 1)
+            count: 1, 
+          }
+        } else {
+          grouped[item.id].level += 1
+          grouped[item.id].count += 1
+        }
+      }
+    })
+    
+    return Object.values(grouped)
+  })()
   const selectionCount = (mainWeaponEntry ? 1 : 0) + passiveSkillEntries.length + inventoryEntries.length
   const selectionSections = [
     {
@@ -101,7 +125,7 @@ const GameScreen = ({
       ? COLORS.primary
       : (isMainWeapon || isPassiveSkill)
         ? COLORS.warning
-        : COLORS.panelBorder
+        : '#4FC3F7' // Blue for Items
     const badgeText = isMainWeapon ? 'MAIN' : isPassiveSkill ? 'SKILL' : isSubWeapon ? 'WPN' : null
     const abilityIcon = (isMainWeapon || isPassiveSkill) && entry.iconKey
       ? SPRITES.abilities?.[entry.iconKey]
@@ -193,7 +217,7 @@ const GameScreen = ({
           padding: '2px 6px',
           marginLeft: '8px',
         }}>
-          LV{entry.level || 1}
+          {entry.isConsumable ? `x${entry.count}` : `LV${entry.level || 1}`}
         </div>
       </div>
     )
@@ -769,8 +793,9 @@ const GameScreen = ({
                     </div>
                   </div>
 
-                  {/* NEW! Badge (Comic Burst Style) */}
-                  {(!upgrade.currentLevel || upgrade.currentLevel === 0) && (
+                  {/* PROMO BADGES */}
+                  {/* NEW! Badge (First time getting it, non-consumable) */}
+                  {(!upgrade.currentLevel || upgrade.currentLevel === 0) && !upgrade.isConsumable && (
                     <div style={{
                       position: 'absolute',
                       top: '-8px',
@@ -778,10 +803,10 @@ const GameScreen = ({
                       width: '24px',
                       height: '24px',
                       zIndex: 10,
-                      pointerEvents: 'none', // Allow clicks through to button
+                      pointerEvents: 'none', 
                       animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                     }}>
-                      {/* Shadow Layer */}
+                      {/* Shadow & Shape same as before */}
                       <div style={{
                         position: 'absolute',
                         inset: 0,
@@ -789,7 +814,6 @@ const GameScreen = ({
                         clipPath: 'polygon(20% 0%, 35% 15%, 50% 0%, 65% 15%, 80% 0%, 85% 25%, 100% 20%, 90% 40%, 100% 60%, 85% 75%, 100% 100%, 70% 90%, 50% 100%, 30% 90%, 0% 100%, 15% 75%, 0% 60%, 10% 40%, 0% 20%)',
                         transform: 'translate(1px, 1px)'
                       }} />
-                      {/* Main Shape */}
                       <div style={{
                         position: 'absolute',
                         inset: 0,
@@ -811,6 +835,27 @@ const GameScreen = ({
                       </div>
                     </div>
                   )}
+                  
+                  {/* INSTANT Badge (Consumable) */}
+                  {upgrade.isConsumable && (
+                    <div style={{
+                       position: 'absolute',
+                       top: '-6px',
+                       right: '-6px',
+                       background: '#00FF00',
+                       color: '#000',
+                       border: '2px solid #000',
+                       fontSize: '9px',
+                       fontWeight: 'bold',
+                       fontFamily: PIXEL_STYLES.fontFamily,
+                       padding: '2px 4px',
+                       boxShadow: '2px 2px 0 rgba(0,0,0,0.3)',
+                       transform: 'rotate(5deg)',
+                       zIndex: 10,
+                    }}>
+                      INSTANT
+                    </div>
+                  )}
 
                   {/* Level Upgrade Text (Bottom Right) */}
                   {(upgrade.currentLevel > 0) && (
@@ -830,6 +875,27 @@ const GameScreen = ({
                       zIndex: 5
                     }}>
                       LV {(upgrade.currentLevel || 0)} <span style={{color:'#FFF'}}>➤</span> {(upgrade.nextLevel || (upgrade.currentLevel + 1))}
+                    </div>
+                  )}
+
+                  {/* Consumed Count Text (For Instant Items) */}
+                  {(upgrade.isConsumable && upgrade.consumedCount > 0) && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '8px',
+                      right: '10px',
+                      fontFamily: PIXEL_STYLES.fontFamily,
+                      fontSize: '11px',
+                      color: '#00FF00', // Green
+                      fontWeight: 'bold',
+                      textShadow: '1px 1px 0 #000',
+                      background: 'rgba(0,0,0,0.7)',
+                      padding: '3px 8px',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(0,255,0,0.3)',
+                      zIndex: 5
+                    }}>
+                      Used: {upgrade.consumedCount}
                     </div>
                   )}
                 </button>

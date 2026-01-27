@@ -16,8 +16,16 @@ export const activateSpecialAbility = ({ state, currentTime }) => {
       // lastUsedGameTime이 0이면 한 번도 안 쓴 것 → 바로 사용 가능
       const neverUsed = state.specialAbility.lastUsedGameTime === 0
       const timeSinceLastUse = (state.gameTime - state.specialAbility.lastUsedGameTime) * 1000 // 초 → 밀리초
-      const cooldownReady = neverUsed || timeSinceLastUse >= ability.cooldown
-      console.log('[SPECIAL] Cooldown check:', { neverUsed, timeSinceLastUse, cooldown: ability.cooldown, ready: cooldownReady, hasEnoughFragments, fragments: state.fragments, minFragments })
+      
+      // Apply Cooldown Reduction (Magical Wig item)
+      let cooldownDuration = ability.cooldown
+      const reduction = state.stats.specialCooldownReduction || 0
+      if (reduction > 0) {
+        cooldownDuration *= (1 - reduction)
+      }
+
+      const cooldownReady = neverUsed || timeSinceLastUse >= cooldownDuration
+      console.log('[SPECIAL] Cooldown check:', { neverUsed, timeSinceLastUse, cooldown: cooldownDuration, originalCooldown: ability.cooldown, reduction, ready: cooldownReady, hasEnoughFragments, fragments: state.fragments, minFragments })
       
       if (cooldownReady && hasEnoughFragments) {
         console.log('[SPECIAL] Activating special ability:', ability.name)

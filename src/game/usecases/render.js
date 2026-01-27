@@ -1484,7 +1484,12 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
     ctx.lineWidth = 4
     ctx.lineJoin = 'round'
     ctx.textAlign = 'center'
-    const displayText = dn.isHeal ? `+${dn.damage}` : dn.damage.toString()
+    // Check if damage string already has '+' to avoid '++3'
+    let text = dn.damage.toString()
+    if (dn.isHeal && !text.startsWith('+')) {
+       text = `+${text}`
+    }
+    const displayText = text
     ctx.strokeText(displayText, 0, 0)
     ctx.fillText(displayText, 0, 0)
     ctx.restore()

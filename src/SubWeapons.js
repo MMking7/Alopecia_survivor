@@ -706,9 +706,25 @@ export const generateMixedLevelUpOptions = (UPGRADES, inventory, totalCount = 3)
 
     // 나머지는 기존 아이템
     const itemCount = totalCount - subWeaponOptions.length
+    // 아이템 레벨/개수 계산하여 옵션 생성
     const itemOptions = [...UPGRADES]
         .sort(() => Math.random() - 0.5)
         .slice(0, itemCount)
+        .map(item => {
+            // 인벤토리 내 동일 아이템 수 카운트 (레벨 대용)
+            // isConsumable(즉발성)이 아니면 레벨로 표시
+            const count = inventory.filter(i => i.id === item.id).length
+            const isConsumable = item.isConsumable
+            
+            return {
+                ...item,
+                grade: 1, // 아이템 등급 기본 1
+                currentLevel: isConsumable ? 0 : count,
+                nextLevel: isConsumable ? 0 : count + 1,
+                consumedCount: count, // Count for consumables display
+                isConsumable,
+            }
+        })
 
     // 셔플 후 반환
     return [...subWeaponOptions, ...itemOptions].sort(() => Math.random() - 0.5)

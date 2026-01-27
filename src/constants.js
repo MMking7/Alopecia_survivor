@@ -117,6 +117,7 @@ export const SPRITES = {
     piman: '/sprites/holo/piman.webp',
     sake: '/sprites/holo/sake.webp',
     halu: '/sprites/holo/halu.webp',
+    magical_wig: '/sprites/holo/magical_wig.png',
   },
   subweapons: {
     black_dye: '/sprites/subweapon/black_dye.webp',
@@ -329,6 +330,7 @@ export const UPGRADES = [
     type: '아이템',
     description: '필수 영양소. 즉시 HP를 20% 회복합니다.',
     icon: 'ubersheep',
+    isConsumable: true,
     effect: (stats) => ({ ...stats, hp: Math.min(stats.maxHp, stats.hp + stats.maxHp * 0.2) })
   },
   {
@@ -345,6 +347,7 @@ export const UPGRADES = [
     type: '아이템',
     description: '마찰을 줄입니다. 15 보호막을 부여합니다.',
     icon: 'pillow',
+    isConsumable: true,
     effect: (stats) => ({ ...stats, shield: stats.shield + 15 })
   },
   {
@@ -370,6 +373,14 @@ export const UPGRADES = [
     description: '탈모 원인 그 잡채. 적 생성 속도 증가!',
     icon: 'halu',
     effect: (stats) => ({ ...stats, spawnRateMultiplier: (stats.spawnRateMultiplier || 1) + 0.2 })
+  },
+  {
+    id: 'magical_wig',
+    name: '마법소녀 가발',
+    type: '아이템',
+    description: '반짝이는 힘! 궁극기 쿨타임이 10% 감소합니다.',
+    icon: 'magical_wig',
+    effect: (stats) => ({ ...stats, specialCooldownReduction: (stats.specialCooldownReduction || 0) + 0.10 })
   },
 ]
 
