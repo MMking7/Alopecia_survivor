@@ -1,5 +1,6 @@
 import { getMainWeapon } from '../../../../MainWeapons'
 import { generateId, distance, pointToLineDistance } from '../../../domain/math'
+import { damageMapObjects } from '../../../usecases/combat'
 
 export const handleLightningAttack = ({ state, currentTime, character }) => {
   // 헤이하치 - 초 풍신권 (돌진 후 전방에 감전 피해)
@@ -84,4 +85,9 @@ export const handleLightningAttack = ({ state, currentTime, character }) => {
       })
     }
   })
+
+  // Damage map objects at punch area
+  const punchX = dashEndX + Math.cos(dashAngle) * 30
+  const punchY = dashEndY
+  damageMapObjects(state, { x: punchX, y: punchY, radius: attackRadius }, state.stats.damage * heihachiEffect.damage, currentTime, true)
 }

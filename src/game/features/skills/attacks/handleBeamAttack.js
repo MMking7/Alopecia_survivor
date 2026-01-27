@@ -1,5 +1,6 @@
 import { getMainWeapon } from '../../../../MainWeapons'
 import { generateId, distance } from '../../../domain/math'
+import { damageMapObjects } from '../../../usecases/combat'
 
 export const handleBeamAttack = ({ state, currentTime, character }) => {
   // 원형 탈모 - 탈모빔 (Hair Loss Beam - Single target with level scaling)
@@ -166,5 +167,8 @@ export const handleBeamAttack = ({ state, currentTime, character }) => {
         })
       }
     })
+
+    // Damage map objects at explosion
+    damageMapObjects(state, { x: thisTargetX, y: thisTargetY, radius: explosionRadius }, damage, currentTime, true)
   }
 }

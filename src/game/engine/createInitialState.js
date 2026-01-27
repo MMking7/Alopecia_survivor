@@ -1,11 +1,27 @@
 import { GAME_CONFIG, getBaseStatsWithShop } from '../../constants'
 import { getXpNeededForLevel } from '../domain/xp'
+import { createMapObject } from '../map/mapObjects'
+import { SAMPLE_MAP } from '../map/mapData'
+
+/**
+ * Initialize map objects from map data
+ */
+const initializeMapObjects = (mapData) => {
+  if (!mapData || !mapData.objects) return []
+  
+  return mapData.objects
+    .map((placement) => createMapObject(placement.type, placement.x, placement.y, {
+      hp: placement.hp,
+    }))
+    .filter(Boolean)
+}
 
 export const createInitialState = ({
   selectedCharacter,
   shopLevels,
   characterRanks,
   characterProgress,
+  mapData = SAMPLE_MAP,
 }) => {
   if (!selectedCharacter) return null
 
@@ -94,5 +110,9 @@ export const createInitialState = ({
     keys: { w: false, a: false, s: false, d: false, shift: false, shiftPressed: false },
     camera: { x: 0, y: 0 },
     aimMode: 'auto', // 'auto' = nearest enemy, 'manual' = mouse cursor direction
+    
+    // Map system
+    mapData: mapData,
+    mapObjects: initializeMapObjects(mapData),
   }
 }

@@ -3,6 +3,127 @@ import { MAIN_WEAPONS } from '../../MainWeapons'
 import { generateId, distance } from '../domain/math'
 import { buildLevelUpOptions } from './levelUpOptions'
 import { updateSkillSystems } from '../features/skills/updateSkillSystems'
+import { getMapObjectDef, getInteractionBox, createMapObject, getCollisionBox } from '../map/mapObjects'
+
+/**
+ * Damage destructible map objects within an area
+ * @param {object} state - Game state
+ * @param {object} attackArea - { x, y, radius } for circular or { x, y, width, height } for rectangular
+ * @param {number} damage - Damage to deal
+ * @param {number} currentTime - Current time for effects
+ * @param {boolean} isCircular - Whether attack area is circular
+ */
+export const damageMapObjects = (state, attackArea, damage, currentTime, isCircular = true) => {
+  if (!state.mapObjects || state.mapObjects.length === 0) {
+    console.log('damageMapObjects: No mapObjects')
+    return
+  }
+
+  console.log('damageMapObjects called:', { 
+    objectCount: state.mapObjects.length, 
+    attackArea, 
+    damage 
+  })
+
+  state.mapObjects.forEach((obj, index) => {
+    const def = getMapObjectDef(obj.type)
+    
+    console.log('Checking object:', { 
+      type: obj.type, 
+      hp: obj.hp, 
+      defExists: !!def, 
+      destructible: def?.destructible 
+    })
+    
+    if (!def || !def.destructible) return
+    if (obj.isDestroyed) return
+
+    if (obj.hp === undefined || obj.hp === null) {
+      const defaultHp = def.hp ?? 1
+      obj.hp = defaultHp
+      if (obj.maxHp === undefined || obj.maxHp === null) {
+        obj.maxHp = defaultHp
+      }
+    }
+    if (obj.hp <= 0) return
+
+    const interactionBox = getInteractionBox(obj)
+    if (!interactionBox) {
+      console.log('No interaction box for', obj.type)
+      return
+    }
+
+    let hit = false
+
+    if (isCircular) {
+      // Circular attack - check if circle intersects box
+      const closestX = Math.max(interactionBox.x, Math.min(attackArea.x, interactionBox.x + interactionBox.width))
+      const closestY = Math.max(interactionBox.y, Math.min(attackArea.y, interactionBox.y + interactionBox.height))
+      const distX = attackArea.x - closestX
+      const distY = attackArea.y - closestY
+      const distSq = distX * distX + distY * distY
+      hit = distSq <= attackArea.radius * attackArea.radius
+    } else {
+      // Rectangular attack
+      hit = 
+        attackArea.x < interactionBox.x + interactionBox.width &&
+        attackArea.x + attackArea.width > interactionBox.x &&
+        attackArea.y < interactionBox.y + interactionBox.height &&
+        attackArea.y + attackArea.height > interactionBox.y
+    }
+
+    if (hit) {
+      obj.hp -= damage
+
+      // Show damage number
+      state.damageNumbers.push({
+        id: generateId(),
+        x: obj.x,
+        y: obj.y - 20,
+        damage: Math.floor(damage),
+        createdAt: currentTime,
+        color: '#FFD700',
+      })
+
+      // Check if destroyed
+      if (obj.hp <= 0) {
+        // Transform to broken version if specified
+        const transformTo = def.transformsTo || (def.onDestroy && def.onDestroy.transformTo)
+        if (transformTo) {
+          const newObj = createMapObject(transformTo, obj.x, obj.y)
+          if (newObj) {
+            state.mapObjects[index] = newObj
+          }
+        } else {
+          // Mark as destroyed if no transformation
+          obj.isDestroyed = true
+        }
+
+        // Add destruction effect
+        state.attackEffects.push({
+          type: 'aoe',
+          id: generateId(),
+          x: obj.x,
+          y: obj.y,
+          maxRadius: 40,
+          color: 'rgba(200, 180, 150, 0.6)',
+          createdAt: currentTime,
+          duration: 400,
+        })
+
+        // Add destruction text
+        state.damageNumbers.push({
+          id: generateId(),
+          x: obj.x,
+          y: obj.y - 40,
+          damage: 'DESTROYED',
+          createdAt: currentTime,
+          color: '#FF6347',
+        })
+      }
+    }
+  })
+}
 
 export const updateMovementAndCamera = ({ state, deltaTime }) => {
   // Player movement - 무한맵 (경계 없음)
@@ -19,8 +140,79 @@ export const updateMovementAndCamera = ({ state, deltaTime }) => {
   }
 
   const speed = GAME_CONFIG.PLAYER_SPEED * state.stats.moveSpeed * deltaTime
-  state.player.x += dx * speed
-  state.player.y += dy * speed
+  let newX = state.player.x + dx * speed
+  let newY = state.player.y + dy * speed
+
+  // Check collision with map objects
+  const playerRadius = 16 // Player collision radius
+  if (state.mapObjects && state.mapObjects.length > 0) {
+    for (const obj of state.mapObjects) {
+      const def = getMapObjectDef(obj.type)
+      if (!def) continue
+      if (obj.isDestroyed) continue
+
+      let objHp = obj.hp
+      if (def.behavior === 'destructible') {
+        if (objHp === undefined || objHp === null) {
+          objHp = def.hp ?? 1
+          obj.hp = objHp
+          if (obj.maxHp === undefined || obj.maxHp === null) {
+            obj.maxHp = objHp
+          }
+        }
+        if (objHp <= 0) continue
+      }
+
+      // Block movement for 'blocking' behavior OR 'destructible' with hp > 0
+      const shouldBlock = def.behavior === 'blocking' || 
+        (def.behavior === 'destructible' && objHp > 0)
+      if (!shouldBlock) continue
+
+      const collisionBox = getCollisionBox(obj)
+      if (!collisionBox) continue
+
+      // Check if new position collides with object
+      const closestX = Math.max(collisionBox.x, Math.min(newX, collisionBox.x + collisionBox.width))
+      const closestY = Math.max(collisionBox.y, Math.min(newY, collisionBox.y + collisionBox.height))
+      
+      const distX = newX - closestX
+      const distY = newY - closestY
+      const distSquared = distX * distX + distY * distY
+
+      if (distSquared < playerRadius * playerRadius) {
+        // Collision detected - try sliding along X axis
+        const testX = newX
+        const closestXOnly = Math.max(collisionBox.x, Math.min(testX, collisionBox.x + collisionBox.width))
+        const closestYOld = Math.max(collisionBox.y, Math.min(state.player.y, collisionBox.y + collisionBox.height))
+        const distXOnly = testX - closestXOnly
+        const distYOld = state.player.y - closestYOld
+        
+        if (distXOnly * distXOnly + distYOld * distYOld >= playerRadius * playerRadius) {
+          // X movement is valid, keep newX but revert Y
+          newY = state.player.y
+        } else {
+          // Try Y axis only
+          const closestXOld = Math.max(collisionBox.x, Math.min(state.player.x, collisionBox.x + collisionBox.width))
+          const testY = newY
+          const closestYOnly = Math.max(collisionBox.y, Math.min(testY, collisionBox.y + collisionBox.height))
+          const distXOld = state.player.x - closestXOld
+          const distYOnly = testY - closestYOnly
+          
+          if (distXOld * distXOld + distYOnly * distYOnly >= playerRadius * playerRadius) {
+            // Y movement is valid, revert X but keep newY
+            newX = state.player.x
+          } else {
+            // Both blocked, revert both
+            newX = state.player.x
+            newY = state.player.y
+          }
+        }
+      }
+    }
+  }
+
+  state.player.x = newX
+  state.player.y = newY
 
   // 마우스 커서 방향으로 facing 업데이트
   const mouseWorldX = state.mouse.worldX
@@ -588,6 +780,27 @@ export const updateCombat = ({
           createdAt: currentTime,
           duration: 300,
         })
+
+        // Damage map objects with shockwave
+        damageMapObjects(state, { x: shockwaveX, y: shockwaveY, radius: 60 }, state.stats.damage * zone.shockwaveDamage, currentTime, true)
+      }
+
+      // Damage map objects in zone (periodic, like enemy damage)
+      if (!zone.lastMapObjectDamage || currentTime - zone.lastMapObjectDamage > 500) {
+        zone.lastMapObjectDamage = currentTime
+        if (zone.radius) {
+          damageMapObjects(state, { x: zone.x, y: zone.y, radius: zone.radius }, state.stats.damage * zone.damagePerSecond * 0.5, currentTime, true)
+        } else {
+          // Rectangular zone - convert to bounding box
+          const halfLength = zone.length / 2
+          const halfWidth = zone.width / 2
+          damageMapObjects(state, {
+            x: zone.x - halfLength,
+            y: zone.y - halfWidth,
+            width: zone.length,
+            height: zone.width
+          }, state.stats.damage * zone.damagePerSecond * 0.5, currentTime, false)
+        }
       }
     })
     state.groundZones = state.groundZones.filter(z => !z.shouldRemove)
@@ -711,6 +924,9 @@ export const updateCombat = ({
           })
         }
       })
+
+      // Damage map objects at projectile position
+      damageMapObjects(state, { x: proj.x, y: proj.y, radius: 40 }, proj.damage * 0.5, currentTime, true)
     })
     state.transplantProjectiles = state.transplantProjectiles.filter(p => !p.shouldRemove)
   }
@@ -789,6 +1005,9 @@ export const updateCombat = ({
           })
         }
       })
+
+      // Damage map objects at boomerang position
+      damageMapObjects(state, { x: proj.x, y: proj.y, radius: 45 }, proj.damage * 0.5, currentTime, true)
     })
 
     // Awakening: Check for boomerang crossings during return phase

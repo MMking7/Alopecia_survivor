@@ -1,5 +1,6 @@
 import { getMainWeapon } from '../../../../MainWeapons'
 import { generateId, distance } from '../../../domain/math'
+import { damageMapObjects } from '../../../usecases/combat'
 
 export const handleSpinAttack = ({ state, currentTime, character }) => {
   // 황비홍 - 비홍 편두 (Ponytail Spin with level scaling)
@@ -79,4 +80,7 @@ export const handleSpinAttack = ({ state, currentTime, character }) => {
       enemy.stunUntil = currentTime + (wongEffect.stunDuration || 0.5) * 1000
     }
   })
+
+  // Damage map objects in spin range
+  damageMapObjects(state, { x: state.player.x, y: state.player.y, radius: spinRange }, state.stats.damage * wongEffect.damage, currentTime, true)
 }

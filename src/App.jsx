@@ -38,6 +38,7 @@ const preloadImages = () => {
     ...Object.values(SPRITES.subweapons),
     ...(SPRITES.attacks ? Object.values(SPRITES.attacks) : []),
     ...(SPRITES.abilities ? Object.values(SPRITES.abilities) : []),
+    ...(SPRITES.obstacle ? Object.values(SPRITES.obstacle) : []),
   ]
 
   const loaded = {}

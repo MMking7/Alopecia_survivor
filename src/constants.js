@@ -110,7 +110,7 @@ export const SPRITES = {
   obstacle: {
     old_tree: '/sprites/obstacle/old_tree.png',
     broken_statue: '/sprites/obstacle/broken_statue.png',
-    stone_pillar: '/sprites/obstacle/stone_pillar.png',
+    statue_pillar: '/sprites/obstacle/stone_pillar.png',
     bush: '/sprites/obstacle/bush.png',
     big_tree: '/sprites/obstacle/big_tree.png',
     statue_bust: '/sprites/obstacle/statue_bust.png',

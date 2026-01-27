@@ -1,4 +1,192 @@
 import { SPRITES } from '../../constants'
+import { 
+  getMapObjectDef, 
+  getRenderBox, 
+  getCollisionBox 
+} from '../map/mapObjects'
+
+/**
+ * Render a single map object
+ */
+const renderMapObject = (ctx, obj, camera, loadedImages, options = {}) => {
+  const def = getMapObjectDef(obj.type)
+  if (!def) return
+
+  const renderBox = getRenderBox(obj)
+  if (!renderBox) return
+
+  // Calculate screen position
+  const screenX = renderBox.x - camera.x
+  const screenY = renderBox.y - camera.y
+
+  // Culling - skip if off screen
+  const canvas = ctx.canvas
+  if (
+    screenX + renderBox.width < 0 ||
+    screenX > canvas.width ||
+    screenY + renderBox.height < 0 ||
+    screenY > canvas.height
+  ) {
+    return
+  }
+
+  // Get sprite image
+  const spritePath = SPRITES.obstacle?.[obj.type] || def.sprite
+  const img = loadedImages[spritePath]
+
+  ctx.save()
+
+  // Apply alpha for transparency effects
+  if (obj.alpha !== undefined && obj.alpha < 1) {
+    ctx.globalAlpha = obj.alpha
+  }
+
+  if (img && img.complete && img.naturalWidth > 0) {
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(
+      img,
+      screenX,
+      screenY,
+      renderBox.width,
+      renderBox.height
+    )
+  } else {
+    // Fallback rendering
+    const colors = {
+      big_tree: '#2d5a27',
+      old_tree: '#3d6a37',
+      statue_pillar: '#8b8b8b',
+      broken_statue: '#6b6b6b',
+      bush: '#4a7c44',
+      statue_bust: '#9b9b9b',
+    }
+    const color = colors[obj.type] || '#888888'
+
+    ctx.fillStyle = color
+    ctx.strokeStyle = '#333'
+    ctx.lineWidth = 2
+
+    if (def.category === 'PASSABLE_DECORATION') {
+      ctx.beginPath()
+      ctx.ellipse(
+        screenX + renderBox.width / 2,
+        screenY + renderBox.height / 2,
+        renderBox.width / 2,
+        renderBox.height / 2,
+        0, 0, Math.PI * 2
+      )
+      ctx.fill()
+      ctx.stroke()
+    } else {
+      ctx.fillRect(screenX, screenY, renderBox.width, renderBox.height)
+      ctx.strokeRect(screenX, screenY, renderBox.width, renderBox.height)
+    }
+  }
+
+  // Show HP bar for destructible objects
+  if (def.destructible && obj.hp !== undefined && obj.hp < obj.maxHp) {
+    const barWidth = Math.min(renderBox.width, 48)
+    const barHeight = 6
+    const barX = screenX + (renderBox.width - barWidth) / 2
+    const barY = screenY - 12
+    const hpRatio = obj.hp / obj.maxHp
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'
+    ctx.fillRect(barX, barY, barWidth, barHeight)
+
+    const hpColor = hpRatio > 0.5 ? '#4ade80' : hpRatio > 0.25 ? '#fbbf24' : '#ef4444'
+    ctx.fillStyle = hpColor
+    ctx.fillRect(barX + 1, barY + 1, (barWidth - 2) * hpRatio, barHeight - 2)
+
+    ctx.strokeStyle = '#333'
+    ctx.lineWidth = 1
+    ctx.strokeRect(barX, barY, barWidth, barHeight)
+  }
+
+  // Debug: Show collision boxes
+  if (options.showCollisionBoxes && def.collisionBox) {
+    const collisionBox = getCollisionBox(obj)
+    if (collisionBox) {
+      ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)'
+      ctx.lineWidth = 2
+      ctx.setLineDash([4, 4])
+      ctx.strokeRect(
+        collisionBox.x - camera.x,
+        collisionBox.y - camera.y,
+        collisionBox.width,
+        collisionBox.height
+      )
+      ctx.setLineDash([])
+    }
+  }
+
+  ctx.restore()
+}
+
+/**
+ * Update map object transparency based on player position
+ */
+const updateMapObjectTransparency = (state) => {
+  if (!state.mapObjects) return
+
+  const playerX = state.player.x
+  const playerY = state.player.y
+  const playerSize = 64 * (state.player.character?.spriteScale || 1)
+
+  const playerBox = {
+    x: playerX - playerSize / 2,
+    y: playerY - playerSize / 2,
+    width: playerSize,
+    height: playerSize,
+  }
+
+  state.mapObjects.forEach((obj) => {
+    const def = getMapObjectDef(obj.type)
+    if (!def) {
+      obj.alpha = 1
+      return
+    }
+
+    const renderBox = getRenderBox(obj)
+    if (!renderBox) {
+      obj.alpha = 1
+      return
+    }
+
+    // Check occlusion (player behind tall objects)
+    if (def.occlusionEnabled) {
+      const playerBehind = playerY < obj.y
+      const horizontalOverlap = 
+        playerX + playerSize / 2 > renderBox.x &&
+        playerX - playerSize / 2 < renderBox.x + renderBox.width
+
+      const verticalOverlap =
+        playerBox.y < renderBox.y + renderBox.height &&
+        playerBox.y + playerBox.height > renderBox.y
+
+      if (playerBehind && horizontalOverlap && verticalOverlap) {
+        obj.alpha = 0.4
+        return
+      }
+    }
+
+    // Check overlap transparency (bushes)
+    if (def.overlapTransparency) {
+      const boxesOverlap = 
+        playerBox.x < renderBox.x + renderBox.width &&
+        playerBox.x + playerBox.width > renderBox.x &&
+        playerBox.y < renderBox.y + renderBox.height &&
+        playerBox.y + playerBox.height > renderBox.y
+
+      if (boxesOverlap) {
+        obj.alpha = 0.5
+        return
+      }
+    }
+
+    obj.alpha = 1
+  })
+}
 
 export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) => {
   // ============================================================
@@ -21,6 +209,24 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
   } else {
     ctx.fillStyle = '#2d5a27'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
+  }
+
+  // ============================================================
+  // MAP OBJECTS - Render objects BEHIND player (Y <= player.y)
+  // ============================================================
+  if (state.mapObjects && state.mapObjects.length > 0) {
+    // Update transparency based on player position
+    updateMapObjectTransparency(state)
+
+    // Sort by Y position for proper layering
+    const sortedObjects = [...state.mapObjects].sort((a, b) => a.y - b.y)
+
+    // Render objects behind player
+    sortedObjects.forEach((obj) => {
+      if (obj.y <= state.player.y) {
+        renderMapObject(ctx, obj, state.camera, loadedImages)
+      }
+    })
   }
 
   // Draw Coins (Pixel Art)
@@ -1337,6 +1543,20 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
     ctx.imageSmoothingEnabled = false // 픽셀 아트 선명하게
     ctx.drawImage(playerImg, -spriteW / 2, -spriteH / 2 - 8, spriteW, spriteH)
     ctx.restore()
+  }
+
+  // ============================================================
+  // MAP OBJECTS - Render objects IN FRONT of player (Y > player.y)
+  // ============================================================
+  if (state.mapObjects && state.mapObjects.length > 0) {
+    const sortedObjects = [...state.mapObjects].sort((a, b) => a.y - b.y)
+    
+    // Render objects in front of player
+    sortedObjects.forEach((obj) => {
+      if (obj.y > state.player.y) {
+        renderMapObject(ctx, obj, state.camera, loadedImages)
+      }
+    })
   }
 
   // Draw enemy projectiles
