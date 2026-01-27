@@ -62,8 +62,8 @@ export const SPRITES = {
   background: '/sprites/holo/background.webp',
   bosses: {
     original: '/sprites/boss.webp',
-    subway: '/sprites/boss_subway.png',
-    airraid: '/sprites/boss_airraid.jpg',
+    subway: '/sprites/boss_subway.webp',
+    airraid: '/sprites/boss_airraid.webp',
   },
   characters: {
     female: '/sprites/female.webp',
@@ -286,7 +286,7 @@ export const BOSSES = [
     spawnTime: 300, // 5분
     type: 'boss_subway',
     name: '지하철의 제왕',
-    sprite: '/sprites/boss_subway.png',
+    sprite: '/sprites/boss_subway.webp',
     speed: 40,
     hp: 20000,
     damage: 60,
@@ -300,7 +300,7 @@ export const BOSSES = [
     spawnTime: 600, // 10분
     type: 'boss_airraid',
     name: '공습 경보',
-    sprite: '/sprites/boss_airraid.jpg',
+    sprite: '/sprites/boss_airraid.webp',
     speed: 30,
     hp: 50000,
     damage: 100,
