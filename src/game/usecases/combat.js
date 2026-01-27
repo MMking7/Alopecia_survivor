@@ -298,13 +298,15 @@ export const updateCombat = ({
         }
       }
 
-      // Areata passive skill 3: chance to drop hair for attack speed buff
+      // Areata passive skill 3: chance to drop hair (Item Drop)
       if (state.passiveBonuses?.hairDropChance && Math.random() < state.passiveBonuses.hairDropChance) {
-        state.passiveBonuses.areataHairStacks = Math.min(
-          (state.passiveBonuses.areataHairStacks || 0) + 1,
-          5 // max 5 stacks
-        )
-        state.passiveBonuses.areataHairStackExpire = currentTime + (state.passiveBonuses.hairBuffDuration || 5) * 1000
+        state.fallenHairs.push({
+          id: generateId(),
+          x: enemy.x,
+          y: enemy.y,
+          createdAt: currentTime,
+          value: 1 // Just a marker
+        })
       }
     }
 
@@ -320,6 +322,49 @@ export const updateCombat = ({
       } else if (state.stats.shield > 0) {
         state.stats.shield -= 1
       } else {
+        // Areata Skill 2: Scalp Numbness (Dodge + Shockwave)
+        if (state.passiveBonuses.dodgeChance && Math.random() < state.passiveBonuses.dodgeChance) {
+          // Successful Dodge!
+          // Trigger Shockwave (Visual: Beam Explosion Style)
+          state.attackEffects.push({
+            id: generateId(),
+            type: 'aoe',
+            x: state.player.x,
+            y: state.player.y,
+            maxRadius: 100, // Reasonable shockwave size
+            color: state.player.character.attackColor || '#32CD32', // Use character color (Green for Areata)
+            createdAt: currentTime,
+            duration: 300,
+          })
+
+          // Deal Shockwave Damage
+          const shockDamage = state.stats.damage * (state.passiveBonuses.shockwaveDamage || 1.0)
+          state.enemies.forEach(nearby => {
+            if (distance(state.player, nearby) <= 100) {
+              nearby.currentHp -= shockDamage
+              state.damageNumbers.push({
+                id: generateId(),
+                x: nearby.x,
+                y: nearby.y,
+                damage: Math.floor(shockDamage),
+                color: '#32CD32',
+                createdAt: currentTime
+              })
+            }
+          })
+
+          // Visual feedback for Dodge
+          state.damageNumbers.push({
+            id: generateId(),
+            x: state.player.x,
+            y: state.player.y - 60,
+            damage: 'Numb!',
+            color: '#ADFF2F',
+            createdAt: currentTime,
+          })
+          return // Skip damage
+        }
+
         let rawDamage = (enemy.scaledDamage || enemy.damage)
 
         // Check for Shield Skill Stacks
@@ -376,6 +421,43 @@ export const updateCombat = ({
   })
   // Garbage Collection for Enemies
   state.enemies = state.enemies.filter(e => !e.shouldRemove)
+
+  // Update Fallen Hairs (Pickup Logic)
+  if (state.fallenHairs) {
+    state.fallenHairs.forEach(hair => {
+      // Magnet/Pickup check
+      const distToPlayer = distance(state.player, hair)
+      const pickupRange = 50 + (state.passiveBonuses.pickupRange || 0)
+
+      if (distToPlayer < pickupRange) {
+        // Picked up!
+        hair.shouldRemove = true
+
+        // Apply Buff (Refresh Duration, No Stacking)
+        // Store the fixed fire rate from the current skill level
+        if (state.passiveBonuses.hairBuffFireRate) {
+          // Already active, just refresh
+          state.passiveBonuses.areataHairStackExpire = currentTime + (state.passiveBonuses.hairBuffDuration || 5) * 1000
+        } else {
+          // Activate buff
+          state.passiveBonuses.areataHairStackExpire = currentTime + (state.passiveBonuses.hairBuffDuration || 5) * 1000
+          state.passiveBonuses.hairBuffFireRate = state.passiveBonuses.fixedFireRate || 0.5 // Default fallback
+        }
+
+        // Visual text
+        state.damageNumbers.push({
+          id: generateId(),
+          x: state.player.x,
+          y: state.player.y - 40,
+          damage: 'Rapid Fire!',
+          color: '#00FFFF',
+          createdAt: currentTime,
+          isHeal: true, // Reuse heal float behavior
+        })
+      }
+    })
+    state.fallenHairs = state.fallenHairs.filter(h => !h.shouldRemove)
+  }
 
   // Update ground zones (여성형 탈모 장판)
   if (state.groundZones) {

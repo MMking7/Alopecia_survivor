@@ -51,6 +51,28 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
     }
   })
 
+  // Draw Fallen Hairs (Areata Skill 3)
+  const hairImg = loadedImages[SPRITES.items.areata_fallen_hair]
+  state.fallenHairs?.forEach((hair) => {
+    const sx = hair.x - state.camera.x
+    const sy = hair.y - state.camera.y
+    if (sx > -30 && sx < canvas.width + 30 && sy > -30 && sy < canvas.height + 30) {
+      if (hairImg && hairImg.complete && hairImg.naturalWidth > 0) {
+        const size = 32
+        ctx.drawImage(hairImg, sx - size / 2, sy - size / 2, size, size)
+      } else {
+        // Fallback: Gray/Black crescent
+        ctx.fillStyle = '#222'
+        ctx.beginPath()
+        ctx.arc(sx, sy, 8, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.strokeStyle = '#555'
+        ctx.lineWidth = 1
+        ctx.stroke()
+      }
+    }
+  })
+
   // Draw XP orbs
   state.xpOrbs.forEach((orb) => {
     const sx = orb.x - state.camera.x
