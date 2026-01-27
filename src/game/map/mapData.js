@@ -85,9 +85,11 @@ export const generateRandomMap = ({
   bustCount = 3,
   minSpacing = 100,
   safeZone = { x: 512, y: 384, radius: 150 }, // Player spawn area
+  existingObjects = [],
+  attemptsMultiplier = 10,
 }) => {
-  const objects = []
-  const placedPositions = []
+  const objects = [...existingObjects]
+  const placedPositions = existingObjects.map(({ x, y }) => ({ x, y }))
 
   const isValidPosition = (x, y, minDist) => {
     // Check safe zone
@@ -111,7 +113,8 @@ export const generateRandomMap = ({
   const placeObject = (type, count, spacing) => {
     let attempts = 0
     let placed = 0
-    while (placed < count && attempts < count * 10) {
+    const maxAttempts = Math.max(1, count) * attemptsMultiplier
+    while (placed < count && attempts < maxAttempts) {
       const x = 100 + Math.random() * (width - 200)
       const y = 100 + Math.random() * (height - 200)
       if (isValidPosition(x, y, spacing)) {

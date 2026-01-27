@@ -3,7 +3,7 @@ import { MAIN_WEAPONS } from '../../MainWeapons'
 import { generateId, distance } from '../domain/math'
 import { buildLevelUpOptions } from './levelUpOptions'
 import { updateSkillSystems } from '../features/skills/updateSkillSystems'
-import { getMapObjectDef, getInteractionBox, createMapObject, getCollisionBox } from '../map/mapObjects'
+import { getMapObjectDef, getInteractionBox, createMapObject, getCollisionBox, getRenderBox } from '../map/mapObjects'
 
 /**
  * Damage destructible map objects within an area
@@ -90,7 +90,10 @@ export const damageMapObjects = (state, attackArea, damage, currentTime, isCircu
         // Transform to broken version if specified
         const transformTo = def.transformsTo || (def.onDestroy && def.onDestroy.transformTo)
         if (transformTo) {
-          const newObj = createMapObject(transformTo, obj.x, obj.y)
+          const newObj = createMapObject(transformTo, obj.x, obj.y, {
+            spawned: obj.spawned,
+            spawnedAt: obj.spawnedAt,
+          })
           if (newObj) {
             state.mapObjects[index] = newObj
           }
@@ -125,6 +128,173 @@ export const damageMapObjects = (state, attackArea, damage, currentTime, isCircu
   })
 }
 
+const DYNAMIC_OBSTACLE_TYPES = [
+  'big_tree',
+  'old_tree',
+  'statue_pillar',
+  'statue_bust',
+]
+
+const boxesOverlap = (boxA, boxB) => {
+  if (!boxA || !boxB) return false
+  return (
+    boxA.x < boxB.x + boxB.width &&
+    boxA.x + boxA.width > boxB.x &&
+    boxA.y < boxB.y + boxB.height &&
+    boxA.y + boxA.height > boxB.y
+  )
+}
+
+const getDynamicObstacleState = (state) => {
+  if (!state.dynamicObstacleState) {
+    state.dynamicObstacleState = {
+      lastSpawnX: state.player.x,
+      lastSpawnY: state.player.y,
+      lastMoveDir: { x: 0, y: 0 },
+    }
+  }
+  return state.dynamicObstacleState
+}
+
+const pruneSpawnedObstacles = (state, config) => {
+  if (!state.mapObjects || state.mapObjects.length === 0) return
+
+  let nextObjects = state.mapObjects
+
+  if (config.despawnDistance) {
+    nextObjects = nextObjects.filter((obj) => {
+      if (!obj.spawned) return true
+      return distance(state.player, obj) <= config.despawnDistance
+    })
+  }
+
+  if (config.maxSpawned) {
+    const spawned = nextObjects.filter((obj) => obj.spawned)
+    if (spawned.length > config.maxSpawned) {
+      spawned.sort((a, b) => distance(state.player, b) - distance(state.player, a))
+      const removeIds = new Set(
+        spawned.slice(config.maxSpawned).map((obj) => obj.id)
+      )
+      nextObjects = nextObjects.filter((obj) => !removeIds.has(obj.id))
+    }
+  }
+
+  state.mapObjects = nextObjects
+}
+
+const spawnDynamicObstacles = (state) => {
+  const config = GAME_CONFIG.MAP_DYNAMIC_OBSTACLES
+  if (!config?.enabled || !state.mapObjects || !state.player) return
+
+  const spawnState = getDynamicObstacleState(state)
+  const moveDir = spawnState.lastMoveDir
+  if (!moveDir || (moveDir.x === 0 && moveDir.y === 0)) return
+
+  const viewMargin = config.offscreenMargin ?? 0
+  const viewRect = {
+    x: state.player.x - GAME_CONFIG.CANVAS_WIDTH / 2 - viewMargin,
+    y: state.player.y - GAME_CONFIG.CANVAS_HEIGHT / 2 - viewMargin,
+    width: GAME_CONFIG.CANVAS_WIDTH + viewMargin * 2,
+    height: GAME_CONFIG.CANVAS_HEIGHT + viewMargin * 2,
+  }
+
+  const movedDistance = Math.hypot(
+    state.player.x - spawnState.lastSpawnX,
+    state.player.y - spawnState.lastSpawnY
+  )
+
+  if (movedDistance < config.spawnDistance) return
+
+  spawnState.lastSpawnX = state.player.x
+  spawnState.lastSpawnY = state.player.y
+
+  pruneSpawnedObstacles(state, config)
+
+  const currentSpawned = state.mapObjects.filter((obj) => obj.spawned).length
+  let spawnCount =
+    config.spawnCountMin +
+    Math.floor(Math.random() * (config.spawnCountMax - config.spawnCountMin + 1))
+
+  if (config.maxSpawned) {
+    spawnCount = Math.min(spawnCount, Math.max(0, config.maxSpawned - currentSpawned))
+  }
+
+  if (spawnCount <= 0) return
+
+  const mapWidth = state.mapData?.width
+  const mapHeight = state.mapData?.height
+  const minOffscreenRadius = Math.hypot(viewRect.width / 2, viewRect.height / 2)
+  const spawnRadiusMin = Math.max(config.spawnRadiusMin ?? 0, minOffscreenRadius + 8)
+  const spawnRadiusMax = Math.max(config.spawnRadiusMax ?? spawnRadiusMin, spawnRadiusMin + 80)
+
+  for (let i = 0; i < spawnCount; i++) {
+    let placed = false
+
+    for (let attempt = 0; attempt < config.spawnAttempts; attempt++) {
+      const type = DYNAMIC_OBSTACLE_TYPES[Math.floor(Math.random() * DYNAMIC_OBSTACLE_TYPES.length)]
+      const baseAngle = Math.atan2(moveDir.y, moveDir.x)
+      const cone = Math.max(0, config.forwardConeAngle ?? Math.PI)
+      const deadZone = Math.min(Math.abs(config.forwardDeadZoneAngle ?? 0), cone)
+      const side = Math.random() < 0.5 ? -1 : 1
+      const offset = deadZone + Math.random() * Math.max(0, cone - deadZone)
+      const angle = baseAngle + side * offset
+      const radius =
+        spawnRadiusMin + Math.random() * Math.max(0, spawnRadiusMax - spawnRadiusMin)
+      const x = state.player.x + Math.cos(angle) * radius
+      const y = state.player.y + Math.sin(angle) * radius
+
+      if (distance(state.player, { x, y }) < config.playerSafeRadius) continue
+
+      const newObj = createMapObject(type, x, y, {
+        spawned: true,
+        spawnedAt: state.gameTime,
+      })
+      if (!newObj) continue
+
+      const newBox = getCollisionBox(newObj)
+      if (!newBox) continue
+      const renderBox = getRenderBox(newObj) || newBox
+      if (boxesOverlap(renderBox, viewRect)) continue
+
+      if (mapWidth && mapHeight && !config.allowOutsideMap) {
+        if (
+          newBox.x < 0 ||
+          newBox.y < 0 ||
+          newBox.x + newBox.width > mapWidth ||
+          newBox.y + newBox.height > mapHeight
+        ) {
+          continue
+        }
+      }
+
+      let overlaps = false
+      for (const existing of state.mapObjects) {
+        const def = getMapObjectDef(existing.type)
+        if (!def || !def.collisionBox) continue
+        if (existing.isDestroyed) continue
+        if (def.behavior === 'destructible') {
+          const hp = existing.hp ?? def.hp ?? 0
+          if (hp <= 0) continue
+        }
+        const existingBox = getCollisionBox(existing)
+        if (!existingBox) continue
+        if (boxesOverlap(newBox, existingBox)) {
+          overlaps = true
+          break
+        }
+      }
+
+      if (overlaps) continue
+
+      state.mapObjects.push(newObj)
+      placed = true
+      break
+    }
+
+    if (!placed) break
+  }
+}
+
 export const updateMovementAndCamera = ({ state, deltaTime }) => {
   // Player movement - 무한맵 (경계 없음)
   let dx = 0, dy = 0
@@ -137,6 +307,9 @@ export const updateMovementAndCamera = ({ state, deltaTime }) => {
     const len = Math.sqrt(dx * dx + dy * dy)
     dx /= len
     dy /= len
+
+    const spawnState = getDynamicObstacleState(state)
+    spawnState.lastMoveDir = { x: dx, y: dy }
   }
 
   const speed = GAME_CONFIG.PLAYER_SPEED * state.stats.moveSpeed * deltaTime
@@ -213,6 +386,9 @@ export const updateMovementAndCamera = ({ state, deltaTime }) => {
 
   state.player.x = newX
   state.player.y = newY
+
+  // Spawn dynamic obstacles as the player moves beyond the static map area
+  spawnDynamicObstacles(state)
 
   // 마우스 커서 방향으로 facing 업데이트
   const mouseWorldX = state.mouse.worldX

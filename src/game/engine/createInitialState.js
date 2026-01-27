@@ -1,7 +1,7 @@
 import { GAME_CONFIG, getBaseStatsWithShop } from '../../constants'
 import { getXpNeededForLevel } from '../domain/xp'
 import { createMapObject } from '../map/mapObjects'
-import { SAMPLE_MAP } from '../map/mapData'
+import { SAMPLE_MAP, generateRandomMap } from '../map/mapData'
 
 /**
  * Initialize map objects from map data
@@ -24,6 +24,43 @@ export const createInitialState = ({
   mapData = SAMPLE_MAP,
 }) => {
   if (!selectedCharacter) return null
+
+  const staticObstacleConfig = GAME_CONFIG.MAP_STATIC_OBSTACLES
+  let resolvedMapData = mapData
+  if (staticObstacleConfig?.enabled && mapData) {
+    const baseSize = staticObstacleConfig.baseMapSize || { width: 2048, height: 2048 }
+    const width = mapData.width || baseSize.width
+    const height = mapData.height || baseSize.height
+    const areaScale = (width * height) / (baseSize.width * baseSize.height)
+    const density = staticObstacleConfig.densityMultiplier ?? 1
+    const scale = areaScale * density
+    const baseCounts = staticObstacleConfig.baseCounts || {}
+
+    const randomMap = generateRandomMap({
+      width,
+      height,
+      treeCount: Math.max(0, Math.round((baseCounts.tree || 0) * scale)),
+      bushCount: Math.max(0, Math.round((baseCounts.bush || 0) * scale)),
+      statueCount: Math.max(0, Math.round((baseCounts.statue || 0) * scale)),
+      bustCount: Math.max(0, Math.round((baseCounts.bust || 0) * scale)),
+      minSpacing: staticObstacleConfig.minSpacing ?? 100,
+      attemptsMultiplier: staticObstacleConfig.attemptsMultiplier ?? 10,
+      safeZone: {
+        x: GAME_CONFIG.CANVAS_WIDTH / 2,
+        y: GAME_CONFIG.CANVAS_HEIGHT / 2,
+        radius: staticObstacleConfig.safeZoneRadius ?? 150,
+      },
+      existingObjects: staticObstacleConfig.includeExisting ? (mapData.objects || []) : [],
+    })
+
+    resolvedMapData = {
+      ...mapData,
+      width,
+      height,
+      background: mapData.background || randomMap.background,
+      objects: randomMap.objects,
+    }
+  }
 
   const baseStats = getBaseStatsWithShop(selectedCharacter, shopLevels, characterRanks)
   const bonusStats = characterProgress?.bonusStats || {}
@@ -112,7 +149,7 @@ export const createInitialState = ({
     aimMode: 'auto', // 'auto' = nearest enemy, 'manual' = mouse cursor direction
     
     // Map system
-    mapData: mapData,
-    mapObjects: initializeMapObjects(mapData),
+    mapData: resolvedMapData,
+    mapObjects: initializeMapObjects(resolvedMapData),
   }
 }
