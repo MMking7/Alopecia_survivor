@@ -109,6 +109,7 @@ export const SPRITES = {
   },
   items: {
     coin: '/sprites/coin.png',
+    areata_fallen_hair: '/sprites/areata/areatafallenhair.png',
     glasses: '/sprites/holo/glasses.webp',
     ubersheep: '/sprites/holo/ubersheep.webp',
     pillow: '/sprites/holo/pillow.webp',
