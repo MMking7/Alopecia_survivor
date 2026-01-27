@@ -152,16 +152,21 @@ export const handleBeamAttack = ({ state, currentTime, character }) => {
       duration: 300,
     })
 
-    const damage = state.stats.damage * areataEffect.damage
+    const baseDamage = state.stats.damage * areataEffect.damage
     state.enemies.forEach((enemy) => {
       if (enemy.isDead) return
       if (distance({ x: thisTargetX, y: thisTargetY }, enemy) <= explosionRadius) {
+        // Crit check
+        const isCritical = Math.random() < state.stats.crit
+        const damage = isCritical ? baseDamage * 2.0 : baseDamage // 2x crit multiplier
+
         enemy.currentHp -= damage
         state.damageNumbers.push({
           id: generateId(),
           x: enemy.x,
           y: enemy.y,
           damage: Math.floor(damage),
+          isCritical,
           createdAt: currentTime,
         })
       }

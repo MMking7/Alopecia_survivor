@@ -153,6 +153,19 @@ export const updateCombat = ({
         }
         break
 
+      case 'stampede': // Wall enemies - move in locked direction only
+        if (enemy.lockedDirection && dist > 30) {
+          const dirX = enemy.lockedDirection.x
+          const dirY = enemy.lockedDirection.y
+          enemy.x += dirX * effectiveSpeed * deltaTime
+          enemy.y += dirY * effectiveSpeed * deltaTime
+        } else if (dist > 30) {
+          // Fallback to player tracking if no locked direction
+          enemy.x += (edx / dist) * effectiveSpeed * deltaTime
+          enemy.y += (edy / dist) * effectiveSpeed * deltaTime
+        }
+        break
+
       default: // 기본 이동
         if (dist > 30) {
           enemy.x += (edx / dist) * effectiveSpeed * deltaTime

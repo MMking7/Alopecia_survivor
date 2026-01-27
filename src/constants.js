@@ -91,6 +91,7 @@ export const SPRITES = {
     cigarette: '/sprites/cigarette.webp',
     soju: '/sprites/soju.webp',
     cigarette_projectile: '/sprites/cigarette_projectile.png',
+    shield_guy: '/sprites/shield/shield_char_animation.png',
   },
   boss: '/sprites/boss.webp',
   ui: {
@@ -277,6 +278,7 @@ export const ENEMIES = [
   { type: 'dna', name: 'Bad Genetics', sprite: SPRITES.enemies.dna, speed: 80, hp: 30, damage: 8, xp: 12, size: 55, attackType: 'spiral' },
   { type: 'cigarette', name: 'Stress Smoke', sprite: SPRITES.enemies.cigarette, speed: 90, hp: 25, damage: 8, xp: 12, size: 55, attackType: 'ranged' },
   { type: 'soju', name: 'Alcohol', sprite: SPRITES.enemies.soju, speed: 70, hp: 45, damage: 15, xp: 20, size: 60, attackType: 'dash' },
+  { type: 'shield_guy', name: 'Shield Guy', sprite: '/sprites/shield/shield_char_animation.png', speed: 50, hp: 60, damage: 8, xp: 20, size: 64, attackType: 'melee', isAnimated: true },
 ]
 
 // ============================================================
@@ -401,7 +403,6 @@ export const UPGRADES = [
 export const SHOP_UPGRADES = [
   { id: 'hp', name: 'HP 강화', description: '최대 HP +10 per level', icon: '❤️', cost: 100, maxLevel: 10 },
   { id: 'atk', name: 'ATK 강화', description: '공격력 +10% per level', icon: '⚔️', cost: 150, maxLevel: 10 },
-  { id: 'spd', name: 'ATK SPD 강화', description: '공격속도 +10% per level', icon: '⚡', cost: 180, maxLevel: 10 },
   { id: 'mov', name: 'MOVE 강화', description: '이동속도 +5% per level', icon: '🏃', cost: 120, maxLevel: 10 },
   { id: 'crit', name: 'CRIT 강화', description: '크리티컬 +3% per level', icon: '💥', cost: 200, maxLevel: 10 },
   { id: 'xp', name: 'XP 강화', description: '경험치 배율 +10% per level', icon: '📈', cost: 250, maxLevel: 10 },

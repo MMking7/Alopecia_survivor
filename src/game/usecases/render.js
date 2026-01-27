@@ -1104,7 +1104,24 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
         }
         if (enemy.rotation) ctx.rotate(enemy.rotation)
 
-        ctx.drawImage(img, -enemy.size / 2, -enemy.size / 2, enemy.size, enemy.size)
+        if (enemy.isAnimated) {
+          // Shield Guy Animation: 3 frames, 0.5s duration, 32x35 source size
+          const totalFrames = 3
+          const duration = 500 // 0.5 seconds
+          const frameWidth = 32
+          const frameHeight = 35
+
+          const frameIndex = Math.floor((currentTime % duration) / (duration / totalFrames))
+          const srcX = frameIndex * frameWidth
+
+          ctx.drawImage(
+            img,
+            srcX, 0, frameWidth, frameHeight,
+            -enemy.size / 2, -enemy.size / 2, enemy.size, enemy.size
+          )
+        } else {
+          ctx.drawImage(img, -enemy.size / 2, -enemy.size / 2, enemy.size, enemy.size)
+        }
 
         // Draw electrify visual effect
         if (enemy.electrified && currentTime < enemy.electrified.until) {

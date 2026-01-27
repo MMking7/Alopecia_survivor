@@ -1148,7 +1148,6 @@ const GameScreen = ({
                         { icon: '⚔️', label: 'ATK', value: Math.round(gameStateRef.current?.stats?.damage || 0), color: COLORS.atk },
                         { icon: '🏃', label: 'SPD', value: `${Math.round((gameStateRef.current?.stats?.moveSpeed || 1) * 100)}%`, color: COLORS.spd },
                         { icon: '💥', label: 'CRT', value: `${Math.round((gameStateRef.current?.stats?.crit || 0) * 100)}%`, color: COLORS.crit },
-                        { icon: '⚡', label: 'AS', value: `${(gameStateRef.current?.stats?.attackSpeed || 1).toFixed(1)}x`, color: COLORS.warning },
                         { icon: '🛡️', label: 'DEF', value: `${Math.round((gameStateRef.current?.stats?.defense || 0) * 100)}%`, color: COLORS.textGray },
                       ].map(stat => (
                         <div key={stat.label} style={{

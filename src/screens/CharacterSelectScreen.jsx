@@ -30,9 +30,9 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
             <>
               {/* Character Name */}
               <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                <h2 style={{ 
+                <h2 style={{
                   fontFamily: PIXEL_STYLES.fontFamily,
-                  color: COLORS.textWhite, 
+                  color: COLORS.textWhite,
                   margin: '0 0 5px',
                   fontSize: '20px',
                   textShadow: '2px 2px 0 #000',
@@ -40,9 +40,9 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                   {selectedCharacter.name}
                 </h2>
                 {selectedCharacter.subName && (
-                  <p style={{ 
+                  <p style={{
                     fontFamily: PIXEL_STYLES.fontFamily,
-                    color: COLORS.textDark, 
+                    color: COLORS.textDark,
                     margin: '0 0 5px',
                     fontSize: '11px',
                     fontStyle: 'italic',
@@ -50,10 +50,10 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                     {selectedCharacter.subName}
                   </p>
                 )}
-                <p style={{ 
+                <p style={{
                   fontFamily: PIXEL_STYLES.fontFamily,
-                  color: selectedCharacter.color, 
-                  fontWeight: 'bold', 
+                  color: selectedCharacter.color,
+                  fontWeight: 'bold',
                   margin: 0,
                   fontSize: '14px',
                 }}>
@@ -93,7 +93,7 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                   <div style={{ fontSize: '100px', color: selectedCharacter.color }}>👤</div>
                 )}
               </div>
-              
+
               {/* Stats */}
               <PixelPanel variant="dark">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -101,7 +101,6 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                   <StatBar icon="⚔️" label="ATK" value={selectedCharacter.baseStats.damage} color={COLORS.atk} />
                   <StatBar icon="🏃" label="SPD" value={selectedCharacter.baseStats.speed} color={COLORS.spd} />
                   <StatBar icon="💥" label="CRT" value={`${(selectedCharacter.baseStats.crit * 100)}%`} color={COLORS.crit} />
-                  <StatBar icon="⚡" label="AS" value={selectedCharacter.baseStats.attackSpeed} color={COLORS.warning} />
                 </div>
               </PixelPanel>
 
@@ -197,18 +196,18 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
               </div>
             </>
           ) : (
-            <div style={{ 
-              flex: 1, 
-              display: 'flex', 
-              alignItems: 'center', 
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'center',
               flexDirection: 'column',
               gap: '20px',
             }}>
               <span style={{ fontSize: '64px', opacity: 0.3 }}>❓</span>
-              <p style={{ 
+              <p style={{
                 fontFamily: PIXEL_STYLES.fontFamily,
-                color: COLORS.textDark, 
+                color: COLORS.textDark,
                 textAlign: 'center',
                 fontSize: '14px',
               }}>
@@ -226,12 +225,12 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
               🎮 CHARACTER SELECT
             </PixelTitle>
           </div>
-          
+
           {/* Character Grid */}
           <PixelPanel style={{ flex: 1, marginBottom: '20px' }}>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(4, 1fr)', 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
               gap: '15px',
             }}>
               {characters.map((char) => {
@@ -241,11 +240,11 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                     key={char.id}
                     onClick={() => onSelect(char)}
                     style={{
-                      background: isSelected 
-                        ? `linear-gradient(135deg, ${char.color}40, ${char.color}10)` 
+                      background: isSelected
+                        ? `linear-gradient(135deg, ${char.color}40, ${char.color}10)`
                         : COLORS.bgLight,
                       border: `4px solid ${isSelected ? char.color : COLORS.panelBorder}`,
-                      boxShadow: isSelected 
+                      boxShadow: isSelected
                         ? `0 0 20px ${char.color}40, 4px 4px 0 0 rgba(0,0,0,0.5)`
                         : '4px 4px 0 0 rgba(0,0,0,0.5)',
                       padding: '15px',
@@ -285,19 +284,19 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                         <div style={{ fontSize: '40px', color: char.color }}>👤</div>
                       )}
                     </div>
-                    <h3 style={{ 
+                    <h3 style={{
                       fontFamily: PIXEL_STYLES.fontFamily,
-                      color: COLORS.textWhite, 
-                      margin: '0 0 5px', 
+                      color: COLORS.textWhite,
+                      margin: '0 0 5px',
                       fontSize: '12px',
                       textShadow: '1px 1px 0 #000',
                     }}>
                       {char.name}
                     </h3>
-                    <p style={{ 
+                    <p style={{
                       fontFamily: PIXEL_STYLES.fontFamily,
-                      color: char.color, 
-                      margin: 0, 
+                      color: char.color,
+                      margin: 0,
                       fontSize: '10px',
                     }}>
                       {char.weapon}
@@ -313,8 +312,8 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
             <PixelButton onClick={onBack} variant="ghost" size="medium">
               ◀ BACK
             </PixelButton>
-            <PixelButton 
-              onClick={onStart} 
+            <PixelButton
+              onClick={onStart}
               disabled={!selectedCharacter || !imagesLoaded}
               variant="primary"
               size="large"
