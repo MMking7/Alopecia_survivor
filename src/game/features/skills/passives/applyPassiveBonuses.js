@@ -200,5 +200,8 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
     // Apply special lifesteal bonus
     const specialLifeSteal = state.passiveBonuses.specialLifeStealBonus || 0
     state.stats.lifeSteal = (state.baseStats.lifeSteal || 0) + (state.passiveBonuses.lifeStealBonus || 0) + specialLifeSteal
+
+    // Fix: Persist specialCooldownReduction from baseStats (e.g. Magic Wig)
+    state.stats.specialCooldownReduction = state.baseStats.specialCooldownReduction || 0
   }
 }

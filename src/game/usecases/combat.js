@@ -1025,5 +1025,6 @@ export const updateCombat = ({
     specialAbilityLastUsed: state.specialAbility?.lastUsedGameTime || 0,
     currentGameTime: state.gameTime,
     aimMode: state.aimMode || 'auto',
+    specialCooldownReduction: state.stats.specialCooldownReduction || 0,
   })
 }
