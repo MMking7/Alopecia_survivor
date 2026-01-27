@@ -126,22 +126,14 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
           break
 
         // Mzamen skills
-        case 'mzamen_skill1': // Front damage bonus + back damage reduction
-          state.passiveBonuses.frontDamageBonus = skillEffect.frontDamageBonus
-          state.passiveBonuses.backDamageReduction = skillEffect.backDamageReduction
+        case 'mzamen_skill1': // Boomerang Return Damage Bonus
+          state.passiveBonuses.returnDamageBonus = skillEffect.returnDamageBonus
           break
 
-        case 'mzamen_skill2': // Pickup range + XP attack speed stacks
+        case 'mzamen_skill2': // Pickup range + XP Heal
           state.passiveBonuses.pickupRange = skillEffect.pickupRange
-          state.passiveBonuses.mzamenAttackSpeedBonus = skillEffect.attackSpeedBonus
-          state.passiveBonuses.mzamenMaxStacks = skillEffect.maxStacks
-          state.passiveBonuses.mzamenStackDuration = skillEffect.duration
-          // Apply attack speed stacks
-          if (state.passiveBonuses.mzamenXpStacks > 0 &&
-            currentTime < state.passiveBonuses.mzamenXpStackExpire) {
-            const xpStacks = Math.min(state.passiveBonuses.mzamenXpStacks, skillEffect.maxStacks)
-            attackSpeedMultiplier *= (1 + xpStacks * skillEffect.attackSpeedBonus)
-          }
+          state.passiveBonuses.xpHealPercent = skillEffect.xpHealPercent
+          state.passiveBonuses.xpHealChance = skillEffect.xpHealChance
           break
 
         case 'mzamen_skill3': // Range bonus
