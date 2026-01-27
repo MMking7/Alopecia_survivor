@@ -57,12 +57,13 @@ export const updateActiveSpecialAbilities = ({ state, currentTime, deltaTime }) 
             state.specialAbilityZoneCreated = true
 
             // Full Heal
+            const healAmount = state.stats.maxHp - state.stats.hp
             state.stats.hp = state.stats.maxHp
             state.damageNumbers.push({
               id: generateId(),
               x: state.player.x,
               y: state.player.y - 60,
-              damage: 'Full Heal!',
+              damage: `${state.stats.maxHp}HP`,
               color: '#00FF00',
               createdAt: currentTime,
               isHeal: true,

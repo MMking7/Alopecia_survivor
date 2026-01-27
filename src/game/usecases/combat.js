@@ -215,7 +215,7 @@ export const updateCombat = ({
               id: generateId(),
               x: state.player.x,
               y: state.player.y - 40,
-              damage: `${healAmount} HP`,
+              damage: `${healAmount}HP`,
               color: '#00FF00',
               createdAt: currentTime,
               isHeal: true,
@@ -232,9 +232,17 @@ export const updateCombat = ({
           (state.passiveBonuses.wongKillStacks || 0) + 1,
           state.passiveBonuses.wongMaxStacks || 6
         )
-        // Heal HP on kill
         if (state.passiveBonuses.wongHpRegen) {
           state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + state.passiveBonuses.wongHpRegen)
+          state.damageNumbers.push({
+            id: generateId(),
+            x: state.player.x,
+            y: state.player.y - 45,
+            damage: `${state.passiveBonuses.wongHpRegen} HP`,
+            color: '#00FF00',
+            createdAt: currentTime,
+            isHeal: true,
+          })
         }
       }
 
@@ -362,7 +370,7 @@ export const updateCombat = ({
               id: generateId(),
               x: state.player.x,
               y: state.player.y - 50,
-              damage: `Heal!`,
+              damage: `${Math.floor(healAmount)} HP`,
               color: '#00FF00',
               createdAt: currentTime,
               isHeal: true,
@@ -597,7 +605,7 @@ export const updateCombat = ({
                 id: generateId(),
                 x: state.player.x,
                 y: state.player.y - 20,
-                damage: Math.floor(healAmount),
+                damage: `${Math.floor(healAmount)} HP`,
                 isHeal: true,
                 createdAt: currentTime,
               })

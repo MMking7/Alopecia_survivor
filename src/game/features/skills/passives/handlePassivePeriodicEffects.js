@@ -17,7 +17,7 @@ export const handlePassivePeriodicEffects = ({ state, currentTime }) => {
                     id: generateId(),
                     x: state.player.x,
                     y: state.player.y - 40,
-                    damage: `+${Math.floor(healAmount)}`,
+                    damage: `${Math.floor(healAmount)}HP`,
                     color: '#00FF00',
                     createdAt: currentTime,
                     isHeal: true,
