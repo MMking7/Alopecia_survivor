@@ -203,12 +203,12 @@ export const updateCombat = ({
       if (state.stats.lifeSteal > 0) {
         // Chance: Cap at 15% (0.15)
         const chance = Math.min(state.stats.lifeSteal, 0.15)
-        
+
         if (Math.random() < chance) {
           // Heal Amount: 3 HP per 0.05 Life Steal (Factor: 60)
           // e.g. 0.05 -> 3, 0.10 -> 6, 0.15 -> 9... (Unlimited scaling)
           const healAmount = Math.floor(state.stats.lifeSteal * 60)
-          
+
           if (healAmount > 0 && state.stats.hp < state.stats.maxHp) {
             state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + healAmount)
             state.damageNumbers.push({
@@ -543,6 +543,8 @@ export const updateCombat = ({
               y: enemy.y,
               damage: Math.floor(state.stats.damage * zone.damagePerSecond * (1 + zoneDamageBonus) * 0.2), // Show ~0.2s worth of damage
               createdAt: currentTime,
+              isCritical: zone.isCrit,
+              color: zone.isCrit ? '#FF0000' : '#FFFFFF' // Optional: explicit color override if needed, though isCritical usually handles it
             })
           }
         }
@@ -570,7 +572,7 @@ export const updateCombat = ({
               x: enemy.x,
               y: enemy.y,
               damage: Math.floor(state.stats.damage * zone.shockwaveDamage),
-              isCritical: false,
+              isCritical: zone.isCrit,
               createdAt: currentTime,
             })
           }
@@ -777,7 +779,7 @@ export const updateCombat = ({
             returnDamageMultiplier += state.passiveBonuses.returnDamageBonus
           }
           const finalDamage = proj.damage * (isCrit ? 1.5 : 1.0) * returnDamageMultiplier
-          
+
           enemy.currentHp -= finalDamage
           state.damageNumbers.push({
             id: generateId(),
@@ -901,7 +903,7 @@ export const updateCombat = ({
   // Collect XP orbs
   const pickupRadius = 80 * (1 + (state.passiveBonuses.pickupRange || 0))
   const collectedOrbs = state.xpOrbs.filter((orb) => distance(state.player, orb) < pickupRadius)
-  
+
   collectedOrbs.forEach((orb) => {
     const xpGain = orb.value * (state.stats.xpMultiplier || 1.0)
     state.xp += xpGain
