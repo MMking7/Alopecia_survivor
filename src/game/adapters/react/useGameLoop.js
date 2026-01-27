@@ -31,6 +31,7 @@ export const useGameLoop = ({
       // Safety Init for Hot Reload / Existing Game States
       if (!state.coins) state.coins = []
       if (typeof state.collectedCoins === 'undefined') state.collectedCoins = 0
+      if (!state.spawnedBossIds) state.spawnedBossIds = []
 
       const buildFinalStats = () => ({
         level: state.level,

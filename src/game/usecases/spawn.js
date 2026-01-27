@@ -52,6 +52,7 @@ export const handleSpawns = ({ state, currentTime }) => {
     const alreadySpawned = state.spawnedBossIds ? state.spawnedBossIds.includes(boss.id) : state.bossSpawned
     
     if (state.gameTime >= boss.spawnTime && !alreadySpawned) {
+      console.log(`[SPAWN] Spawning boss: ${boss.id} at time: ${state.gameTime.toFixed(1)}s (Target: ${boss.spawnTime}s)`)
       if (state.spawnedBossIds) {
         state.spawnedBossIds.push(boss.id)
       }

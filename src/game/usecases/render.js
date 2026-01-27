@@ -1041,7 +1041,16 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
     const sy = enemy.y - state.camera.y
 
     if (sx > -100 && sx < canvas.width + 100 && sy > -100 && sy < canvas.height + 100) {
-      const img = loadedImages[enemy.type === 'boss' ? SPRITES.boss : SPRITES.enemies[enemy.type]]
+      let img
+      if (enemy.type === 'boss') {
+        img = loadedImages[SPRITES.boss]
+      } else if (enemy.type === 'boss_subway') {
+        img = loadedImages[SPRITES.bosses.subway]
+      } else if (enemy.type === 'boss_airraid') {
+        img = loadedImages[SPRITES.bosses.airraid]
+      } else {
+        img = loadedImages[SPRITES.enemies[enemy.type]]
+      }
       if (img) {
         ctx.save()
         ctx.translate(sx, sy)
