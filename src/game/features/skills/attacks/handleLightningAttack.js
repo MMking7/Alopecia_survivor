@@ -52,7 +52,7 @@ export const handleLightningAttack = ({ state, currentTime, character }) => {
 
   state.enemies.forEach((enemy) => {
     if (enemy.isDead) return
-    
+
     // 1. 돌진 경로에 있는 적 체크 (선분과 점 사이 거리)
     const dashPathWidth = 40 // 돌진 경로 폭
     const enemyDistToPath = pointToLineDistance(
@@ -60,32 +60,20 @@ export const handleLightningAttack = ({ state, currentTime, character }) => {
       dashStartX, dashStartY,
       dashEndX, dashEndY
     )
-    
+
     // 2. 돌진 끝점 앞쪽 범위 체크
     const punchX = dashEndX + Math.cos(dashAngle) * 30
     const punchY = dashEndY
     const distToPunch = distance({ x: punchX, y: punchY }, enemy)
-    
+
     const hitByDash = enemyDistToPath <= dashPathWidth
     const hitByPunch = distToPunch <= attackRadius
-    
+
     if (hitByDash || hitByPunch) {
-      // Apply bonus damage if enemy is already electrified (passive skill)
-      const electrifiedDamageBonus = (enemy.electrified && currentTime < enemy.electrified.until)
-        ? (state.passiveBonuses.electrifiedDamageBonus || 0)
-        : 0
       // 돌진 경로 피해는 50%, 펀치 피해는 100%
       const damageMultiplier = hitByPunch ? 1 : 0.5
-      const damage = state.stats.damage * heihachiEffect.damage * damageMultiplier * (1 + electrifiedDamageBonus)
+      const damage = state.stats.damage * heihachiEffect.damage * damageMultiplier
       enemy.currentHp -= damage
-
-      // Apply electrify debuff
-      if (heihachiEffect.electrifyDuration) {
-        enemy.electrified = {
-          damagePerSecond: heihachiEffect.electrifyDamagePerSecond || 0.40,
-          until: currentTime + heihachiEffect.electrifyDuration * 1000,
-        }
-      }
 
       state.damageNumbers.push({
         id: generateId(),

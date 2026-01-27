@@ -601,27 +601,27 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
         const trailStartY = effect.startY - state.camera.y
         const trailEndX = effect.endX - state.camera.x
         const trailEndY = effect.endY - state.camera.y
-        
+
         ctx.save()
         ctx.globalAlpha = 0.7 * (1 - progress)
-        
+
         // 번개 효과가 있는 돌진 궤적
         const trailGradient = ctx.createLinearGradient(trailStartX, trailStartY, trailEndX, trailEndY)
         trailGradient.addColorStop(0, 'rgba(255, 255, 0, 0.2)')
         trailGradient.addColorStop(0.5, 'rgba(255, 255, 100, 0.6)')
         trailGradient.addColorStop(1, 'rgba(255, 255, 255, 0.8)')
-        
+
         ctx.strokeStyle = trailGradient
         ctx.lineWidth = 20
         ctx.lineCap = 'round'
         ctx.shadowColor = '#FFFF00'
         ctx.shadowBlur = 20
-        
+
         ctx.beginPath()
         ctx.moveTo(trailStartX, trailStartY)
         ctx.lineTo(trailEndX, trailEndY)
         ctx.stroke()
-        
+
         // 번개 스파크 효과
         ctx.strokeStyle = '#FFFFFF'
         ctx.lineWidth = 2
@@ -635,7 +635,7 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
           ctx.lineTo(sparkX, sparkY + 15)
           ctx.stroke()
         }
-        
+
         ctx.restore()
         break
 
@@ -644,33 +644,33 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
         const punchX = effect.x - state.camera.x
         const punchY = effect.y - state.camera.y
         const punchRadius = effect.radius || 60
-        
+
         ctx.save()
         ctx.globalAlpha = 0.8 * (1 - progress)
-        
+
         // 전기 충격파
         const punchGradient = ctx.createRadialGradient(punchX, punchY, 0, punchX, punchY, punchRadius)
         punchGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)')
         punchGradient.addColorStop(0.3, 'rgba(255, 255, 0, 0.7)')
         punchGradient.addColorStop(0.6, 'rgba(255, 200, 0, 0.4)')
         punchGradient.addColorStop(1, 'rgba(255, 255, 0, 0)')
-        
+
         ctx.fillStyle = punchGradient
         ctx.beginPath()
         ctx.arc(punchX, punchY, punchRadius * (1 + progress * 0.5), 0, Math.PI * 2)
         ctx.fill()
-        
+
         // 번개 방사
         ctx.strokeStyle = '#FFFF00'
         ctx.lineWidth = 3
         ctx.shadowColor = '#FFFF00'
         ctx.shadowBlur = 15
-        
+
         for (let i = 0; i < 8; i++) {
           const angle = (i / 8) * Math.PI * 2 + progress * Math.PI
           const innerR = punchRadius * 0.3
           const outerR = punchRadius * (1 + progress * 0.3)
-          
+
           ctx.beginPath()
           ctx.moveTo(punchX + Math.cos(angle) * innerR, punchY + Math.sin(angle) * innerR)
           // 지그재그 번개
@@ -679,8 +679,39 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
           ctx.lineTo(punchX + Math.cos(angle) * outerR, punchY + Math.sin(angle) * outerR)
           ctx.stroke()
         }
-        
+
         ctx.restore()
+
+        break
+
+      case 'chain_lightning':
+        const clStartX = effect.startX - state.camera.x
+        const clStartY = effect.startY - state.camera.y
+        const clEndX = effect.endX - state.camera.x
+        const clEndY = effect.endY - state.camera.y
+
+        ctx.strokeStyle = effect.color || '#00FFFF'
+        ctx.lineWidth = 2
+        ctx.shadowColor = effect.color || '#00FFFF'
+        ctx.shadowBlur = 10
+
+        const dist = Math.sqrt((clEndX - clStartX) ** 2 + (clEndY - clStartY) ** 2)
+        const steps = Math.floor(dist / 10)
+
+        ctx.beginPath()
+        ctx.moveTo(clStartX, clStartY)
+
+        for (let i = 1; i < steps; i++) {
+          const t = i / steps
+          const mx = clStartX + (clEndX - clStartX) * t
+          const my = clStartY + (clEndY - clStartY) * t
+          const jitter = (Math.random() - 0.5) * 20
+          ctx.lineTo(mx + jitter, my + jitter)
+        }
+
+        ctx.lineTo(clEndX, clEndY)
+        ctx.stroke()
+        ctx.shadowBlur = 0
         break
     }
   })
@@ -1072,30 +1103,30 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
       const effect = state.specialAbility.effect
       const mWidth = effect.width || 600
       const mHeight = effect.height || 400
-      
+
       const centerX = mFieldPos.x - state.camera.x
       const centerY = mFieldPos.y - state.camera.y
-      
+
       ctx.save()
-      
+
       // 시간에 따른 펄스 효과
       const pulseTime = currentTime % 500
       const pulseAlpha = 0.35 + Math.sin(pulseTime / 500 * Math.PI) * 0.15
-      
+
       // M 패턴 그리기 (M자 탈모 형태)
       ctx.translate(centerX - mWidth / 2, centerY - mHeight / 2)
-      
+
       const thickness = 80
       const leftX = mWidth * 0.1
       const rightX = mWidth * 0.9
       const peakY = mHeight * 0.15
       const valleyY = mHeight * 0.7
       const midX = mWidth * 0.5
-      
+
       // 글로우 효과
       ctx.shadowColor = '#6BEEED'
       ctx.shadowBlur = 40
-      
+
       // M 패턴 그라데이션 채우기
       const gradient = ctx.createLinearGradient(0, 0, mWidth, mHeight)
       gradient.addColorStop(0, `rgba(107, 238, 237, ${pulseAlpha + 0.1})`)
@@ -1103,47 +1134,47 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
       gradient.addColorStop(0.5, `rgba(80, 200, 220, ${pulseAlpha + 0.15})`)
       gradient.addColorStop(0.7, `rgba(107, 238, 237, ${pulseAlpha})`)
       gradient.addColorStop(1, `rgba(150, 255, 255, ${pulseAlpha + 0.1})`)
-      
+
       ctx.fillStyle = gradient
       ctx.strokeStyle = `rgba(180, 255, 255, ${pulseAlpha + 0.4})`
       ctx.lineWidth = 4
-      
+
       // M 경로 그리기 (M자 탈모 형태: 양쪽 세로 + 중앙 V)
       ctx.beginPath()
-      
+
       // 왼쪽 세로선 바깥쪽
       ctx.moveTo(leftX - thickness / 2, mHeight)
       ctx.lineTo(leftX - thickness / 2, peakY)
-      
+
       // 왼쪽 꼭지점에서 중앙 V로
       ctx.lineTo(leftX + thickness / 2, peakY)
       ctx.lineTo(midX, valleyY - thickness / 2)
-      
+
       // 중앙 V에서 오른쪽 꼭지점으로
       ctx.lineTo(rightX - thickness / 2, peakY)
       ctx.lineTo(rightX + thickness / 2, peakY)
-      
+
       // 오른쪽 세로선
       ctx.lineTo(rightX + thickness / 2, mHeight)
       ctx.lineTo(rightX - thickness / 2, mHeight)
       ctx.lineTo(rightX - thickness / 2, peakY + thickness)
-      
+
       // 오른쪽에서 중앙 V 안쪽으로
       ctx.lineTo(midX, valleyY + thickness / 2)
-      
+
       // 중앙 V 안쪽에서 왼쪽으로
       ctx.lineTo(leftX + thickness / 2, peakY + thickness)
       ctx.lineTo(leftX + thickness / 2, mHeight)
-      
+
       ctx.closePath()
       ctx.fill()
       ctx.stroke()
-      
+
       // 에너지 파티클 효과 (M 모양을 따라 이동)
       for (let i = 0; i < 12; i++) {
         const t = ((currentTime / 1000 + i * 0.3) % 3) / 3
         let particleX, particleY
-        
+
         if (t < 0.33) {
           // 왼쪽 세로선
           particleX = leftX
@@ -1159,10 +1190,10 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
           particleX = midX + (rightX - midX) * tt
           particleY = valleyY + (peakY - valleyY) * tt
         }
-        
+
         const particleAlpha = 0.6 + Math.sin(currentTime / 150 + i) * 0.3
         const particleSize = 6 + Math.sin(currentTime / 200 + i * 0.7) * 3
-        
+
         ctx.fillStyle = `rgba(107, 238, 237, ${particleAlpha})`
         ctx.shadowColor = '#6BEEED'
         ctx.shadowBlur = 15
@@ -1170,7 +1201,7 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
         ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2)
         ctx.fill()
       }
-      
+
       ctx.restore()
     }
   }

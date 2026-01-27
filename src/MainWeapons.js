@@ -214,67 +214,70 @@ export const MAIN_WEAPONS = {
     nameEn: 'Electric Wind God Fist',
     characterId: 'heihachi',
     type: 'dash_punch',
-    description: '돌진 후 전방에 감전 피해',
-    attackCooldown: 2000, // 2초 쿨다운
+    description: '짧은 돌진 후 전방에 150% 피해 (근접/범위)',
+    attackCooldown: 2000,
     maxLevel: 7,
     levelEffects: {
       1: {
         damage: 1.50,
         dashDistance: 80,
         radius: 60,
-        electrifyDuration: 3, // 감전 3초
-        electrifyDamagePerSecond: 0.40,
       },
       2: {
-        damage: 1.80, // 20% 증가
+        damage: 1.80, // 20% 증가 (from 1.5) -> 1.5 * 1.2 = 1.8
         dashDistance: 80,
         radius: 60,
-        electrifyDuration: 3,
-        electrifyDamagePerSecond: 0.40,
       },
       3: {
         damage: 1.80,
         dashDistance: 80,
         radius: 60,
-        electrifyDuration: 4, // 1초 증가
-        electrifyDamagePerSecond: 0.40,
+        healOnKill: true, // 적 처치 시 회복
+        healAmountFixed: 5,
+        healAmountPercent: 0.05,
       },
       4: {
         damage: 1.80,
         dashDistance: 80,
         radius: 60,
-        electrifyDuration: 4,
-        electrifyDamagePerSecond: 0.40,
-        attackSpeedBonus: 0.10,
+        healOnKill: true,
+        healAmountFixed: 5,
+        healAmountPercent: 0.05,
+        attackCooldownBonus: 0.50, // 공격주기 50% 감소
       },
       5: {
         damage: 1.80,
         dashDistance: 80,
-        radius: 60,
-        electrifyDuration: 4,
-        electrifyDamagePerSecond: 0.52, // 30% 증가
-        attackSpeedBonus: 0.10,
+        radius: 78, // 30% 증가 (60 * 1.3)
+        healOnKill: true,
+        healAmountFixed: 5,
+        healAmountPercent: 0.05,
+        attackCooldownBonus: 0.50,
       },
       6: {
         damage: 1.80,
-        dashDistance: 96, // 20% 증가
-        radius: 60,
-        electrifyDuration: 4,
-        electrifyDamagePerSecond: 0.52,
-        attackSpeedBonus: 0.10,
+        dashDistance: 96, // 20% 증가 (80 * 1.2)
+        radius: 78,
+        healOnKill: true,
+        healAmountFixed: 5,
+        healAmountPercent: 0.05,
+        attackCooldownBonus: 0.50,
       },
       7: { // 각성
         damage: 1.80,
         dashDistance: 96,
-        radius: 60,
-        electrifyDuration: 4,
-        electrifyDamagePerSecond: 0.52,
-        attackSpeedBonus: 0.10,
-        chainLightning: true, // 감전된 적이 죽으면 번개가 2체에게 튐
-        chainLightningTargets: 2,
+        radius: 78,
+        healOnKill: true,
+        healAmountFixed: 5,
+        healAmountPercent: 0.05,
+        attackCooldownBonus: 0.50,
+        awakeningLightning: true, // 적 처치 시 번개 체인
+        awakeningTargets: 2,
+        awakeningDamage: 1.0, // 데미지 언급 없으므로 100% 가정 (or based on attack)
       },
     },
-    attackCooldown: 1400,
+    // Level 4 effect (50% cooldown reduction) will be handled in runtime by modifying this
+    attackCooldown: 2000,
   },
 
   // ============================================================
@@ -481,14 +484,14 @@ export const SPECIAL_ABILITIES = {
     id: 'heihachi_special',
     name: '철권 난무',
     nameEn: 'Tekken Barrage',
-    description: '6초 동안 공격속도 40% 증가, 모든 공격에 추가 100% 번개 피해, 20% 기절',
-    cooldown: 80000,
-    duration: 6000,
+    description: '주변 30명에게 600% 번개 피해, 체력 100% 회복',
+    cooldown: 80000, // 80초
+    duration: 1000, // 즉발성
     effect: {
-      type: 'attack_buff',
-      attackSpeedBonus: 0.40,
-      extraLightningDamage: 1.00,
-      stunChance: 0.20,
+      type: 'tekken_storm',
+      targetCount: 30,
+      damageMultiplier: 6.00,
+      healPercent: 1.00, // 100%
     },
   },
 
@@ -664,39 +667,39 @@ export const CHARACTER_PASSIVE_SKILLS = {
       id: 'heihachi_skill1',
       name: '전류 두피',
       nameEn: 'Electric Scalp',
-      description: '감전 상태의 적에게 주는 피해 증가',
+      description: '피격 시 확률로 HP 10% 회복',
       icon: 'heihachi_skill1',
       maxLevel: 3,
       levels: [
-        { damageBonus: 0.15 },
-        { damageBonus: 0.25 },
-        { damageBonus: 0.35 },
+        { healChance: 0.15, healPercent: 0.10 },
+        { healChance: 0.20, healPercent: 0.10 },
+        { healChance: 0.25, healPercent: 0.10 },
       ],
     },
     {
       id: 'heihachi_skill2',
       name: '악마 유전자',
       nameEn: 'Devil Gene',
-      description: 'HP 30% 이하 시 공격력 증가, 피격 시 확률로 HP 회복 및 폭발',
+      description: 'HP 30% 이하일 때 공격력 대폭 증가',
       icon: 'heihachi_skill2',
       maxLevel: 3,
       levels: [
-        { hpThreshold: 0.30, attackBonus: 0.30, healChance: 0.15, healAmount: 0.15, explosionDamage: 2.00 },
-        { hpThreshold: 0.30, attackBonus: 0.45, healChance: 0.20, healAmount: 0.15, explosionDamage: 2.00 },
-        { hpThreshold: 0.30, attackBonus: 0.60, healChance: 0.25, healAmount: 0.15, explosionDamage: 2.00 },
+        { hpThreshold: 0.30, attackBonus: 0.30 },
+        { hpThreshold: 0.30, attackBonus: 0.45 },
+        { hpThreshold: 0.30, attackBonus: 0.60 },
       ],
     },
     {
       id: 'heihachi_skill3',
       name: '강철 두개골',
-      nameEn: 'Steel Skull',
-      description: '피격 피해 감소, 넉백 저항 증가',
+      nameEn: 'Iron Skull',
+      description: '피격 피해 감소',
       icon: 'heihachi_skill3',
       maxLevel: 3,
       levels: [
-        { damageReduction: 0.10, knockbackResistance: 0.30 },
-        { damageReduction: 0.15, knockbackResistance: 0.50 },
-        { damageReduction: 0.20, knockbackResistance: 0.70 },
+        { damageReduction: 0.10 },
+        { damageReduction: 0.15 },
+        { damageReduction: 0.20 },
       ],
     },
   ],
