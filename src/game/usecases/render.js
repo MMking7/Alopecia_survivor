@@ -1456,6 +1456,41 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
     }
   })
 
+  // Draw attack effects (explosion visuals)
+  state.attackEffects.forEach(effect => {
+    if (effect.type === 'mzamen_gaksung_explosion') {
+      const elapsed = currentTime - effect.createdAt
+      const duration = effect.duration || 500
+      const progress = elapsed / duration
+
+      if (progress < 1) {
+        const img = loadedImages[SPRITES.attacks?.mzamen_gaksung_explosion]
+        if (img) {
+          const totalFrames = 5
+          const frameWidth = 212
+          const frameHeight = 209
+
+          const frameIndex = Math.floor(progress * totalFrames)
+          const sX = frameIndex * frameWidth
+
+          const ex = effect.x - state.camera.x
+          const ey = effect.y - state.camera.y
+          const drawSize = effect.maxRadius * 2.5
+
+          ctx.save()
+          ctx.translate(ex, ey)
+          ctx.drawImage(
+            img,
+            sX, 0, frameWidth, frameHeight,
+            -drawSize / 2, -drawSize / 2, drawSize, drawSize
+          )
+          ctx.restore()
+        }
+      }
+    }
+  })
+
+
   // Draw damage numbers
   state.damageNumbers.forEach((dn) => {
     const elapsed = currentTime - dn.createdAt

@@ -346,9 +346,9 @@ export const MAIN_WEAPONS = {
         speed: 300,
         range: 250,
         attackSpeedBonus: 0.15,
-        returnExplosion: true, // 돌아올 때 교차 시 폭발
+        returnExplosion: true, // 돌아올 때 교차 시 폭발 -> 플레이어 도착 시 폭발
         returnExplosionDamage: 2.00,
-        returnExplosionRadius: 70,
+        returnExplosionRadius: 100,
         armorPenetration: 0.20,
       },
     },

@@ -79,6 +79,7 @@ export const SPRITES = {
     wongfeihung_hair: '/sprites/wongfeihung/wongfeihung_hair.png',
     wongfeihung_slash: '/sprites/wongfeihung/wongfeihung_slash.png',
     female_mainattack: '/sprites/femalebald/female_mainattack.png',
+    mzamen_gaksung_explosion: '/sprites/mzaman/mazmengaksungexplosion.png',
   },
   enemies: {
     shrimp: '/sprites/holo/shrimp.webp',

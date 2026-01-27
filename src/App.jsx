@@ -39,6 +39,7 @@ const preloadImages = () => {
     ...(SPRITES.attacks ? Object.values(SPRITES.attacks) : []),
     ...(SPRITES.abilities ? Object.values(SPRITES.abilities) : []),
   ]
+  console.log('[DEBUG] Preloading sources:', sources)
 
   const loaded = {}
   let loadedCount = 0
@@ -196,7 +197,7 @@ function App() {
       setLoadedImages(images)
       setImagesLoaded(true)
     })
-  }, [])
+  }, [SPRITES])
 
   // ============================================================
   // PERSISTENCE
