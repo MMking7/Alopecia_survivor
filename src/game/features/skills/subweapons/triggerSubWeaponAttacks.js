@@ -287,9 +287,31 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
       case 'electric_clipper': {
         if (!weapon.state) weapon.state = { comboCount: 0 }
 
+        // Use effect cooldown if defined, otherwise default
+        const currentCooldown = effect.attackCooldown || weapon.attackCooldown || 333
+
+        // Manual Cooldown Check since we might override the default weapon loop check
+        // Ideally the main loop handles this if weapon.attackCooldown is set correctly.
+        // But since we change it per level, we should update the weapon's main property or check here.
+        // For simplicity, we ensure the main loop uses the correct CD by updating the weapon object itself if needed,
+        // OR we just trust the main loop if we updated weapon.attackCooldown in updateSkillSystems (which we didn't).
+        // PROPER FIX: The main loop (lines 13-17) uses `weapon.attackCooldown`. 
+        // We should explicitly update that property based on the current level effect during the skill update phase?
+        // OR we can just ignore the main loop's check if we want custom logic, but the main loop already returns.
+        // HACK: We can't easily change the main loop from inside the switch.
+        // BETTER FIX: We assume the main loop let us through. 
+        // To support dynamic CD, we must update weapon.attackCooldown anytime level changes.
+        // However, for this specific request, we can just hack it:
+        // If we are here, the cooldown PASSSED. 
+        // But wait, if the main loop uses a fixed 200ms and we want 333ms, we might attack too fast.
+        // If the main loop uses 333ms and we want 250ms, we might attack too slow.
+        // Workaround: We will update `weapon.attackCooldown` dynamically here for the *next* frame.
+        if (effect.attackCooldown) {
+          weapon.attackCooldown = effect.attackCooldown
+        }
+
         const range = effect.range || 50
         const facing = state.player.facing
-        const attackAngle = facing === 1 ? 0 : Math.PI
 
         state.enemies.forEach(enemy => {
           if (enemy.isDead) return
@@ -300,13 +322,18 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
           if (d <= range) {
             let damage = state.stats.damage * (effect.damagePercent || 0.5)
 
+            // Combo Logic
             weapon.state.comboCount++
-            const threshold = effect.comboThreshold || 5
-            if (effect.unlimitedCombo || (threshold > 0 && weapon.state.comboCount >= threshold)) {
-              if (effect.comboStrike) {
-                damage = state.stats.damage * effect.comboStrike
-                weapon.state.comboCount = 0
-              }
+            const threshold = effect.comboThreshold || 0
+
+            if (threshold > 0 && weapon.state.comboCount >= threshold) {
+              const multiplier = effect.comboMultiplier || 2.0
+              damage *= multiplier
+              weapon.state.comboCount = 0 // Reset combo
+
+              // Visual cue for big hit? 
+              // Maybe make the damage number larger or different color?
+              // The damage number logic handles criticals, we can fake a crit or add a new type.
             }
 
             const critBonus = effect.critBonus || 0

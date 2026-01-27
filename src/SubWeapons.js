@@ -348,60 +348,52 @@ export const SUB_WEAPONS = [
         maxLevel: 7,
         levelEffects: {
             1: {
-                damagePercent: 0.50,       // 50% 피해
-                attacksPerSecond: 5,       // 초당 5회
-                range: 50,                 // 공격 범위
-                comboStrike: 0,            // 강력한 일격 피해
-                critBonus: 0,              // 치명타 보너스
+                damagePercent: 0.50,       // 50% Damage
+                range: 50,
+                attackCooldown: 333,       // 3 attacks per sec
+                comboThreshold: 0,         // No combo
             },
             2: {
                 damagePercent: 0.50,
-                attacksPerSecond: 6,       // 20% 증가
                 range: 50,
-                comboStrike: 0,
-                critBonus: 0,
+                attackCooldown: 250,       // 4 attacks per sec
+                comboThreshold: 0,
             },
             3: {
-                damagePercent: 0.625,      // 25% 증가
-                attacksPerSecond: 6,
+                damagePercent: 0.625,      // 25% Increase (50 * 1.25)
                 range: 50,
-                comboStrike: 0,
-                critBonus: 0,
+                attackCooldown: 250,
+                comboThreshold: 0,
             },
             4: {
                 damagePercent: 0.625,
-                attacksPerSecond: 6,
-                range: 57.5,               // 15% 증가
-                comboStrike: 0,
-                critBonus: 0,
+                range: 57.5,               // 15% Increase
+                attackCooldown: 250,
+                comboThreshold: 0,
             },
             5: {
                 damagePercent: 0.625,
-                attacksPerSecond: 6,
                 range: 57.5,
-                comboStrike: 2.0,          // 5회 연속 공격 시 200% 피해
-                comboThreshold: 5,
-                critBonus: 0,
+                attackCooldown: 250,
+                comboThreshold: 5,         // Every 5th hit
+                comboMultiplier: 2.0,      // 200% Damage
             },
             6: {
-                damagePercent: 0.8125,     // 30% 증가
-                attacksPerSecond: 6,
+                damagePercent: 0.8125,     // 30% Increase (62.5 * 1.3)
                 range: 57.5,
-                comboStrike: 2.0,
+                attackCooldown: 250,
                 comboThreshold: 5,
-                critBonus: 0,
+                comboMultiplier: 2.0,
             },
             7: {
                 damagePercent: 0.8125,
-                attacksPerSecond: 6,
                 range: 57.5,
-                comboStrike: 2.0,
-                comboThreshold: 0,         // 제한 없음
-                unlimitedCombo: true,
-                critBonus: 0.05,           // 치명타 5% 증가
+                attackCooldown: 250,
+                comboThreshold: 5,
+                comboMultiplier: 4.0,      // 400% Damage
             },
         },
-        attackCooldown: 200, // 빠른 연속 공격
+        attackCooldown: 333, // Default (Level 1)
     },
 
     // ============================================================
