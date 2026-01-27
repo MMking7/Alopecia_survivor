@@ -97,45 +97,54 @@ export const MAIN_WEAPONS = {
       1: {
         damage: 1.00,
         explosionRadius: 50,
-        pierce: 2, // 관통 수
+        pierce: 5,
+        beamCount: 1,
       },
       2: {
         damage: 1.20, // 20% 증가
         explosionRadius: 50,
-        pierce: 2,
+        pierce: 5,
+        beamCount: 1,
       },
       3: {
         damage: 1.20,
-        explosionRadius: 62.5, // 25% 증가
-        pierce: 2,
+        explosionRadius: 62.5, // 25% 증가 (50 * 1.25)
+        pierce: 5,
+        beamCount: 1,
       },
       4: {
         damage: 1.20,
         explosionRadius: 62.5,
-        pierce: 2,
-        attackSpeedBonus: 0.15, // 공격주기 15% 감소
+        pierce: 5,
+        attackCooldownBonus: 0.15, // 공격주기 15% 감소 (handled in performMainAttack logic or generic cooldown logic?)
+        // Note: performMainAttack checks attackSpeed mostly. If this weapon uses fixed cooldown, we need to ensure it's respected.
+        // The spec says "Attack Cycle 15% decrease".
+        beamCount: 1,
       },
       5: {
         damage: 1.20,
-        explosionRadius: 62.5,
-        pierce: 5, // 3 증가
-        attackSpeedBonus: 0.15,
+        explosionRadius: 78, // 25% 증가 (62.5 * 1.25 ~= 78)
+        pierce: 5,
+        attackCooldownBonus: 0.15,
+        beamCount: 1,
       },
       6: {
-        damage: 1.56, // 30% 증가
-        explosionRadius: 62.5,
+        damage: 1.44, // 20% 증가 (1.2 * 1.2 = 1.44)
+        explosionRadius: 78,
         pierce: 5,
-        attackSpeedBonus: 0.15,
+        attackCooldownBonus: 0.15,
+        beamCount: 1,
       },
       7: { // 각성
-        damage: 1.56,
-        explosionRadius: 62.5,
+        damage: 1.44,
+        explosionRadius: 78,
         pierce: 5,
-        attackSpeedBonus: 0.15,
-        doubleExplosion: true, // 2회 연속 폭발
-        defenseReduction: 0.10, // 적 방어력 10% 감소 (최대 30%)
-        defenseReductionMax: 0.30,
+        attackCooldownBonus: 0.15,
+        beamCount: 3, // 3 Beams
+        spreadAngle: 0.15, // Spread for multi-beam
       },
+      // Note: Level 4, 5, 6 accumulation logic might depend on how levelEffects are used.
+      // Usually it's replacement. So I included accumulated stats.
     },
     attackCooldown: 1200,
   },
@@ -587,9 +596,9 @@ export const CHARACTER_PASSIVE_SKILLS = {
       icon: 'areata_skill1',
       maxLevel: 3,
       levels: [
-        { enemyThreshold: 20, attackBonus: 0.20 },
-        { enemyThreshold: 30, attackBonus: 0.30 },
-        { enemyThreshold: 40, attackBonus: 0.40 },
+        { enemyThreshold: 15, attackBonus: 0.20 },
+        { enemyThreshold: 20, attackBonus: 0.30 },
+        { enemyThreshold: 25, attackBonus: 0.40 },
       ],
     },
     {
@@ -600,9 +609,9 @@ export const CHARACTER_PASSIVE_SKILLS = {
       icon: 'areata_skill2',
       maxLevel: 3,
       levels: [
-        { dodgeChance: 0.20, shockwaveDamage: 1.00 },
-        { dodgeChance: 0.25, shockwaveDamage: 1.50 },
-        { dodgeChance: 0.30, shockwaveDamage: 2.00 },
+        { dodgeChance: 0.03, shockwaveDamage: 1.00 },
+        { dodgeChance: 0.04, shockwaveDamage: 1.50 },
+        { dodgeChance: 0.05, shockwaveDamage: 2.00 },
       ],
     },
     {
@@ -613,9 +622,9 @@ export const CHARACTER_PASSIVE_SKILLS = {
       icon: 'areata_skill3',
       maxLevel: 3,
       levels: [
-        { dropChance: 0.10, attackSpeedBonus: 0.20, duration: 5 },
-        { dropChance: 0.12, attackSpeedBonus: 0.30, duration: 5 },
-        { dropChance: 0.15, attackSpeedBonus: 0.40, duration: 5 },
+        { dropChance: 0.10, fixedFireRate: 0.5, duration: 5 },
+        { dropChance: 0.12, fixedFireRate: 0.4, duration: 5 },
+        { dropChance: 0.15, fixedFireRate: 0.3, duration: 5 },
       ],
     },
   ],

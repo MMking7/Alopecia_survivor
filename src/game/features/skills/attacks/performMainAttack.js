@@ -26,10 +26,27 @@ export const performMainAttack = ({ state, currentTime }) => {
   // For heihachi (lightning), use weapon's attackCooldown
   // For other characters, use attackSpeed-based interval
   let attackInterval
-  if ((character.attackType === 'aoe' || character.attackType === 'spin' || character.attackType === 'lightning') && mainWeapon?.attackCooldown) {
-    attackInterval = mainWeapon.attackCooldown
+  if ((character.attackType === 'aoe' || character.attackType === 'spin' || character.attackType === 'lightning' || character.attackType === 'beam') && mainWeapon?.attackCooldown) {
+    let cooldown = mainWeapon.attackCooldown
+
+    // Areata Skill 3 Override: Fixed Fire Rate Buff
+    if (state.passiveBonuses?.hairBuffFireRate && state.passiveBonuses.areataHairStackExpire > currentTime) {
+      // Override cooldown completely with fixed interval (e.g. 0.3s -> 300ms)
+      cooldown = state.passiveBonuses.hairBuffFireRate * 1000
+    } else {
+      // Normal cooldown reduction logic
+      if (weaponEffect?.attackCooldownBonus) {
+        cooldown *= (1 - weaponEffect.attackCooldownBonus)
+      }
+    }
+    attackInterval = cooldown
   } else {
     attackInterval = 1000 / finalAttackSpeed
+  }
+
+  // Cleanup expired buff state if needed (handled in updateCombat generally, but safe to ignore here)
+  if (state.passiveBonuses?.hairBuffFireRate && state.passiveBonuses.areataHairStackExpire <= currentTime) {
+    delete state.passiveBonuses.hairBuffFireRate
   }
 
   if (currentTime - state.lastAttackTime < attackInterval) return

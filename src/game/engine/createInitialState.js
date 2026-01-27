@@ -65,11 +65,7 @@ export const createInitialState = ({
     subWeaponProjectiles: [],
     inventory: [],
     mainWeaponLevel: 1,
-    passiveSkills: selectedCharacter.id === 'female' ? [
-      { id: 'female_skill1', level: 1 },
-      { id: 'female_skill2', level: 1 },
-      { id: 'female_skill3', level: 1 }
-    ] : [],
+    passiveSkills: [],
     passiveBonuses: {},
     specialAbility: {
       cooldown: 0,
@@ -82,6 +78,7 @@ export const createInitialState = ({
     fragments: 0,
     coins: [],
     collectedCoins: 0,
+    fallenHairs: [],
     fragments: 0,
     coins: [],
     collectedCoins: 0,

@@ -16,7 +16,9 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
     mzamenXpStacks: prevBonuses.mzamenXpStacks || 0,
     mzamenXpStackExpire: prevBonuses.mzamenXpStackExpire || 0,
     areataHairStacks: prevBonuses.areataHairStacks || 0,
+    areataHairStacks: prevBonuses.areataHairStacks || 0,
     areataHairStackExpire: prevBonuses.areataHairStackExpire || 0,
+    hairBuffFireRate: prevBonuses.hairBuffFireRate, // Preserve active buff fire rate
     // New persistent states
     shieldStacks: prevBonuses.shieldStacks || 0,
     shieldLastRegen: prevBonuses.shieldLastRegen || 0,
@@ -62,8 +64,17 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
 
         // Areata skills
         case 'areata_skill1': // Attack bonus based on enemy count
-          if (state.enemies.length >= skillEffect.enemyThreshold) {
-            damageMultiplier *= (1 + skillEffect.attackBonus)
+          // Check current level threshold first, if not met, check lower levels to avoid "upgrade penalty"
+          let appliedBonus = 0
+          for (let l = playerSkill.level; l >= 1; l--) {
+            const effect = skillDef.levels[l - 1]
+            if (state.enemies.length >= effect.enemyThreshold) {
+              appliedBonus = effect.attackBonus
+              break // Found highest applicable bonus
+            }
+          }
+          if (appliedBonus > 0) {
+            damageMultiplier *= (1 + appliedBonus)
           }
           break
 
@@ -72,15 +83,10 @@ export const applyPassiveBonuses = ({ state, currentTime }) => {
           state.passiveBonuses.shockwaveDamage = skillEffect.shockwaveDamage
           break
 
-        case 'areata_skill3': // Hair drop + attack speed buff
+        case 'areata_skill3': // Hair drop + fixed fire rate buff
           state.passiveBonuses.hairDropChance = skillEffect.dropChance
-          state.passiveBonuses.hairAttackSpeedBonus = skillEffect.attackSpeedBonus
+          state.passiveBonuses.fixedFireRate = skillEffect.fixedFireRate
           state.passiveBonuses.hairBuffDuration = skillEffect.duration
-          // Apply attack speed if stacks active
-          if (state.passiveBonuses.areataHairStacks > 0 &&
-            currentTime < state.passiveBonuses.areataHairStackExpire) {
-            attackSpeedMultiplier *= (1 + state.passiveBonuses.areataHairStacks * skillEffect.attackSpeedBonus)
-          }
           break
 
         // Wong Fei Hung skills
