@@ -1,4 +1,5 @@
 import { distance } from '../../../domain/math'
+import { playHit1 } from '../../../../utils/SoundManager'
 
 export const updateSubWeaponEffects = ({ state, currentTime, deltaTime }) => {
   // Update sub weapon effects
@@ -12,6 +13,12 @@ export const updateSubWeaponEffects = ({ state, currentTime, deltaTime }) => {
         if (distance(effect, enemy) < effect.radius) {
           const damage = state.stats.damage * effect.damagePerSecond * deltaTime
           enemy.currentHp -= damage
+          // Hit feedback for DoT - throttle to avoid spam
+          if (!enemy.lastEffectHitTime || currentTime - enemy.lastEffectHitTime > 200) {
+            enemy.lastHitTime = currentTime
+            enemy.lastEffectHitTime = currentTime
+            playHit1()
+          }
 
           if (effect.slowAmount) {
             enemy.slowed = true

@@ -1,4 +1,5 @@
 import { generateId, distance } from '../../../domain/math'
+import { playHit1 } from '../../../../utils/SoundManager'
 
 export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameStateRef }) => {
   // ============================================================
@@ -73,6 +74,8 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
               // Show Damage Number (Throttled per enemy)
               if (!enemy.lastHairBrushDamage || currentTime - enemy.lastHairBrushDamage > 200) {
                 enemy.lastHairBrushDamage = currentTime
+                enemy.lastHitTime = currentTime // Hit flash
+                playHit1()
                 state.damageNumbers.push({
                   id: generateId(),
                   x: enemy.x,
@@ -224,6 +227,8 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
                     color: '#FF6600',
                     createdAt: currentTime,
                   })
+                  enemy.lastHitTime = currentTime // Hit flash
+                  playHit1()
                 }
               }
             }
@@ -341,6 +346,8 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
             if (isCrit) damage *= 1.5
 
             enemy.currentHp -= damage
+            enemy.lastHitTime = currentTime // Hit flash
+            playHit1()
             state.damageNumbers.push({
               id: generateId(),
               x: enemy.x + (Math.random() - 0.5) * 20,
@@ -422,6 +429,8 @@ export const triggerSubWeaponAttacks = ({ state, currentTime, deltaTime, gameSta
                   color: '#FFFFFF',
                   createdAt: currentTime,
                 })
+                enemy.lastHitTime = currentTime // Hit flash
+                playHit1()
               }
             })
 

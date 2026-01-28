@@ -1,4 +1,5 @@
 import { generateId, distance } from '../../../domain/math'
+import { playHit1 } from '../../../../utils/SoundManager'
 
 export const updateSubWeaponProjectiles = ({ state, currentTime, deltaTime }) => {
   // Update sub weapon projectiles
@@ -20,6 +21,8 @@ export const updateSubWeaponProjectiles = ({ state, currentTime, deltaTime }) =>
           if (enemy.isDead) return
           if (distance(proj, enemy) < proj.radius) {
             enemy.currentHp -= proj.damage
+            enemy.lastHitTime = currentTime // Hit flash
+            playHit1()
             state.damageNumbers.push({
               id: generateId(),
               x: enemy.x,

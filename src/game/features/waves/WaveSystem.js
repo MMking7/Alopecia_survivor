@@ -43,7 +43,9 @@ export const handleWaveSpawns = ({ state, currentTime }) => {
     })
 
     // Filler spawns between waves (reduced rate)
-    const fillerSpawnRate = 1000 // 1 second between filler spawns (was 2s)
+    // Time-based spawn rate: 2x faster after 5 minutes
+    const baseFillerSpawnRate = 1000 // 1 second between filler spawns
+    const fillerSpawnRate = gameTime >= 300 ? baseFillerSpawnRate / 2 : baseFillerSpawnRate // 500ms after 5 mins
     if (currentTime - state.waveState.lastRandomSpawn > fillerSpawnRate) {
         state.waveState.lastRandomSpawn = currentTime
         spawnFillerEnemy({ state, difficulty })

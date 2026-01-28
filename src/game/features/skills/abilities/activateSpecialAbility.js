@@ -1,6 +1,6 @@
 import { getSpecialAbility } from '../../../../MainWeapons'
 import { generateId, distance } from '../../../domain/math'
-import { playSpecialUse } from '../../../../utils/SoundManager'
+import { playSpecialUse, playHit1 } from '../../../../utils/SoundManager'
 
 export const activateSpecialAbility = ({ state, currentTime }) => {
   // Special Ability activation (Shift key)
@@ -66,6 +66,8 @@ export const activateSpecialAbility = ({ state, currentTime }) => {
             if (dist < ability.effect.areaRadius) {
               const areaDamage = state.stats.damage * ability.effect.areaDamage
               enemy.currentHp -= areaDamage
+              enemy.lastHitTime = currentTime // Hit flash
+              playHit1()
               state.damageNumbers.push({
                 id: generateId(),
                 x: enemy.x,

@@ -20,6 +20,7 @@ const SOUNDS = {
     specialUse: '/sounds/snd_specialuse.wav',
     bossDefeated: '/sounds/snd_bossdefeated.wav',
     buyUpgrade: '/sounds/snd_buy_upgrade.wav',
+    hit1: '/sounds/snd_hit1.wav',
 }
 
 // Audio cache to avoid creating new Audio objects every time
@@ -69,6 +70,7 @@ export const playMenuSelect = (volume = 0.3) => playSound('menuSelect', volume)
 export const playSpecialUse = (volume = 0.6) => playSound('specialUse', volume)
 export const playBossDefeated = (volume = 0.7) => playSound('bossDefeated', volume)
 export const playBuyUpgrade = (volume = 0.5) => playSound('buyUpgrade', volume)
+export const playHit1 = (volume = 0.3) => playSound('hit1', volume)
 
 export default {
     playLevelUp,
@@ -80,4 +82,5 @@ export default {
     playSpecialUse,
     playBossDefeated,
     playBuyUpgrade,
+    playHit1,
 }

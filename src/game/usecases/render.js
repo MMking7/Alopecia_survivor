@@ -1,8 +1,8 @@
 import { SPRITES } from '../../constants'
-import { 
-  getMapObjectDef, 
-  getRenderBox, 
-  getCollisionBox 
+import {
+  getMapObjectDef,
+  getRenderBox,
+  getCollisionBox
 } from '../map/mapObjects'
 
 /**
@@ -156,7 +156,7 @@ const updateMapObjectTransparency = (state) => {
     // Check occlusion (player behind tall objects)
     if (def.occlusionEnabled) {
       const playerBehind = playerY < obj.y
-      const horizontalOverlap = 
+      const horizontalOverlap =
         playerX + playerSize / 2 > renderBox.x &&
         playerX - playerSize / 2 < renderBox.x + renderBox.width
 
@@ -172,7 +172,7 @@ const updateMapObjectTransparency = (state) => {
 
     // Check overlap transparency (bushes)
     if (def.overlapTransparency) {
-      const boxesOverlap = 
+      const boxesOverlap =
         playerBox.x < renderBox.x + renderBox.width &&
         playerBox.x + playerBox.width > renderBox.x &&
         playerBox.y < renderBox.y + renderBox.height &&
@@ -1329,6 +1329,16 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
           ctx.drawImage(img, -enemy.size / 2, -enemy.size / 2, enemy.size, enemy.size)
         }
 
+        // Hit flash overlay - white mask when enemy is hit
+        if (enemy.lastHitTime && currentTime - enemy.lastHitTime < 100) {
+          // Draw white silhouette overlay using multiply/screen blend
+          ctx.globalAlpha = 0.7
+          ctx.globalCompositeOperation = 'lighter'
+          ctx.drawImage(img, -enemy.size / 2, -enemy.size / 2, enemy.size, enemy.size)
+          ctx.globalCompositeOperation = 'source-over'
+          ctx.globalAlpha = 1
+        }
+
         // Draw electrify visual effect
         if (enemy.electrified && currentTime < enemy.electrified.until) {
           const sparkCount = 4
@@ -1567,7 +1577,7 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
   // ============================================================
   if (state.mapObjects && state.mapObjects.length > 0) {
     const sortedObjects = [...state.mapObjects].sort((a, b) => a.y - b.y)
-    
+
     // Render objects in front of player
     sortedObjects.forEach((obj) => {
       if (obj.y > state.player.y) {
