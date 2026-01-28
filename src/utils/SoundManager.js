@@ -21,6 +21,12 @@ const SOUNDS = {
     bossDefeated: '/sounds/snd_bossdefeated.wav',
     buyUpgrade: '/sounds/snd_buy_upgrade.wav',
     hit1: '/sounds/snd_hit1.wav',
+    attack_female: '/sounds/attack/femalebald.wav',
+    attack_areata: '/sounds/attack/areata.wav',
+    attack_wongfeihung: '/sounds/attack/wongfeihung.wav',
+    attack_heihachi: '/sounds/attack/heihachi.wav',
+    attack_talmo_docter: '/sounds/attack/talmo_docter.wav',
+    attack_mzamen: '/sounds/attack/mzaman.wav',
 }
 
 // Audio cache to avoid creating new Audio objects every time
@@ -83,6 +89,21 @@ export const playBossDefeated = (volume = 0.7) => playSound('bossDefeated', volu
 export const playBuyUpgrade = (volume = 0.5) => playSound('buyUpgrade', volume)
 export const playHit1 = (volume = 0.3) => playSound('hit1', volume)
 
+const CHARACTER_ATTACK_SOUNDS = {
+    female: 'attack_female',
+    areata: 'attack_areata',
+    wongfeihung: 'attack_wongfeihung',
+    heihachi: 'attack_heihachi',
+    talmo_docter: 'attack_talmo_docter',
+    mzamen: 'attack_mzamen',
+}
+
+export const playCharacterAttack = (characterId, volume = 0.45) => {
+    const soundKey = CHARACTER_ATTACK_SOUNDS[characterId]
+    if (!soundKey) return
+    playSound(soundKey, volume)
+}
+
 export default {
     playLevelUp,
     playCharSelectWoosh,
@@ -94,4 +115,5 @@ export default {
     playBossDefeated,
     playBuyUpgrade,
     playHit1,
+    playCharacterAttack,
 }
