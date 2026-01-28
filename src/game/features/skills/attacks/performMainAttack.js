@@ -5,6 +5,7 @@ import { handleSpinAttack } from './handleSpinAttack'
 import { handleLightningAttack } from './handleLightningAttack'
 import { handleTransplantAttack } from './handleTransplantAttack'
 import { handleBoomerangAttack } from './handleBoomerangAttack'
+import { playCharacterAttack } from '../../../../utils/SoundManager'
 
 const attackHandlers = {
   aoe: handleAoeAttack,
@@ -62,6 +63,14 @@ export const performMainAttack = ({ state, currentTime }) => {
 
   const handler = attackHandlers[character.attackType]
   if (handler) {
-    handler({ state, currentTime, character })
+    if (character.id === 'mzamen') {
+      const createdCount = handler({ state, currentTime, character })
+      if (createdCount > 0) {
+        playCharacterAttack(character.id)
+      }
+    } else {
+      playCharacterAttack(character.id)
+      handler({ state, currentTime, character })
+    }
   }
 }

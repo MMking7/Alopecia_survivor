@@ -67,12 +67,6 @@ const TitleScreen = ({ onStart, onShop, coins }) => {
           <PixelButton onClick={onShop} onMouseEnter={() => playMenuSelect()} variant="dark" size="medium">
             🛒 STORE
           </PixelButton>
-          <PixelButton onMouseEnter={() => playMenuSelect()} variant="ghost" size="medium" disabled>
-            ⚙️ SETTING
-          </PixelButton>
-          <PixelButton onMouseEnter={() => playMenuSelect()} variant="ghost" size="medium" disabled>
-            📜 CREDIT
-          </PixelButton>
         </div>
       </div>
 

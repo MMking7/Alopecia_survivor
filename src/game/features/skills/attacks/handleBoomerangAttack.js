@@ -2,6 +2,7 @@ import { getMainWeapon } from '../../../../MainWeapons'
 import { generateId, distance } from '../../../domain/math'
 
 export const handleBoomerangAttack = ({ state, currentTime, character }) => {
+  let createdCount = 0
   // Boomerang - Throws and returns, hitting enemies multiple times
   if (!state.boomerangProjectiles) state.boomerangProjectiles = []
 
@@ -12,7 +13,7 @@ export const handleBoomerangAttack = ({ state, currentTime, character }) => {
     { waveCount: 1, damage: 1.00, speed: 300, range: 250 }
 
   // Check if we've reached the max active boomerangs
-  if (state.boomerangProjectiles.length >= mzamenEffect.waveCount) return
+  if (state.boomerangProjectiles.length >= mzamenEffect.waveCount) return createdCount
 
   const boomerangRange = mzamenEffect.range
   const boomerangSpeed = mzamenEffect.speed
@@ -96,5 +97,8 @@ export const handleBoomerangAttack = ({ state, currentTime, character }) => {
       returnExplosionRadius: mzamenEffect.returnExplosionRadius || 0,
       armorPenetration: mzamenEffect.armorPenetration || 0,
     })
+    createdCount += 1
   }
+
+  return createdCount
 }
