@@ -1,4 +1,5 @@
 import { generateId } from '../../../domain/math'
+import { playHit1 } from '../../../../utils/SoundManager'
 
 export const updatePassiveSkills = ({ state, currentTime, deltaTime }) => {
   // 1. Infection Prevention Injection (Talmo Docter / Female Bald Shield)
@@ -6,7 +7,7 @@ export const updatePassiveSkills = ({ state, currentTime, deltaTime }) => {
   if (state.passiveBonuses.shieldSkill) {
     const { stacks, interval } = state.passiveBonuses.shieldSkill
     const intervalMs = interval * 1000
-    
+
     // Initialize timer if not exists
     if (!state.lastShieldRegenTime) {
       state.lastShieldRegenTime = currentTime
@@ -14,7 +15,7 @@ export const updatePassiveSkills = ({ state, currentTime, deltaTime }) => {
 
     if (currentTime - state.lastShieldRegenTime >= intervalMs) {
       state.lastShieldRegenTime = currentTime
-      
+
       // Calculate current max shield form this skill
       // Note: This logic assumes shield stacks add to the shield value directly (1 stack = 1 shield point)
       // or we just add 1 shield point up to the 'stacks' limit defined by the skill level.
@@ -22,15 +23,15 @@ export const updatePassiveSkills = ({ state, currentTime, deltaTime }) => {
       // We'll limit it to a reasonable amount per stack if not specified, 
       // but usually these games treat shield as a pool. 
       // Let's interpret "shieldStacks" as the amount to add per interval.
-      
+
       // However, usually these skills have a cap. 
       // Let's assume the 'stacks' is the amount added per interval.
       // And maybe there's no cap or a high cap? 
       // "Acquire 1/2/3 stacks every 8s".
-      
+
       const shieldToAdd = stacks
       state.stats.shield = (state.stats.shield || 0) + shieldToAdd
-      
+
       // Optional: Visual effect for shield regen
       state.damageNumbers.push({
         id: generateId(),
@@ -49,21 +50,21 @@ export const updatePassiveSkills = ({ state, currentTime, deltaTime }) => {
   if (state.passiveBonuses.emergencyHeal) {
     const { hpThreshold, healAmount, cooldown, areaDamage } = state.passiveBonuses.emergencyHeal
     const cooldownMs = cooldown * 1000
-    
+
     // Check cooldown
     const lastTrigger = state.lastEmergencyHealTime || 0
     if (currentTime - lastTrigger >= cooldownMs) {
-      
+
       // Check HP Threshold
       const maxHp = state.stats.maxHp
       const currentHp = state.stats.hp
       if (currentHp / maxHp <= hpThreshold && currentHp > 0) {
-        
+
         // Trigger Heal
         state.lastEmergencyHealTime = currentTime
         const healValue = maxHp * healAmount
         state.stats.hp = Math.min(maxHp, currentHp + healValue)
-        
+
         // Visuals for Heal
         state.damageNumbers.push({
           id: generateId(),
@@ -74,12 +75,12 @@ export const updatePassiveSkills = ({ state, currentTime, deltaTime }) => {
           createdAt: currentTime,
           isHeal: true,
         })
-        
+
         // Trigger AoE Damage
         // "Deal 150/200/250% damage to surrounding enemies"
         const damageRadius = 250 // Assumption for "surrounding"
         const damageValue = state.stats.damage * areaDamage
-        
+
         state.attackEffects.push({
           id: generateId(),
           type: 'explosion',
@@ -91,17 +92,19 @@ export const updatePassiveSkills = ({ state, currentTime, deltaTime }) => {
           createdAt: currentTime,
           duration: 500,
         })
-        
+
         state.enemies.forEach(enemy => {
           if (enemy.isDead) return
           // Simple distance check
           const dx = enemy.x - state.player.x
           const dy = enemy.y - state.player.y
-          const dist = Math.sqrt(dx*dx + dy*dy)
-          
+          const dist = Math.sqrt(dx * dx + dy * dy)
+
           if (dist < damageRadius) {
             enemy.currentHp -= damageValue
-             state.damageNumbers.push({
+            enemy.lastHitTime = currentTime // Hit flash
+            playHit1()
+            state.damageNumbers.push({
               id: generateId(),
               x: enemy.x,
               y: enemy.y,

@@ -4,7 +4,7 @@ import { generateId, distance } from '../domain/math'
 import { buildLevelUpOptions } from './levelUpOptions'
 import { updateSkillSystems } from '../features/skills/updateSkillSystems'
 import { getMapObjectDef, getInteractionBox, createMapObject, getCollisionBox, getRenderBox } from '../map/mapObjects'
-import { playLevelUp, playBossDefeated } from '../../utils/SoundManager'
+import { playLevelUp, playBossDefeated, playHit1 } from '../../utils/SoundManager'
 
 /**
  * Damage destructible map objects within an area
@@ -403,6 +403,12 @@ export const updateCombat = ({
   setGamePhase,
   setDisplayStats,
 }) => {
+  // NaN Protection: Recover HP if it becomes NaN to prevent invincibility bug
+  if (isNaN(state.stats.hp)) {
+    console.warn('[BUG] Player HP became NaN! Recovering to maxHp.')
+    state.stats.hp = state.stats.maxHp || 100
+  }
+
   // Move and update enemies with unique behaviors
   state.enemies.forEach((enemy) => {
     const edx = state.player.x - enemy.x
@@ -548,13 +554,27 @@ export const updateCombat = ({
       enemy.vx = Math.cos(angle) * force
       enemy.vy = Math.sin(angle) * force
 
-      // Drop XP Orb
+      // Drop XP Orb - Bosses drop special red orbs with massive XP
+      let xpMultiplier = 1
+      let isBossOrb = false
+      if (enemy.type === 'boss') {
+        xpMultiplier = 100 // First boss: 100x
+        isBossOrb = true
+      } else if (enemy.type === 'boss_subway') {
+        xpMultiplier = 300 // Second boss: 300x
+        isBossOrb = true
+      } else if (enemy.type === 'boss_airraid') {
+        xpMultiplier = 500 // Third boss: 500x
+        isBossOrb = true
+      }
+
       state.xpOrbs.push({
         id: generateId(),
         x: enemy.x,
         y: enemy.y,
-        value: enemy.xp,
-        createdAt: currentTime
+        value: enemy.xp * xpMultiplier,
+        createdAt: currentTime,
+        isBossOrb: isBossOrb
       })
 
       // Drop Coin (Chance)
@@ -873,6 +893,8 @@ export const updateCombat = ({
 
             if (!enemy.lastZoneDamageNumber || currentTime - enemy.lastZoneDamageNumber > 200) {
               enemy.lastZoneDamageNumber = currentTime
+              enemy.lastHitTime = currentTime // Hit flash
+              playHit1()
               state.damageNumbers.push({
                 id: generateId(),
                 x: enemy.x,
@@ -908,6 +930,8 @@ export const updateCombat = ({
           // Show damage numbers periodically (not every frame to avoid spam)
           if (!enemy.lastZoneDamageNumber || currentTime - enemy.lastZoneDamageNumber > 200) {
             enemy.lastZoneDamageNumber = currentTime
+            enemy.lastHitTime = currentTime // Hit flash
+            playHit1()
             state.damageNumbers.push({
               id: generateId(),
               x: enemy.x,
@@ -1116,6 +1140,8 @@ export const updateCombat = ({
           const returnDamageMultiplier = proj.returning ? 0.7 : 1.0
           const finalDamage = proj.damage * (isCrit ? 1.5 : 1.0) * returnDamageMultiplier
           enemy.currentHp -= finalDamage
+          enemy.lastHitTime = currentTime // Hit flash
+          playHit1()
 
           // Lifesteal - heal player for % of damage dealt
           if (proj.lifeSteal && proj.lifeSteal > 0) {
@@ -1260,6 +1286,8 @@ export const updateCombat = ({
           const finalDamage = proj.damage * (isCrit ? 1.5 : 1.0) * returnDamageMultiplier
 
           enemy.currentHp -= finalDamage
+          enemy.lastHitTime = currentTime // Hit flash
+          playHit1()
           state.damageNumbers.push({
             id: generateId(),
             x: enemy.x,
@@ -1333,7 +1361,9 @@ export const updateCombat = ({
   const collectedOrbs = state.xpOrbs.filter((orb) => distance(state.player, orb) < pickupRadius)
 
   collectedOrbs.forEach((orb) => {
-    const xpGain = orb.value * (state.stats.xpMultiplier || 1.0)
+    // Time-based XP boost: 1.5x after 5 minutes
+    const timeXpMultiplier = state.gameTime >= 300 ? 1.5 : 1.0
+    const xpGain = orb.value * (state.stats.xpMultiplier || 1.0) * timeXpMultiplier
     state.xp += xpGain
 
     // Mzamen Skill 2: XP Heal (Chance based)

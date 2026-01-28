@@ -1,6 +1,7 @@
 import { getMainWeapon } from '../../../../MainWeapons'
 import { generateId, distance, pointToLineDistance } from '../../../domain/math'
 import { damageMapObjects } from '../../../usecases/combat'
+import { playHit1 } from '../../../../utils/SoundManager'
 
 export const handleLightningAttack = ({ state, currentTime, character }) => {
   // 헤이하치 - 초 풍신권 (돌진 후 전방에 감전 피해)
@@ -80,6 +81,8 @@ export const handleLightningAttack = ({ state, currentTime, character }) => {
 
       const damage = state.stats.damage * heihachiEffect.damage * damageMultiplier * critMultiplier
       enemy.currentHp -= damage
+      enemy.lastHitTime = currentTime // Hit flash
+      playHit1()
 
       state.damageNumbers.push({
         id: generateId(),
