@@ -63,6 +63,13 @@ export const handleBoomerangAttack = ({ state, currentTime, character }) => {
     const rangeBonus = state.passiveBonuses?.rangeBonus || 0
     const totalRange = boomerangRange * (1 + rangeBonus)
 
+    // Apply speed scaling based on range bonus (range 늘어날수록 속도 더 빨라짐)
+    // Formula: Speed scales slightly faster than range to reduce travel time
+    const speedMultiplier = 1 + (rangeBonus * 1.5)
+    
+    const finalSpeed = boomerangSpeed * speedMultiplier
+    const finalReturnSpeed = returnSpeed * speedMultiplier
+
     // Create boomerang projectile
     state.boomerangProjectiles.push({
       id: generateId(),
@@ -70,14 +77,14 @@ export const handleBoomerangAttack = ({ state, currentTime, character }) => {
       y: state.player.y,
       startX: state.player.x,
       startY: state.player.y,
-      vx: Math.cos(finalAngle) * boomerangSpeed,
-      vy: Math.sin(finalAngle) * boomerangSpeed,
+      vx: Math.cos(finalAngle) * finalSpeed,
+      vy: Math.sin(finalAngle) * finalSpeed,
       angle: finalAngle,
       rotation: 0,
       damage: baseDamage,
       range: totalRange,
-      speed: boomerangSpeed,
-      returnSpeed: returnSpeed,
+      speed: finalSpeed,
+      returnSpeed: finalReturnSpeed,
       size: character.projectileSize || 80,
       hitEnemies: [],
       returning: false,
