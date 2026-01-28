@@ -1,5 +1,6 @@
 import { GAME_CONFIG } from '../../../../constants'
 import { generateId, isInsideMPattern, distance } from '../../../domain/math'
+import { playHit1 } from '../../../../utils/SoundManager'
 
 export const updateActiveSpecialAbilities = ({ state, currentTime, deltaTime }) => {
   // Process active special abilities
@@ -79,6 +80,8 @@ export const updateActiveSpecialAbilities = ({ state, currentTime, deltaTime }) 
             stormTargets.forEach((enemy) => {
               const damage = state.stats.damage * (effect.damageMultiplier || 6.0)
               enemy.currentHp -= damage
+              enemy.lastHitTime = currentTime // Hit flash
+              playHit1()
 
               // Visual: Lightning strike on enemy
               state.attackEffects.push({
@@ -178,6 +181,8 @@ export const updateActiveSpecialAbilities = ({ state, currentTime, deltaTime }) 
                   enemy[cooldownKey] = currentTime
                   const damage = state.stats.damage * effect.damagePerSecond * 0.2
                   enemy.currentHp -= damage
+                  enemy.lastHitTime = currentTime // Hit flash
+                  playHit1()
                   state.damageNumbers.push({
                     id: generateId(),
                     x: enemy.x,
@@ -210,6 +215,8 @@ export const updateActiveSpecialAbilities = ({ state, currentTime, deltaTime }) 
                   // 데미지 적용
                   const damage = state.stats.damage * effect.damagePerSecond
                   enemy.currentHp -= damage
+                  enemy.lastHitTime = currentTime // Hit flash
+                  playHit1()
 
                   state.damageNumbers.push({
                     id: generateId(),

@@ -1,6 +1,6 @@
 import { getSpecialAbility } from '../../../../MainWeapons'
 import { generateId, distance } from '../../../domain/math'
-import { playSpecialUse } from '../../../../utils/SoundManager'
+import { playSpecialUse, playHit1 } from '../../../../utils/SoundManager'
 
 export const activateSpecialAbility = ({ state, currentTime }) => {
   // Special Ability activation (Shift key)
@@ -12,7 +12,8 @@ export const activateSpecialAbility = ({ state, currentTime }) => {
     if (ability) {
       // 모근 조각 최소 요구량 체크 (탈모의사 전용)
       const minFragments = ability.minFragments || 0
-      const hasEnoughFragments = state.fragments >= minFragments
+      const currentFragments = state.fragments || 0
+      const hasEnoughFragments = currentFragments >= minFragments
 
       // lastUsedGameTime이 0이면 한 번도 안 쓴 것 → 바로 사용 가능
       const neverUsed = state.specialAbility.lastUsedGameTime === 0
@@ -53,11 +54,17 @@ export const activateSpecialAbility = ({ state, currentTime }) => {
         // Character-specific activation effects
         if (ability.effect.type === 'consume_fragments') {
           // Talmo Docter - consume fragments immediately
-          const fragments = state.fragments
+          const fragments = state.fragments || 0
 
-          const healAmount = fragments * ability.effect.healPerFragment
-          const maxHp = state.player.character.baseStats.hp
-          state.stats.hp = Math.min(maxHp, state.stats.hp + healAmount * maxHp)
+          // NaN protection: ensure healPerFragment has a default
+          const healPerFragment = ability.effect.healPerFragment || 0
+          const healAmount = fragments * healPerFragment
+          const maxHp = state.player.character.baseStats.hp || state.stats.maxHp || 100
+
+          // Only heal if healAmount is a valid number
+          if (!isNaN(healAmount) && healAmount > 0) {
+            state.stats.hp = Math.min(maxHp, (state.stats.hp || 0) + healAmount * maxHp)
+          }
 
 
           // Deal damage in area
@@ -66,6 +73,8 @@ export const activateSpecialAbility = ({ state, currentTime }) => {
             if (dist < ability.effect.areaRadius) {
               const areaDamage = state.stats.damage * ability.effect.areaDamage
               enemy.currentHp -= areaDamage
+              enemy.lastHitTime = currentTime // Hit flash
+              playHit1()
               state.damageNumbers.push({
                 id: generateId(),
                 x: enemy.x,

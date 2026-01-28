@@ -309,7 +309,7 @@ export const ENEMIES = [
   { type: 'dna', name: 'Bad Genetics', sprite: SPRITES.enemies.dna, speed: 80, hp: 30, damage: 8, xp: 12, size: 55, attackType: 'spiral' },
   { type: 'cigarette', name: 'Stress Smoke', sprite: SPRITES.enemies.cigarette, speed: 90, hp: 25, damage: 8, xp: 12, size: 55, attackType: 'ranged' },
   { type: 'soju', name: 'Alcohol', sprite: SPRITES.enemies.soju, speed: 70, hp: 45, damage: 15, xp: 20, size: 60, attackType: 'dash' },
-  { type: 'shield_guy', name: 'Shield Guy', sprite: '/sprites/shield/shield_char_animation.png', speed: 50, hp: 60, damage: 8, xp: 20, size: 64, attackType: 'melee', isAnimated: true },
+  { type: 'shield_guy', name: 'Shield Guy', sprite: '/sprites/shield/shield_char_animation.png', speed: 50, hp: 180, damage: 8, xp: 20, size: 64, attackType: 'melee', isAnimated: true },
 ]
 
 // ============================================================

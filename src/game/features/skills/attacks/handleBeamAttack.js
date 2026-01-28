@@ -1,6 +1,7 @@
 import { getMainWeapon } from '../../../../MainWeapons'
 import { generateId, distance } from '../../../domain/math'
 import { damageMapObjects } from '../../../usecases/combat'
+import { playHit1 } from '../../../../utils/SoundManager'
 
 export const handleBeamAttack = ({ state, currentTime, character }) => {
   // 원형 탈모 - 탈모빔 (Hair Loss Beam - Single target with level scaling)
@@ -162,6 +163,8 @@ export const handleBeamAttack = ({ state, currentTime, character }) => {
         const damage = isCritical ? baseDamage * 2.0 : baseDamage // 2x crit multiplier
 
         enemy.currentHp -= damage
+        enemy.lastHitTime = currentTime // Hit flash
+        playHit1()
         state.damageNumbers.push({
           id: generateId(),
           x: enemy.x,
@@ -174,6 +177,6 @@ export const handleBeamAttack = ({ state, currentTime, character }) => {
     })
 
     // Damage map objects at explosion
-    damageMapObjects(state, { x: thisTargetX, y: thisTargetY, radius: explosionRadius }, damage, currentTime, true)
+    damageMapObjects(state, { x: thisTargetX, y: thisTargetY, radius: explosionRadius }, baseDamage, currentTime, true)
   }
 }
