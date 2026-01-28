@@ -403,6 +403,12 @@ export const updateCombat = ({
   setGamePhase,
   setDisplayStats,
 }) => {
+  // NaN Protection: Recover HP if it becomes NaN to prevent invincibility bug
+  if (isNaN(state.stats.hp)) {
+    console.warn('[BUG] Player HP became NaN! Recovering to maxHp.')
+    state.stats.hp = state.stats.maxHp || 100
+  }
+
   // Move and update enemies with unique behaviors
   state.enemies.forEach((enemy) => {
     const edx = state.player.x - enemy.x
