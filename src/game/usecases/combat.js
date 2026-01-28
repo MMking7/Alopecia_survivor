@@ -548,13 +548,27 @@ export const updateCombat = ({
       enemy.vx = Math.cos(angle) * force
       enemy.vy = Math.sin(angle) * force
 
-      // Drop XP Orb
+      // Drop XP Orb - Bosses drop special red orbs with massive XP
+      let xpMultiplier = 1
+      let isBossOrb = false
+      if (enemy.type === 'boss') {
+        xpMultiplier = 100 // First boss: 100x
+        isBossOrb = true
+      } else if (enemy.type === 'boss_subway') {
+        xpMultiplier = 300 // Second boss: 300x
+        isBossOrb = true
+      } else if (enemy.type === 'boss_airraid') {
+        xpMultiplier = 500 // Third boss: 500x
+        isBossOrb = true
+      }
+
       state.xpOrbs.push({
         id: generateId(),
         x: enemy.x,
         y: enemy.y,
-        value: enemy.xp,
-        createdAt: currentTime
+        value: enemy.xp * xpMultiplier,
+        createdAt: currentTime,
+        isBossOrb: isBossOrb
       })
 
       // Drop Coin (Chance)

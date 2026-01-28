@@ -284,17 +284,24 @@ export const renderFrame = ({ state, ctx, canvas, currentTime, loadedImages }) =
     const sx = orb.x - state.camera.x
     const sy = orb.y - state.camera.y
     if (sx > -20 && sx < canvas.width + 20 && sy > -20 && sy < canvas.height + 20) {
-      const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, 15)
-      gradient.addColorStop(0, 'rgba(0, 255, 255, 0.8)')
-      gradient.addColorStop(1, 'rgba(0, 255, 255, 0)')
+      // Boss orbs are red and larger
+      const orbColor = orb.isBossOrb ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 255, 0.8)'
+      const orbColorFade = orb.isBossOrb ? 'rgba(255, 0, 0, 0)' : 'rgba(0, 255, 255, 0)'
+      const orbCoreColor = orb.isBossOrb ? '#FF0000' : '#00FFFF'
+      const orbSize = orb.isBossOrb ? 30 : 15
+      const coreSize = orb.isBossOrb ? 12 : 6
+
+      const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, orbSize)
+      gradient.addColorStop(0, orbColor)
+      gradient.addColorStop(1, orbColorFade)
       ctx.fillStyle = gradient
       ctx.beginPath()
-      ctx.arc(sx, sy, 15, 0, Math.PI * 2)
+      ctx.arc(sx, sy, orbSize, 0, Math.PI * 2)
       ctx.fill()
 
-      ctx.fillStyle = '#00FFFF'
+      ctx.fillStyle = orbCoreColor
       ctx.beginPath()
-      ctx.arc(sx, sy, 6, 0, Math.PI * 2)
+      ctx.arc(sx, sy, coreSize, 0, Math.PI * 2)
       ctx.fill()
     }
   })
