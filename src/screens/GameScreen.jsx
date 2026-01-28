@@ -5,7 +5,7 @@ import DebugMenu from './DebugMenu'
 import { useGameEngine } from '../game/adapters/react/useGameEngine'
 import { formatTime } from '../game/domain/xp'
 import { COLORS, PIXEL_STYLES } from '../styles/PixelUI'
-import { playMenuSelect } from '../utils/SoundManager'
+import { playMenuSelect, setGlobalSfxVolume } from '../utils/SoundManager'
 import autoAimCursor from '../assets/cursors/auto_aim.png'
 import manualAimCursor from '../assets/cursors/manual_aim.png'
 
@@ -79,6 +79,26 @@ const GameScreen = ({
     onQuit,
   })
 
+  // Volume settings (stored in localStorage)
+  const [bgmVolume, setBgmVolume] = React.useState(() => {
+    const saved = localStorage.getItem('bgmVolume')
+    return saved !== null ? parseFloat(saved) : 0.4
+  })
+  const [sfxVolume, setSfxVolume] = React.useState(() => {
+    const saved = localStorage.getItem('sfxVolume')
+    return saved !== null ? parseFloat(saved) : 0.7
+  })
+
+  // Save volume settings to localStorage
+  React.useEffect(() => {
+    localStorage.setItem('bgmVolume', bgmVolume.toString())
+  }, [bgmVolume])
+
+  React.useEffect(() => {
+    localStorage.setItem('sfxVolume', sfxVolume.toString())
+    setGlobalSfxVolume(sfxVolume) // Apply to SoundManager
+  }, [sfxVolume])
+
   // Boss spawn notification system
   const [bossNotification, setBossNotification] = React.useState(null)
   const processedBossEventsRef = React.useRef(new Set())
@@ -91,8 +111,13 @@ const GameScreen = ({
     if (!bgmAudioRef.current && (gamePhase === 'playing' || gamePhase === 'levelup')) {
       bgmAudioRef.current = new Audio('/sounds/bgm/bgm.wav')
       bgmAudioRef.current.loop = true
-      bgmAudioRef.current.volume = 0.4
+      bgmAudioRef.current.volume = bgmVolume
       bgmAudioRef.current.play().catch(err => console.warn('BGM play failed:', err))
+    }
+
+    // Update volume when changed
+    if (bgmAudioRef.current) {
+      bgmAudioRef.current.volume = bgmVolume
     }
 
     // Handle pause/resume
@@ -111,7 +136,7 @@ const GameScreen = ({
         bgmAudioRef.current = null
       }
     }
-  }, [gamePhase])
+  }, [gamePhase, bgmVolume])
 
   // Check for boss spawn events
   React.useEffect(() => {
@@ -130,7 +155,7 @@ const GameScreen = ({
           bossAudioRef.current.currentTime = 0
         }
         bossAudioRef.current = new Audio(newEvent.sound)
-        bossAudioRef.current.volume = 0.7
+        bossAudioRef.current.volume = Math.min(1, bgmVolume + 0.1) // BGM volume + 10%
         bossAudioRef.current.play().catch(err => console.warn('Boss sound play failed:', err))
       }
 
@@ -1101,7 +1126,7 @@ const GameScreen = ({
               <div style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {[
                   { label: '📊 CHARACTER', action: () => setPauseTab('character'), variant: 'dark' },
-                  { label: '⚙️ SETTINGS', disabled: true, variant: 'ghost' },
+                  { label: '⚙️ SETTINGS', action: () => setPauseTab('settings'), variant: 'dark' },
                   { label: '▶ RESUME', action: () => setGamePhase('playing'), variant: 'primary' },
                   { label: '✖ QUIT', action: handleQuit, variant: 'danger' },
                 ].map((btn) => (
@@ -1149,6 +1174,146 @@ const GameScreen = ({
                     {btn.label}
                   </button>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Settings Screen */}
+          {pauseTab === 'settings' && (
+            <div style={{
+              width: '100%',
+              maxWidth: '500px',
+              background: 'rgba(13, 13, 26, 0.98)',
+              border: `4px solid ${COLORS.panelBorder}`,
+              boxShadow: '6px 6px 0 0 rgba(0,0,0,0.6)',
+              overflow: 'hidden',
+            }}>
+              {/* Header */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 15px',
+                background: `linear-gradient(180deg, ${COLORS.bgLight} 0%, ${COLORS.bgDark} 100%)`,
+                borderBottom: `3px solid ${COLORS.panelBorder}`,
+              }}>
+                <button
+                  onClick={() => setPauseTab('main')}
+                  style={{
+                    padding: '8px 12px',
+                    fontFamily: PIXEL_STYLES.fontFamily,
+                    fontSize: '12px',
+                    background: 'transparent',
+                    border: `2px solid ${COLORS.panelBorder}`,
+                    color: COLORS.textWhite,
+                    cursor: 'pointer',
+                    boxShadow: '2px 2px 0 0 rgba(0,0,0,0.3)',
+                  }}
+                >
+                  ◀ BACK
+                </button>
+                <h2 style={{
+                  fontFamily: PIXEL_STYLES.fontFamily,
+                  color: COLORS.textWhite,
+                  fontSize: '18px',
+                  margin: 0,
+                  letterSpacing: '2px',
+                  textShadow: '2px 2px 0 #000',
+                }}>
+                  ⚙️ SETTINGS
+                </h2>
+                <div style={{ width: '70px' }} />
+              </div>
+
+              {/* Settings Content */}
+              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '25px' }}>
+                {/* BGM Volume */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontFamily: PIXEL_STYLES.fontFamily,
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    color: COLORS.textWhite,
+                    marginBottom: '8px',
+                    textShadow: '1px 1px 0 #000',
+                  }}>
+                    🎵 BGM Volume: {Math.round(bgmVolume * 100)}%
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={bgmVolume}
+                    onChange={(e) => setBgmVolume(parseFloat(e.target.value))}
+                    style={{
+                      width: '100%',
+                      height: '8px',
+                      background: `linear-gradient(to right, ${COLORS.primary} 0%, ${COLORS.primary} ${bgmVolume * 100}%, ${COLORS.bgDark} ${bgmVolume * 100}%, ${COLORS.bgDark} 100%)`,
+                      border: `2px solid ${COLORS.panelBorder}`,
+                      outline: 'none',
+                      cursor: 'pointer',
+                    }}
+                  />
+                </div>
+
+                {/* SFX Volume */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontFamily: PIXEL_STYLES.fontFamily,
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    color: COLORS.textWhite,
+                    marginBottom: '8px',
+                    textShadow: '1px 1px 0 #000',
+                  }}>
+                    🔊 Effect Sound Volume: {Math.round(sfxVolume * 100)}%
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={sfxVolume}
+                    onChange={(e) => setSfxVolume(parseFloat(e.target.value))}
+                    style={{
+                      width: '100%',
+                      height: '8px',
+                      background: `linear-gradient(to right, ${COLORS.secondary} 0%, ${COLORS.secondary} ${sfxVolume * 100}%, ${COLORS.bgDark} ${sfxVolume * 100}%, ${COLORS.bgDark} 100%)`,
+                      border: `2px solid ${COLORS.panelBorder}`,
+                      outline: 'none',
+                      cursor: 'pointer',
+                    }}
+                  />
+                </div>
+
+                {/* Test Sound Button */}
+                <button
+                  onClick={() => {
+                    if (bossAudioRef.current) {
+                      bossAudioRef.current.pause()
+                    }
+                    const testAudio = new Audio('/sounds/boss/boss.wav')
+                    testAudio.volume = Math.min(1, bgmVolume + 0.1) // BGM volume + 10%
+                    testAudio.play().catch(err => console.warn('Test sound failed:', err))
+                  }}
+                  style={{
+                    padding: '12px',
+                    fontFamily: PIXEL_STYLES.fontFamily,
+                    fontSize: '13px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    border: `3px solid ${COLORS.panelBorder}`,
+                    background: COLORS.bgLight,
+                    color: COLORS.textWhite,
+                    boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
+                    textShadow: '1px 1px 0 #000',
+                  }}
+                >
+                  🔔 Test Effect Sound
+                </button>
               </div>
             </div>
           )}

@@ -25,6 +25,17 @@ const SOUNDS = {
 // Audio cache to avoid creating new Audio objects every time
 const audioCache = {}
 
+// Global volume multiplier (can be set from settings)
+let globalSfxVolume = 0.7
+
+/**
+ * Set the global SFX volume multiplier
+ * @param {number} volume - Volume from 0 to 1
+ */
+export const setGlobalSfxVolume = (volume) => {
+    globalSfxVolume = Math.max(0, Math.min(1, volume))
+}
+
 /**
  * Play a sound by its key with volume control
  * @param {string} soundKey - Key from SOUNDS object
@@ -44,7 +55,7 @@ const playSound = (soundKey, volume = 0.5) => {
         }
 
         const audio = audioCache[soundKey]
-        audio.volume = Math.max(0, Math.min(1, volume))
+        audio.volume = Math.max(0, Math.min(1, volume * globalSfxVolume))
 
         // Reset to start if already playing
         audio.currentTime = 0
