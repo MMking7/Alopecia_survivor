@@ -11,6 +11,7 @@ import {
   PIXEL_STYLES
 } from '../styles/PixelUI'
 import { playMenuBack, playMenuConfirm, playMenuSelect, playCharSelected, playBuyUpgrade } from '../utils/SoundManager'
+import defaultCursor from '../assets/cursors/cursor.png'
 
 const GACHA_COST = 1000
 
@@ -306,6 +307,7 @@ const ShopScreen = ({
         padding: '30px',
         gap: '30px',
         boxSizing: 'border-box',
+        cursor: `url(${defaultCursor}) 0 0, auto`,
       }}>
         {/* Left - Shop Info (고정 너비) */}
         <PixelPanel style={{
@@ -414,7 +416,7 @@ const ShopScreen = ({
                           flexDirection: 'column',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          cursor: 'pointer',
+                          cursor: `url(${defaultCursor}) 0 0, auto`,
                           position: 'relative',
                           transition: 'all 0.1s ease',
                           padding: '10px 6px',

@@ -12,6 +12,7 @@ import {
   PIXEL_STYLES
 } from '../styles/PixelUI'
 import { playCharSelectWoosh, playCharSelected, playMenuBack, playMenuConfirm } from '../utils/SoundManager'
+import defaultCursor from '../assets/cursors/cursor.png'
 
 const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStart, onBack, imagesLoaded, characterProgress, coins }) => {
 
@@ -24,6 +25,7 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
         padding: '30px',
         gap: '30px',
         boxSizing: 'border-box',
+        cursor: `url(${defaultCursor}) 0 0, auto`,
       }}>
         {/* Left - Selected Character Detail */}
         <PixelPanel style={{ width: '420px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -250,7 +252,7 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                         ? `0 0 20px ${char.color}40, 4px 4px 0 0 rgba(0,0,0,0.5)`
                         : '4px 4px 0 0 rgba(0,0,0,0.5)',
                       padding: '15px',
-                      cursor: 'pointer',
+                      cursor: `url(${defaultCursor}) 0 0, auto`,
                       transition: 'all 0.15s ease',
                       textAlign: 'center',
                     }}

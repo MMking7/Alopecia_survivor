@@ -7,7 +7,8 @@ import { formatTime } from '../game/domain/xp'
 import { COLORS, PIXEL_STYLES } from '../styles/PixelUI'
 import { playMenuSelect, setGlobalSfxVolume } from '../utils/SoundManager'
 import autoAimCursor from '../assets/cursors/auto_aim.png'
-import manualAimCursor from '../assets/cursors/manual_aim.png'
+import manualAimCursor from '../assets/cursors/aim.png'
+import defaultCursor from '../assets/cursors/cursor.png'
 
 const getItemDescription = (entry) => {
   if (!entry) return ''
@@ -361,7 +362,7 @@ const GameScreen = ({
       width: '100%',
       height: '100%',
       position: 'relative',
-      cursor: `url(${displayStats.aimMode === 'manual' ? manualAimCursor : autoAimCursor}) 16 16, auto`
+      cursor: `url(${displayStats.aimMode === 'manual' ? manualAimCursor : autoAimCursor}) 32 32, auto`
     }}>
       <canvas
         ref={canvasRef}
@@ -722,7 +723,7 @@ const GameScreen = ({
             border: `1px solid ${displayStats.aimMode === 'manual' ? '#ff6666' : '#66ff66'}`,
             color: displayStats.aimMode === 'manual' ? '#ff6666' : '#66ff66',
             textShadow: '1px 1px 0 #000',
-            cursor: 'pointer',
+            cursor: `url(${defaultCursor}) 0 0, pointer`,
           }}>
             🎯 {displayStats.aimMode === 'manual' ? 'MANUAL' : 'AUTO'} (Click)
           </div>
@@ -740,6 +741,7 @@ const GameScreen = ({
           justifyContent: 'center',
           zIndex: 10,
           padding: '20px',
+          cursor: `url(${defaultCursor}) 0 0, auto`,
         }}>
           {/* Scanline overlay */}
           <div style={{
@@ -856,20 +858,10 @@ const GameScreen = ({
                       : COLORS.bgLight,
                     border: `3px solid ${upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder}`,
                     boxShadow: '3px 3px 0 0 rgba(0,0,0,0.5)',
-                    cursor: 'pointer',
-                    transition: 'all 0.1s',
                     textAlign: 'left',
                     width: '100%',
-                    position: 'relative', // Ensure absolute children are relative to button
-                    overflow: 'visible', // Allow badge to pop out
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary
-                    e.currentTarget.style.boxShadow = `0 0 15px ${upgrade.isSubWeapon ? COLORS.primary : COLORS.secondary}40, 3px 3px 0 0 rgba(0,0,0,0.5)`
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = upgrade.isSubWeapon ? COLORS.primary : COLORS.panelBorder
-                    e.currentTarget.style.boxShadow = '3px 3px 0 0 rgba(0,0,0,0.5)'
+                    position: 'relative',
+                    overflow: 'visible',
                   }}
                 >
                   {/* Icon */}
@@ -1206,7 +1198,7 @@ const GameScreen = ({
                     background: 'transparent',
                     border: `2px solid ${COLORS.panelBorder}`,
                     color: COLORS.textWhite,
-                    cursor: 'pointer',
+                    cursor: `url(${defaultCursor}) 0 0, pointer`,
                     boxShadow: '2px 2px 0 0 rgba(0,0,0,0.3)',
                   }}
                 >
@@ -1253,7 +1245,7 @@ const GameScreen = ({
                       background: `linear-gradient(to right, ${COLORS.primary} 0%, ${COLORS.primary} ${bgmVolume * 100}%, ${COLORS.bgDark} ${bgmVolume * 100}%, ${COLORS.bgDark} 100%)`,
                       border: `2px solid ${COLORS.panelBorder}`,
                       outline: 'none',
-                      cursor: 'pointer',
+                      cursor: `url(${defaultCursor}) 0 0, pointer`,
                     }}
                   />
                 </div>
@@ -1284,7 +1276,7 @@ const GameScreen = ({
                       background: `linear-gradient(to right, ${COLORS.secondary} 0%, ${COLORS.secondary} ${sfxVolume * 100}%, ${COLORS.bgDark} ${sfxVolume * 100}%, ${COLORS.bgDark} 100%)`,
                       border: `2px solid ${COLORS.panelBorder}`,
                       outline: 'none',
-                      cursor: 'pointer',
+                      cursor: `url(${defaultCursor}) 0 0, pointer`,
                     }}
                   />
                 </div>
@@ -1304,7 +1296,7 @@ const GameScreen = ({
                     fontFamily: PIXEL_STYLES.fontFamily,
                     fontSize: '13px',
                     fontWeight: 'bold',
-                    cursor: 'pointer',
+                    cursor: `url(${defaultCursor}) 0 0, pointer`,
                     border: `3px solid ${COLORS.panelBorder}`,
                     background: COLORS.bgLight,
                     color: COLORS.textWhite,
@@ -1349,7 +1341,7 @@ const GameScreen = ({
                     background: 'transparent',
                     border: `2px solid ${COLORS.panelBorder}`,
                     color: COLORS.textWhite,
-                    cursor: 'pointer',
+                    cursor: `url(${defaultCursor}) 0 0, pointer`,
                     boxShadow: '2px 2px 0 0 rgba(0,0,0,0.3)',
                   }}
                 >

@@ -202,7 +202,6 @@ export const PixelButton = ({
         fontSize: s.fontSize,
         fontFamily: PIXEL_STYLES.fontFamily,
         fontWeight: 'bold',
-        cursor: disabled ? 'not-allowed' : 'pointer',
         transform: isPressed ? 'translate(4px, 4px)' : 'translate(0, 0)',
         transition: 'transform 0.05s, box-shadow 0.05s',
         textShadow: variant === 'primary' || variant === 'secondary' 

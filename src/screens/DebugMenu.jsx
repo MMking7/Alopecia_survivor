@@ -43,7 +43,6 @@ const DebugMenu = ({
                             border: 'none',
                             padding: '5px 10px',
                             fontFamily: 'inherit',
-                            cursor: 'pointer'
                         }}
                     >
                         CLOSE (` key)
@@ -73,7 +72,6 @@ const DebugMenu = ({
                                         border: `1px solid ${COLORS.textGray}`,
                                         color: COLORS.textWhite,
                                         padding: '8px',
-                                        cursor: 'pointer',
                                         fontFamily: 'inherit'
                                     }}
                                 >
@@ -117,7 +115,6 @@ const DebugMenu = ({
                                     border: `1px solid ${COLORS.danger}`,
                                     color: COLORS.danger,
                                     padding: '8px',
-                                    cursor: 'pointer',
                                     fontFamily: 'inherit',
                                     fontWeight: 'bold'
                                 }}
@@ -144,7 +141,6 @@ const DebugMenu = ({
                                     background: COLORS.bgLight,
                                     border: '1px solid #fff',
                                     padding: '10px',
-                                    cursor: 'pointer',
                                     marginBottom: '5px'
                                 }}
                             >
@@ -176,7 +172,6 @@ const DebugMenu = ({
                                         background: COLORS.bgLight,
                                         border: '1px solid #444',
                                         padding: '5px',
-                                        cursor: 'pointer',
                                         textAlign: 'left'
                                     }}
                                 >
@@ -210,7 +205,6 @@ const DebugMenu = ({
                                         background: COLORS.bgLight,
                                         border: '1px solid #444',
                                         padding: '8px',
-                                        cursor: 'pointer',
                                         textAlign: 'left'
                                     }}
                                 >
@@ -235,7 +229,6 @@ const DebugMenu = ({
                                         background: COLORS.bgLight,
                                         border: '1px solid #444',
                                         padding: '5px',
-                                        cursor: 'pointer',
                                         textAlign: 'left'
                                     }}
                                 >

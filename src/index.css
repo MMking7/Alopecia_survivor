@@ -17,9 +17,11 @@ a {
   font-weight: 500;
   color: #646cff;
   text-decoration: inherit;
+  cursor: url('/src/assets/cursors/cursor.png') 0 0, auto;
 }
 a:hover {
   color: #535bf2;
+  cursor: url('/src/assets/cursors/cursor.png') 0 0, auto;
 }
 
 html,
@@ -48,11 +50,17 @@ button {
   font-weight: 500;
   font-family: inherit;
   background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+  cursor: url('/src/assets/cursors/cursor.png') 0 0, auto;
+  transition: all 0.25s;
 }
 button:hover {
   border-color: #646cff;
+  cursor: url('/src/assets/cursors/cursor.png') 0 0, auto;
+  transform: scale(1.05);
+}
+button:active {
+  cursor: url('/src/assets/cursors/cursor.png') 0 0, auto;
+  transform: scale(0.98);
 }
 button:focus,
 button:focus-visible {

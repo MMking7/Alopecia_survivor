@@ -6,6 +6,7 @@ import {
   COLORS,
   PIXEL_STYLES 
 } from '../styles/PixelUI'
+import defaultCursor from '../assets/cursors/cursor.png'
 
 /**
  * GameOverScreen Component
@@ -33,6 +34,7 @@ const GameOverScreen = ({ stats, onRetry, onCharacterSelect, onMenu }) => {
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 20,
+      cursor: `url(${defaultCursor}) 0 0, auto`,
     }}>
       {/* Scanline overlay */}
       <div style={{

@@ -8,6 +8,7 @@ import {
   PIXEL_STYLES
 } from '../styles/PixelUI'
 import { playMenuSelect, playMenuConfirm } from '../utils/SoundManager'
+import defaultCursor from '../assets/cursors/cursor.png'
 
 const TitleScreen = ({ onStart, onShop, coins }) => {
   return (
@@ -25,6 +26,7 @@ const TitleScreen = ({ onStart, onShop, coins }) => {
       position: 'relative',
       overflow: 'hidden',
       boxSizing: 'border-box',
+      cursor: `url(${defaultCursor}) 0 0, auto`,
     }}>
       {/* Scanline overlay for retro effect */}
       <div style={{
