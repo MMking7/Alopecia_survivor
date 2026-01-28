@@ -6,7 +6,7 @@
 [![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 ---
-
+팀원 : SKKU 이준한, SNU 김민기
 ## 📝 목차
 
 1. [프로젝트 소개](#-프로젝트-소개)
