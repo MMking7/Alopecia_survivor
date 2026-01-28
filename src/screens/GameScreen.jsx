@@ -78,6 +78,40 @@ const GameScreen = ({
     onQuit,
   })
 
+  // Boss spawn notification system
+  const [bossNotification, setBossNotification] = React.useState(null)
+  const processedBossEventsRef = React.useRef(new Set())
+  const bossAudioRef = React.useRef(null)
+
+  // Check for boss spawn events
+  React.useEffect(() => {
+    if (!gameStateRef.current?.bossSpawnEvents) return
+
+    const events = gameStateRef.current.bossSpawnEvents
+    const newEvent = events.find(event => !processedBossEventsRef.current.has(event.bossId))
+
+    if (newEvent) {
+      processedBossEventsRef.current.add(newEvent.bossId)
+
+      // Play boss sound
+      if (newEvent.sound) {
+        if (bossAudioRef.current) {
+          bossAudioRef.current.pause()
+          bossAudioRef.current.currentTime = 0
+        }
+        bossAudioRef.current = new Audio(newEvent.sound)
+        bossAudioRef.current.volume = 0.7
+        bossAudioRef.current.play().catch(err => console.warn('Boss sound play failed:', err))
+      }
+
+      // Show boss subtitle banner
+      if (newEvent.subtitle) {
+        setBossNotification(newEvent.subtitle)
+        setTimeout(() => setBossNotification(null), 5000) // Show for 5 seconds
+      }
+    }
+  }, [displayStats.time]) // Check on time update
+
   const mainWeapon = getMainWeapon(selectedCharacter?.id)
   const mainWeaponLevel = gameStateRef.current?.mainWeaponLevel || 1
   const mainWeaponIconKey = selectedCharacter?.id
@@ -284,6 +318,39 @@ const GameScreen = ({
           height: '100%'
         }}
       />
+
+      {/* Boss Notification Banner */}
+      {bossNotification && (
+        <div style={{
+          position: 'absolute',
+          top: '15px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '75%',
+          background: 'linear-gradient(90deg, rgba(139, 0, 0, 0.95) 0%, rgba(220, 20, 60, 0.95) 50%, rgba(139, 0, 0, 0.95) 100%)',
+          border: '4px solid #FFD700',
+          boxShadow: '0 0 20px rgba(255, 215, 0, 0.8), inset 0 0 20px rgba(255, 0, 0, 0.4)',
+          padding: '20px 0',
+          zIndex: 200,
+          animation: 'bossWarning 1s ease-in-out infinite',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            fontFamily: 'Gungsuh, serif',
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: '#FFD700',
+            textShadow: '3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 20px rgba(255, 215, 0, 0.8)',
+            letterSpacing: '2px',
+            whiteSpace: 'nowrap',
+            animation: 'marquee 10s linear infinite',
+            display: 'inline-block',
+            willChange: 'transform',
+          }}>
+            {bossNotification}
+          </div>
+        </div>
+      )}
 
       {/* XP Bar - Top Full Width */}
       <div style={{

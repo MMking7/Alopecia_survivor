@@ -71,3 +71,23 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+@keyframes bossWarning {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), inset 0 0 20px rgba(255, 0, 0, 0.4);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.05);
+    box-shadow: 0 0 40px rgba(255, 215, 0, 1), inset 0 0 30px rgba(255, 0, 0, 0.6);
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(50%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}

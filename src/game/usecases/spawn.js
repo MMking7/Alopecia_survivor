@@ -22,6 +22,17 @@ export const handleSpawns = ({ state, currentTime }) => {
       }
       state.bossSpawned = true // Keep legacy flag true if any boss spawns
 
+      // Record boss spawn event for UI notification
+      if (!state.bossSpawnEvents) {
+        state.bossSpawnEvents = []
+      }
+      state.bossSpawnEvents.push({
+        bossId: boss.id,
+        time: state.gameTime,
+        sound: boss.sound,
+        subtitle: boss.subtitle,
+      })
+
       const angle = Math.random() * Math.PI * 2
       state.enemies.push({
         id: generateId(),

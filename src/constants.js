@@ -329,6 +329,8 @@ export const BOSSES = [
     size: 90,
     attackType: 'boss',
     attackCooldown: 800,
+    sound: '/sounds/boss/boss.wav',
+    subtitle: '느그 서장 어딨어! 니 네가 누군지 아냐 느그 서장이랑 임마',
   },
   {
     id: 'boss_subway',
@@ -343,6 +345,8 @@ export const BOSSES = [
     size: 150,
     attackType: 'boss',
     attackCooldown: 1000,
+    sound: '/sounds/boss/boss_subway.wav',
+    subtitle: '지구 상에 최고 깡패 할아버지 나타나느리라',
   },
   {
     id: 'boss_airraid',
@@ -357,6 +361,8 @@ export const BOSSES = [
     size: 200,
     attackType: 'boss',
     attackCooldown: 1200,
+    sound: '/sounds/boss/boss_airraid.wav',
+    subtitle: '공습 경보! 공습 경보! 경찰력 총동원!',
   },
 ]
 
