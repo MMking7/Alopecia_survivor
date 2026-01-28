@@ -144,8 +144,11 @@ const loadGlobalShop = () => {
 const mergeBonusStats = (prevBonus = {}, baseline = {}, current = {}) => {
   const getDelta = (key) => Math.max(0, (current[key] ?? baseline[key] ?? 0) - (baseline[key] ?? 0))
 
+  // NOTE: maxHp is intentionally NOT persisted here to prevent in-game items like
+  // black_beans from carrying over to future game sessions. Only passive skills and
+  // permanent upgrades should affect starting maxHp.
   return {
-    maxHp: Math.max(prevBonus.maxHp || 0, getDelta('maxHp')),
+    // maxHp: Math.max(prevBonus.maxHp || 0, getDelta('maxHp')), // Disabled - causes black bean bug
     crit: Math.max(prevBonus.crit || 0, getDelta('crit')),
     lifeSteal: Math.max(prevBonus.lifeSteal || 0, getDelta('lifeSteal')),
     xpMultiplier: Math.max(prevBonus.xpMultiplier || 0, getDelta('xpMultiplier')),

@@ -96,8 +96,18 @@ export const useGameEngine = ({
         gameStateRef.current.stats = upgrade.effect(gameStateRef.current.stats)
         // Also update baseStats so the effect persists after passive bonus recalculation
         gameStateRef.current.baseStats = upgrade.effect({ ...gameStateRef.current.baseStats })
-        gameStateRef.current.inventory.push(upgrade)
-        
+        // Clone the upgrade object to prevent reference sharing with UPGRADES constant
+        // This prevents state from persisting across game instances
+        gameStateRef.current.inventory.push({
+          id: upgrade.id,
+          name: upgrade.name,
+          type: upgrade.type,
+          description: upgrade.description,
+          icon: upgrade.icon,
+          isConsumable: upgrade.isConsumable,
+          // Don't copy the effect function to inventory - it's not needed for display
+        })
+
         // Magical Wig cooldown reduction is handled via specialCooldownReduction in stats/UI
       }
     }
