@@ -83,6 +83,35 @@ const GameScreen = ({
   const [bossNotification, setBossNotification] = React.useState(null)
   const processedBossEventsRef = React.useRef(new Set())
   const bossAudioRef = React.useRef(null)
+  const bgmAudioRef = React.useRef(null)
+
+  // BGM playback management
+  React.useEffect(() => {
+    // Initialize BGM on first game start
+    if (!bgmAudioRef.current && (gamePhase === 'playing' || gamePhase === 'levelup')) {
+      bgmAudioRef.current = new Audio('/sounds/bgm/bgm.wav')
+      bgmAudioRef.current.loop = true
+      bgmAudioRef.current.volume = 0.4
+      bgmAudioRef.current.play().catch(err => console.warn('BGM play failed:', err))
+    }
+
+    // Handle pause/resume
+    if (bgmAudioRef.current) {
+      if (gamePhase === 'paused') {
+        bgmAudioRef.current.pause()
+      } else if (gamePhase === 'playing' || gamePhase === 'levelup') {
+        bgmAudioRef.current.play().catch(err => console.warn('BGM resume failed:', err))
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (bgmAudioRef.current && gamePhase === null) {
+        bgmAudioRef.current.pause()
+        bgmAudioRef.current = null
+      }
+    }
+  }, [gamePhase])
 
   // Check for boss spawn events
   React.useEffect(() => {
