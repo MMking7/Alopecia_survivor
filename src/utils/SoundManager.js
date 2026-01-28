@@ -32,6 +32,14 @@ const SOUNDS = {
 // Audio cache to avoid creating new Audio objects every time
 const audioCache = {}
 
+// Audio pool for rapid-fire sounds (like hit effects)
+const audioPool = {}
+const POOL_SIZE = 10 // Increased for more overlapping sounds
+
+// Throttle tracking for rapid sounds
+let lastHitSoundTime = 0
+const HIT_SOUND_THROTTLE_MS = 0 // No throttle - play every hit sound
+
 // Global volume multiplier (can be set from settings)
 let globalSfxVolume = 0.7
 
@@ -41,6 +49,32 @@ let globalSfxVolume = 0.7
  */
 export const setGlobalSfxVolume = (volume) => {
     globalSfxVolume = Math.max(0, Math.min(1, volume))
+}
+
+/**
+ * Get or create an audio pool for a sound
+ */
+const getAudioFromPool = (soundKey) => {
+    const soundPath = SOUNDS[soundKey]
+    if (!soundPath) return null
+
+    if (!audioPool[soundKey]) {
+        audioPool[soundKey] = []
+        for (let i = 0; i < POOL_SIZE; i++) {
+            audioPool[soundKey].push(new Audio(soundPath))
+        }
+    }
+
+    // Find an audio element that isn't currently playing
+    const pool = audioPool[soundKey]
+    for (const audio of pool) {
+        if (audio.paused || audio.ended) {
+            return audio
+        }
+    }
+
+    // All are busy, return the first one (will restart it)
+    return pool[0]
 }
 
 /**
@@ -77,6 +111,39 @@ const playSound = (soundKey, volume = 0.5) => {
     }
 }
 
+/**
+ * Play a pooled sound (for rapid-fire sounds like hit effects)
+ * Uses audio pooling to allow overlapping playback
+ */
+const playPooledSound = (soundKey, volume = 0.5, throttleMs = 0) => {
+    try {
+        // Throttle check
+        const now = performance.now()
+        if (throttleMs > 0) {
+            if (now - lastHitSoundTime < throttleMs) {
+                return // Skip this sound, too soon
+            }
+            lastHitSoundTime = now
+        }
+
+        const audio = getAudioFromPool(soundKey)
+        if (!audio) {
+            console.warn(`[SoundManager] Unknown sound key: ${soundKey}`)
+            return
+        }
+
+        audio.volume = Math.max(0, Math.min(1, volume * globalSfxVolume))
+        audio.currentTime = 0
+        audio.play().catch(err => {
+            if (err.name !== 'NotAllowedError') {
+                console.warn(`[SoundManager] Failed to play ${soundKey}:`, err)
+            }
+        })
+    } catch (err) {
+        console.warn(`[SoundManager] Error playing pooled sound:`, err)
+    }
+}
+
 // Convenience functions for each sound
 export const playLevelUp = (volume = 0.6) => playSound('levelUp', volume)
 export const playCharSelectWoosh = (volume = 0.3) => playSound('charSelectWoosh', volume)
@@ -87,7 +154,9 @@ export const playMenuSelect = (volume = 0.3) => playSound('menuSelect', volume)
 export const playSpecialUse = (volume = 0.6) => playSound('specialUse', volume)
 export const playBossDefeated = (volume = 0.7) => playSound('bossDefeated', volume)
 export const playBuyUpgrade = (volume = 0.5) => playSound('buyUpgrade', volume)
-export const playHit1 = (volume = 0.3) => playSound('hit1', volume)
+
+// Hit sound uses pooling + throttling for rapid playback
+export const playHit1 = (volume = 0.3) => playPooledSound('hit1', volume, HIT_SOUND_THROTTLE_MS)
 
 const CHARACTER_ATTACK_SOUNDS = {
     female: 'attack_female',
@@ -117,3 +186,4 @@ export default {
     playHit1,
     playCharacterAttack,
 }
+
