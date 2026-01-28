@@ -5,6 +5,7 @@ import DebugMenu from './DebugMenu'
 import { useGameEngine } from '../game/adapters/react/useGameEngine'
 import { formatTime } from '../game/domain/xp'
 import { COLORS, PIXEL_STYLES } from '../styles/PixelUI'
+import { playMenuSelect } from '../utils/SoundManager'
 import autoAimCursor from '../assets/cursors/auto_aim.png'
 import manualAimCursor from '../assets/cursors/manual_aim.png'
 
@@ -1039,6 +1040,7 @@ const GameScreen = ({
                     }}
                     onMouseEnter={(e) => {
                       if (!btn.disabled) {
+                        playMenuSelect()
                         e.currentTarget.style.transform = 'translate(2px, 2px)'
                         e.currentTarget.style.boxShadow = '1px 1px 0 0 rgba(0,0,0,0.5)'
                       }
