@@ -6,7 +6,7 @@
 [![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 ---
-
+팀원 : SKKU 이준한, SNU 김민기
 ## 📝 목차
 
 1. [프로젝트 소개](#-프로젝트-소개)
@@ -26,6 +26,10 @@
 **Pixel Roguelike Survivor**는 픽셀 아트 스타일의 탑뷰 액션 로그라이크 게임입니다. 플레이어는 계속해서 생성되는 머리카락을 가져가는 적들을 처치하며 경험치를 얻고, 레벨업을 통해 다양한 스킬과 무기를 강화하여 최대한 오래 생존하는 것이 목표입니다.
 
 ### 🎯 게임 설명
+
+
+https://github.com/user-attachments/assets/c218bc67-35f4-41ab-8a06-c7b21b6afecf
+
 
 몰려오는 적들을 피하며 공격하고, 레벨업 시 제공되는 업그레이드를 선택하여 자신만의 빌드를 만들어보세요. 특정 시간마다 등장하는 강력한 보스를 물리치면 막대한 보상을 획득할 수 있습니다.
 
