@@ -11,6 +11,7 @@ import {
   COLORS,
   PIXEL_STYLES
 } from '../styles/PixelUI'
+import { playCharSelectWoosh, playCharSelected, playMenuBack, playMenuConfirm } from '../utils/SoundManager'
 
 const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStart, onBack, imagesLoaded, characterProgress, coins }) => {
 
@@ -238,7 +239,8 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
                 return (
                   <div
                     key={char.id}
-                    onClick={() => onSelect(char)}
+                    onClick={() => { playCharSelected(); onSelect(char); }}
+                    onMouseEnter={() => playCharSelectWoosh()}
                     style={{
                       background: isSelected
                         ? `linear-gradient(135deg, ${char.color}40, ${char.color}10)`
@@ -309,11 +311,11 @@ const CharacterSelectScreen = ({ characters, selectedCharacter, onSelect, onStar
 
           {/* Buttons */}
           <div style={{ display: 'flex', gap: '15px' }}>
-            <PixelButton onClick={onBack} variant="ghost" size="medium">
+            <PixelButton onClick={() => { playMenuBack(); onBack(); }} variant="ghost" size="medium">
               ◀ BACK
             </PixelButton>
             <PixelButton
-              onClick={onStart}
+              onClick={() => { if (selectedCharacter && imagesLoaded) { playCharSelected(); onStart(); } }}
               disabled={!selectedCharacter || !imagesLoaded}
               variant="primary"
               size="large"

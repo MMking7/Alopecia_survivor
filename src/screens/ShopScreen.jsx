@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { SPRITES } from '../constants'
-import { 
-  ScreenBackground, 
-  PixelPanel, 
-  PixelButton, 
+import {
+  ScreenBackground,
+  PixelPanel,
+  PixelButton,
   PixelTitle,
   CoinDisplay,
   LevelIndicator,
   COLORS,
-  PIXEL_STYLES 
+  PIXEL_STYLES
 } from '../styles/PixelUI'
+import { playMenuBack, playMenuConfirm, playMenuSelect, playCharSelected, playBuyUpgrade } from '../utils/SoundManager'
 
 const GACHA_COST = 1000
 
@@ -37,7 +38,7 @@ const GachaAnimation = ({ isPlaying, characters, onComplete, result }) => {
           const resultIndex = characters.findIndex(c => c.id === result.id)
           setDisplayIndex(resultIndex >= 0 ? resultIndex : 0)
           setPhase('reveal')
-          
+
           // 스파클 효과 생성
           const newSparkles = Array.from({ length: 20 }, (_, i) => ({
             id: i,
@@ -47,7 +48,7 @@ const GachaAnimation = ({ isPlaying, characters, onComplete, result }) => {
             delay: Math.random() * 0.5,
           }))
           setSparkles(newSparkles)
-          
+
           setTimeout(() => {
             onComplete()
             setPhase('idle')
@@ -118,8 +119,8 @@ const GachaAnimation = ({ isPlaying, characters, onComplete, result }) => {
       </style>
 
       {/* 가챠 제목 */}
-      <PixelTitle 
-        size="large" 
+      <PixelTitle
+        size="large"
         color={phase === 'reveal' ? COLORS.primary : COLORS.textWhite}
         style={{ marginBottom: '30px' }}
       >
@@ -130,11 +131,11 @@ const GachaAnimation = ({ isPlaying, characters, onComplete, result }) => {
       <div style={{
         width: '280px',
         height: '350px',
-        background: phase === 'reveal' 
+        background: phase === 'reveal'
           ? `linear-gradient(180deg, ${currentChar?.color}40, ${COLORS.bgDark})`
           : COLORS.bgLight,
         border: `6px solid ${phase === 'reveal' ? COLORS.primary : COLORS.panelBorder}`,
-        boxShadow: phase === 'reveal' 
+        boxShadow: phase === 'reveal'
           ? `0 0 50px ${COLORS.primary}80`
           : '8px 8px 0 0 rgba(0,0,0,0.5)',
         display: 'flex',
@@ -157,8 +158,8 @@ const GachaAnimation = ({ isPlaying, characters, onComplete, result }) => {
           overflow: 'hidden',
         }}>
           {SPRITES.characters[currentChar?.id] ? (
-            <img 
-              src={SPRITES.characters[currentChar?.id]} 
+            <img
+              src={SPRITES.characters[currentChar?.id]}
               alt={currentChar?.name}
               style={{
                 width: '100%',
@@ -211,16 +212,16 @@ const GachaAnimation = ({ isPlaying, characters, onComplete, result }) => {
   )
 }
 
-const ShopScreen = ({ 
-  coins, 
-  setCoins, 
-  shopLevels, 
-  setShopLevels, 
-  shopUpgrades, 
+const ShopScreen = ({
+  coins,
+  setCoins,
+  shopLevels,
+  setShopLevels,
+  shopUpgrades,
   characterRanks = {},
   setCharacterRanks,
   characters = [],
-  onBack 
+  onBack
 }) => {
   const [selectedShopItem, setSelectedShopItem] = useState(null)
   const [activeTab, setActiveTab] = useState('upgrades') // 'upgrades' or 'gacha'
@@ -250,23 +251,23 @@ const ShopScreen = ({
   // 가챠 뽑기
   const handleGacha = () => {
     if (coins < GACHA_COST || isGachaPlaying || characters.length === 0) return
-    
+
     setCoins(prev => prev - GACHA_COST)
-    
+
     // 1/N 확률로 랜덤 캐릭터 선택
     const randomIndex = Math.floor(Math.random() * characters.length)
     const selectedChar = characters[randomIndex]
-    
+
     const currentRank = characterRanks[selectedChar.id] || 0
     const newRank = currentRank + 1
     const isDuplicate = currentRank > 0
-    
+
     setGachaResult({
       ...selectedChar,
       isDuplicate,
       newRank,
     })
-    
+
     setIsGachaPlaying(true)
   }
 
@@ -291,7 +292,7 @@ const ShopScreen = ({
   return (
     <ScreenBackground variant="blue">
       {/* 가챠 애니메이션 오버레이 */}
-      <GachaAnimation 
+      <GachaAnimation
         isPlaying={isGachaPlaying}
         characters={characters}
         result={gachaResult}
@@ -307,19 +308,19 @@ const ShopScreen = ({
         boxSizing: 'border-box',
       }}>
         {/* Left - Shop Info (고정 너비) */}
-        <PixelPanel style={{ 
-          width: '300px', 
+        <PixelPanel style={{
+          width: '300px',
           minWidth: '300px',
           maxWidth: '300px',
           flexShrink: 0,
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center' 
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
         }}>
           <PixelTitle size="medium" color={COLORS.primary} style={{ marginBottom: '20px' }}>
             🛒 STORE
           </PixelTitle>
-          
+
           {/* Tab Buttons */}
           <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', width: '100%' }}>
             <PixelButton
@@ -339,7 +340,7 @@ const ShopScreen = ({
               GACHA
             </PixelButton>
           </div>
-          
+
           {/* Shop NPC */}
           <div style={{
             width: '180px',
@@ -356,7 +357,7 @@ const ShopScreen = ({
               {activeTab === 'upgrades' ? '🧙' : '🎰'}
             </span>
           </div>
-          
+
           {/* Shop Message */}
           <PixelPanel variant="dark" style={{ width: '100%', textAlign: 'center' }}>
             <p style={{
@@ -366,12 +367,12 @@ const ShopScreen = ({
               margin: 0,
               lineHeight: 1.6,
             }}>
-              {activeTab === 'upgrades' 
+              {activeTab === 'upgrades'
                 ? '"어서오게, 여행자여!\n무엇이 필요한가?"'
                 : '"운을 시험해 볼텐가?\n1000 코인이면 돼!"'}
             </p>
           </PixelPanel>
-          
+
           {/* Coins at bottom */}
           <div style={{ marginTop: 'auto' }}>
             <CoinDisplay coins={coins} />
@@ -384,28 +385,29 @@ const ShopScreen = ({
             <>
               {/* Items Grid */}
               <PixelPanel style={{ marginBottom: '20px', flex: '0 0 auto' }}>
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', 
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
                   gap: '15px',
                 }}>
                   {shopUpgrades.map((item) => {
                     const level = shopLevels[item.id] || 0
                     const isMaxed = level >= item.maxLevel
                     const isSelected = selectedShopItem?.id === item.id
-                    
+
                     return (
                       <div
                         key={item.id}
                         onClick={() => setSelectedShopItem(item)}
+                        onMouseEnter={() => playMenuSelect()}
                         style={{
                           minWidth: '95px',
                           height: '120px',
-                          background: isSelected 
+                          background: isSelected
                             ? `linear-gradient(180deg, ${COLORS.secondary}30, ${COLORS.bgDark})`
                             : COLORS.bgLight,
                           border: `4px solid ${isSelected ? COLORS.secondary : COLORS.panelBorder}`,
-                          boxShadow: isSelected 
+                          boxShadow: isSelected
                             ? `0 0 15px ${COLORS.secondary}40, 4px 4px 0 0 rgba(0,0,0,0.5)`
                             : '4px 4px 0 0 rgba(0,0,0,0.5)',
                           display: 'flex',
@@ -419,7 +421,7 @@ const ShopScreen = ({
                         }}
                       >
                         <span style={{ fontSize: '36px', marginBottom: '6px' }}>{item.icon}</span>
-                        
+
                         {/* Item Name */}
                         <div style={{
                           fontFamily: PIXEL_STYLES.fontFamily,
@@ -439,7 +441,7 @@ const ShopScreen = ({
                         }}>
                           {item.name}
                         </div>
-                        
+
                         {/* Level Progress Bar */}
                         <div style={{
                           width: '70px',
@@ -455,7 +457,7 @@ const ShopScreen = ({
                             top: 0,
                             bottom: 0,
                             width: `${(level / item.maxLevel) * 100}%`,
-                            background: isMaxed 
+                            background: isMaxed
                               ? `linear-gradient(90deg, ${COLORS.primary}, ${COLORS.primaryDark})`
                               : `linear-gradient(90deg, ${COLORS.secondary}, ${COLORS.secondaryDark})`,
                             transition: 'width 0.3s ease',
@@ -479,8 +481,8 @@ const ShopScreen = ({
               </PixelPanel>
 
               {/* Item Description */}
-              <PixelPanel 
-                variant={selectedShopItem ? 'highlight' : 'default'} 
+              <PixelPanel
+                variant={selectedShopItem ? 'highlight' : 'default'}
                 style={{ marginBottom: '20px', minHeight: '120px', flex: '0 0 auto' }}
               >
                 {selectedShopItem ? (
@@ -498,7 +500,7 @@ const ShopScreen = ({
                     }}>
                       <span style={{ fontSize: '48px' }}>{selectedShopItem.icon}</span>
                     </div>
-                    
+
                     {/* Info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <h3 style={{
@@ -530,7 +532,7 @@ const ShopScreen = ({
                         </span>
                       </div>
                     </div>
-                    
+
                     {/* Cost */}
                     <div style={{
                       textAlign: 'right',
@@ -556,9 +558,9 @@ const ShopScreen = ({
                     </div>
                   </div>
                 ) : (
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     height: '80px',
                   }}>
@@ -575,8 +577,9 @@ const ShopScreen = ({
 
               {/* Buttons */}
               <div style={{ display: 'flex', gap: '15px', marginTop: 'auto' }}>
-                <PixelButton 
-                  onClick={handleBuy}
+                <PixelButton
+                  onClick={() => { if (canBuy) { playBuyUpgrade(); handleBuy(); } }}
+                  onMouseEnter={() => playMenuSelect()}
                   disabled={!canBuy}
                   variant="primary"
                   size="large"
@@ -584,16 +587,17 @@ const ShopScreen = ({
                 >
                   💰 BUY
                 </PixelButton>
-                <PixelButton 
-                  onClick={handleRefund}
+                <PixelButton
+                  onClick={() => { if (canRefund) { playMenuBack(); handleRefund(); } }}
                   disabled={!canRefund}
                   variant="danger"
                   size="medium"
                 >
                   ↩ REFUND
                 </PixelButton>
-                <PixelButton 
-                  onClick={onBack}
+                <PixelButton
+                  onClick={() => { playMenuBack(); onBack(); }}
+                  onMouseEnter={() => playMenuSelect()}
                   variant="ghost"
                   size="medium"
                 >
@@ -608,7 +612,7 @@ const ShopScreen = ({
                 <PixelTitle size="small" color={COLORS.secondary} style={{ marginBottom: '15px', textAlign: 'center' }}>
                   🎰 CHARACTER GACHA 🎰
                 </PixelTitle>
-                
+
                 <div style={{
                   fontFamily: PIXEL_STYLES.fontFamily,
                   fontSize: '14px',
@@ -616,30 +620,30 @@ const ShopScreen = ({
                   textAlign: 'center',
                   marginBottom: '20px',
                 }}>
-                  1000 코인으로 랜덤 캐릭터를 뽑으세요!<br/>
+                  1000 코인으로 랜덤 캐릭터를 뽑으세요!<br />
                   중복 시 RANK UP → 스탯 +1%
                 </div>
 
                 {/* Character Grid with Ranks */}
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(95px, 1fr))', 
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(95px, 1fr))',
                   gap: '10px',
                   marginBottom: 0,
                 }}>
                   {characters.map((char) => {
                     const rank = characterRanks[char.id] || 0
                     const bonusPercent = rank * 1
-                    
+
                     return (
                       <div
                         key={char.id}
                         style={{
-                          background: rank > 0 
+                          background: rank > 0
                             ? `linear-gradient(180deg, ${char.color}40, ${COLORS.bgDark})`
                             : COLORS.bgLight,
                           border: `3px solid ${rank > 0 ? char.color : COLORS.panelBorder}`,
-                          boxShadow: rank > 0 
+                          boxShadow: rank > 0
                             ? `0 0 10px ${char.color}50`
                             : '3px 3px 0 0 rgba(0,0,0,0.5)',
                           padding: '8px',
@@ -662,8 +666,8 @@ const ShopScreen = ({
                           flexShrink: 0,
                         }}>
                           {SPRITES.characters[char.id] ? (
-                            <img 
-                              src={SPRITES.characters[char.id]} 
+                            <img
+                              src={SPRITES.characters[char.id]}
                               alt={char.name}
                               style={{
                                 width: '100%',
@@ -684,7 +688,7 @@ const ShopScreen = ({
                             }}>👤</div>
                           )}
                         </div>
-                        
+
                         {/* Character Name */}
                         <div style={{
                           fontFamily: PIXEL_STYLES.fontFamily,
@@ -699,10 +703,10 @@ const ShopScreen = ({
                         }}>
                           {char.name}
                         </div>
-                        
+
                         {/* Rank Badge */}
                         <div style={{
-                          background: rank > 0 
+                          background: rank > 0
                             ? `linear-gradient(180deg, ${COLORS.primary}, ${COLORS.primaryDark})`
                             : 'rgba(0,0,0,0.5)',
                           padding: '2px 8px',
@@ -717,7 +721,7 @@ const ShopScreen = ({
                             {rank > 0 ? `R${rank}` : '-'}
                           </span>
                         </div>
-                        
+
                         {/* Bonus Display */}
                         {rank > 0 && (
                           <div style={{
@@ -751,7 +755,7 @@ const ShopScreen = ({
                   }}>
                     <span style={{ fontSize: '60px' }}>🎰</span>
                   </div>
-                  
+
                   {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <h3 style={{
@@ -769,7 +773,7 @@ const ShopScreen = ({
                       margin: '0 0 10px',
                       fontSize: '12px',
                     }}>
-                      모든 캐릭터가 동일한 확률 (1/{characters.length})로 등장합니다.<br/>
+                      모든 캐릭터가 동일한 확률 (1/{characters.length})로 등장합니다.<br />
                       RANK가 오르면 해당 캐릭터의 모든 스탯이 1%씩 증가합니다!
                     </p>
                     <div style={{
@@ -780,7 +784,7 @@ const ShopScreen = ({
                       보유 캐릭터: {Object.keys(characterRanks).filter(k => characterRanks[k] > 0).length} / {characters.length}
                     </div>
                   </div>
-                  
+
                   {/* Cost */}
                   <div style={{
                     textAlign: 'right',
@@ -809,7 +813,7 @@ const ShopScreen = ({
 
               {/* Gacha Buttons */}
               <div style={{ display: 'flex', gap: '15px', marginTop: 'auto' }}>
-                <PixelButton 
+                <PixelButton
                   onClick={handleGacha}
                   disabled={!canGacha}
                   variant="primary"
@@ -818,8 +822,8 @@ const ShopScreen = ({
                 >
                   🎰 PULL GACHA
                 </PixelButton>
-                <PixelButton 
-                  onClick={onBack}
+                <PixelButton
+                  onClick={() => { playMenuBack(); onBack(); }}
                   variant="ghost"
                   size="medium"
                 >

@@ -4,6 +4,7 @@ import { generateId, distance } from '../domain/math'
 import { buildLevelUpOptions } from './levelUpOptions'
 import { updateSkillSystems } from '../features/skills/updateSkillSystems'
 import { getMapObjectDef, getInteractionBox, createMapObject, getCollisionBox, getRenderBox } from '../map/mapObjects'
+import { playLevelUp, playBossDefeated } from '../../utils/SoundManager'
 
 /**
  * Damage destructible map objects within an area
@@ -20,7 +21,7 @@ export const damageMapObjects = (state, attackArea, damage, currentTime, isCircu
 
   state.mapObjects.forEach((obj, index) => {
     const def = getMapObjectDef(obj.type)
-    
+
     if (!def || !def.destructible) return
     if (obj.isDestroyed) return
 
@@ -48,7 +49,7 @@ export const damageMapObjects = (state, attackArea, damage, currentTime, isCircu
       hit = distSq <= attackArea.radius * attackArea.radius
     } else {
       // Rectangular attack
-      hit = 
+      hit =
         attackArea.x < interactionBox.x + interactionBox.width &&
         attackArea.x + attackArea.width > interactionBox.x &&
         attackArea.y < interactionBox.y + interactionBox.height &&
@@ -320,7 +321,7 @@ export const updateMovementAndCamera = ({ state, deltaTime }) => {
       }
 
       // Block movement for 'blocking' behavior OR 'destructible' with hp > 0
-      const shouldBlock = def.behavior === 'blocking' || 
+      const shouldBlock = def.behavior === 'blocking' ||
         (def.behavior === 'destructible' && objHp > 0)
       if (!shouldBlock) continue
 
@@ -330,7 +331,7 @@ export const updateMovementAndCamera = ({ state, deltaTime }) => {
       // Check if new position collides with object
       const closestX = Math.max(collisionBox.x, Math.min(newX, collisionBox.x + collisionBox.width))
       const closestY = Math.max(collisionBox.y, Math.min(newY, collisionBox.y + collisionBox.height))
-      
+
       const distX = newX - closestX
       const distY = newY - closestY
       const distSquared = distX * distX + distY * distY
@@ -342,7 +343,7 @@ export const updateMovementAndCamera = ({ state, deltaTime }) => {
         const closestYOld = Math.max(collisionBox.y, Math.min(state.player.y, collisionBox.y + collisionBox.height))
         const distXOnly = testX - closestXOnly
         const distYOld = state.player.y - closestYOld
-        
+
         if (distXOnly * distXOnly + distYOld * distYOld >= playerRadius * playerRadius) {
           // X movement is valid, keep newX but revert Y
           newY = state.player.y
@@ -353,7 +354,7 @@ export const updateMovementAndCamera = ({ state, deltaTime }) => {
           const closestYOnly = Math.max(collisionBox.y, Math.min(testY, collisionBox.y + collisionBox.height))
           const distXOld = state.player.x - closestXOld
           const distYOnly = testY - closestYOnly
-          
+
           if (distXOld * distXOld + distYOnly * distYOnly >= playerRadius * playerRadius) {
             // Y movement is valid, revert X but keep newY
             newX = state.player.x
@@ -535,6 +536,12 @@ export const updateCombat = ({
     } else if (enemy.currentHp <= 0) {
       enemy.isDead = true
       enemy.deathTimer = 0
+
+      // Play boss defeated sound
+      if (enemy.type && enemy.type.startsWith('boss')) {
+        playBossDefeated()
+      }
+
       // Apply Knockback away from player (캐릭터 반대 방향으로 멀리 날아감)
       const angle = Math.atan2(enemy.y - state.player.y, enemy.x - state.player.x)
       const force = 500 // 더 강한 knockback
@@ -1357,6 +1364,7 @@ export const updateCombat = ({
       const finalOptions = buildLevelUpOptions(state)
       setLevelUpOptions(finalOptions)
       setGamePhase('levelup')
+      playLevelUp()
 
 
     }

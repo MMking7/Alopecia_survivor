@@ -1,12 +1,13 @@
 import React from 'react'
 import { SPRITES } from '../constants'
-import { 
-  PixelPanel, 
-  PixelButton, 
+import {
+  PixelPanel,
+  PixelButton,
   CoinDisplay,
   COLORS,
-  PIXEL_STYLES 
+  PIXEL_STYLES
 } from '../styles/PixelUI'
+import { playMenuSelect, playMenuConfirm } from '../utils/SoundManager'
 
 const TitleScreen = ({ onStart, onShop, coins }) => {
   return (
@@ -38,20 +39,21 @@ const TitleScreen = ({ onStart, onShop, coins }) => {
       <div style={{ position: 'absolute', top: '30px', right: '30px', zIndex: 2 }}>
         <CoinDisplay coins={coins} />
       </div>
-      
+
       {/* Main Buttons Container */}
-      <div style={{ 
-        marginBottom: '50px', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        gap: '20px', 
+      <div style={{
+        marginBottom: '50px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
         alignItems: 'center',
         zIndex: 2,
       }}>
         {/* Start Button */}
-        <PixelButton 
-          onClick={onStart} 
-          variant="primary" 
+        <PixelButton
+          onClick={() => { playMenuConfirm(); onStart(); }}
+          onMouseEnter={() => playMenuSelect()}
+          variant="primary"
           size="large"
           style={{ minWidth: '280px' }}
         >
@@ -60,23 +62,23 @@ const TitleScreen = ({ onStart, onShop, coins }) => {
 
         {/* Menu Row */}
         <div style={{ display: 'flex', gap: '15px' }}>
-          <PixelButton onClick={onShop} variant="dark" size="medium">
+          <PixelButton onClick={onShop} onMouseEnter={() => playMenuSelect()} variant="dark" size="medium">
             🛒 STORE
           </PixelButton>
-          <PixelButton variant="ghost" size="medium" disabled>
+          <PixelButton onMouseEnter={() => playMenuSelect()} variant="ghost" size="medium" disabled>
             ⚙️ SETTING
           </PixelButton>
-          <PixelButton variant="ghost" size="medium" disabled>
+          <PixelButton onMouseEnter={() => playMenuSelect()} variant="ghost" size="medium" disabled>
             📜 CREDIT
           </PixelButton>
         </div>
       </div>
 
       {/* Version */}
-      <div style={{ 
-        position: 'absolute', 
-        bottom: '15px', 
-        right: '20px', 
+      <div style={{
+        position: 'absolute',
+        bottom: '15px',
+        right: '20px',
         fontFamily: PIXEL_STYLES.fontFamily,
         fontSize: '12px',
         color: COLORS.textGray,
