@@ -355,7 +355,7 @@ export const BOSSES = [
     name: '공습 경보',
     sprite: '/sprites/bosses/boss_airraid.webp',
     speed: 30,
-    hp: 50000,
+    hp: 30000,
     damage: 100,
     xp: 10000,
     size: 200,
